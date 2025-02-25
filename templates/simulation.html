@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simul-AI-tor Simulation</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f7f7f7; margin: 0; padding: 0; }
+        header { background-color: #005f73; color: white; padding: 20px; display: flex; align-items: center; }
+        header img { height: 50px; margin-right: 20px; }
+        .container { padding: 20px; }
+        .chat-log { border: 1px solid #ccc; background-color: white; padding: 10px; height: 300px; overflow-y: scroll; }
+        textarea { width: 100%; }
+        button { margin-top: 5px; padding: 5px 10px; }
+        .feedback { border: 1px solid #005f73; background-color: #e0fbfc; padding: 10px; margin-top: 20px; }
+        .prompt-box { border: 1px solid #005f73; background-color: #e0fbfc; padding: 10px; margin-top: 20px; }
+        #spinner { display: none; margin-top: 10px; font-style: italic; color: #005f73; }
+    </style>
+</head>
+<body>
+    <header>
+        <img src="/static/new_logo.avif" alt="Logo">
+        <h1>Simul-AI-tor</h1>
+    </header>
+    <div class="container">
+        {% if not conversation %}
+            <h2>Start Simulation</h2>
+            <form method="POST" action="{{ url_for('start_simulation') }}">
+                <label for="simulation_level">Select Simulation Level:</label>
+                <select id="simulation_level" name="simulation_level" required>
+                    <option value="">--Select--</option>
+                    <option value="Foundation">Foundation</option>
+                    <option value="Enhanced">Enhanced</option>
+                    <option value="Advanced">Advanced</option>
+                </select>
+                <button type="submit">Start Simulation</button>
+            </form>
+        {% else %}
+            <div class="chat-log" id="chatLog">
+                {% for msg in conversation %}
+                    <p><strong>{{ "Patient" if msg.role == "assistant" else msg.role|capitalize }}:</strong> {{ msg.content }}</p>
+                {% endfor %}
+            </div>
+            <form method="POST" id="messageForm">
+                <textarea name="message" rows="3" placeholder="Type your message here..." required></textarea>
+                <button type="submit">Send</button>
+            </form>
+            <form method="POST" action="{{ url_for('prompt') }}" id="promptForm">
+                <button type="submit" id="promptBtn" title="Press for hints if you are stuck!">Prompt</button>
+            </form>
+            <div id="spinner">Generating hints, please wait...</div>
+            {% if prompt %}
+                <div class="prompt-box">
+                    <h3>Suggested Next Questions:</h3>
+                    <p>{{ prompt }}</p>
+                </div>
+            {% endif %}
+            <form method="POST" action="{{ url_for('feedback') }}" id="feedbackForm">
+                <button type="submit" id="feedbackBtn">Request Feedback</button>
+            </form>
+            <div id="spinnerFeedback" style="display:none;">Generating feedback, please wait...</div>
+            {% if feedback %}
+                <div class="feedback">
+                    <h3>Feedback:</h3>
+                    <p>{{ feedback }}</p>
+                    <button onclick="location.href='{{ url_for('download_feedback') }}'">Download Feedback as PDF</button>
+                </div>
+            {% endif %}
+            <button onclick="location.href='{{ url_for('clear_simulation') }}'">Clear Conversation</button>
+        {% endif %}
+    </div>
+    <script>
+        // Show spinner for feedback form submission
+        document.getElementById('feedbackForm')?.addEventListener('submit', function(e) {
+            document.getElementById('feedbackBtn').disabled = true;
+            document.getElementById('spinnerFeedback').style.display = 'block';
+        });
+        // Show spinner for prompt form submission
+        document.getElementById('promptForm')?.addEventListener('submit', function(e) {
+            document.getElementById('promptBtn').disabled = true;
+            document.getElementById('spinner').style.display = 'block';
+        });
+        // Add event listener to the message form so that pressing Enter (without Shift) submits the form.
+        document.getElementById('messageForm')?.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                this.submit();
+            }
+        });
+    </script>
+</body>
+</html>
+<footer class="text-center mt-4 py-3" style="background-color: #f7f7f7;">
+    <small>&copy; 2025 William Swain. All rights reserved.</small>
+</footer>

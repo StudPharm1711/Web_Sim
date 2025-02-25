@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+</head>
+<body>
+    <h1>Welcome, {{ username }}!</h1>
+    <p>This is your clinical history-taking dashboard.</p>
+    <a href="{{ url_for('simulation') }}">Start Simulation</a> |
+    <a href="{{ url_for('logout') }}">Logout</a>
+</body>
+</html>
