@@ -60,7 +60,8 @@ INSTRUCTIONS = {
         "\"Can I speak with someone about my symptoms?\" and wait for the user's response before providing further details. Randomly generate two or three presenting complaints "
         "from the following list: chest pain, shortness of breath, persistent fatigue, abdominal pain, chronic diarrhoea, joint stiffness, recurring fever, severe headache, "
         "nausea, unintentional weight loss, heart palpitations, muscle weakness, skin irritation, recurrent dizziness, constipation, leg swelling, backache, blurred vision, "
-        "frequent urination, or throat soreness. Provide minimal details until prompted for more, then add additional details gradually. IMPORTANT: Remain in character as the patient at all times and do not disclose that you are an AI."
+        "frequent urination, or throat soreness. Provide minimal details until prompted for more, then add additional details gradually. IMPORTANT: Remain in character as the patient "
+        "at all times and do not disclose that you are an AI."
     ),
     'Advanced': (
         "You are a patient in a history-taking simulation. Your name is {patient_name} and you are a {gender} patient. Begin every interaction by saying exactly: "
@@ -86,7 +87,6 @@ PROMPT_INSTRUCTION = (
     "Include a brief justification (1-2 sentences) for your suggestion. Format your answer as a single bullet point.\nConversation history:"
 )
 
-# Routes
 @app.route('/')
 def index():
     return redirect(url_for('login'))
@@ -167,32 +167,9 @@ def simulation():
                            feedback=session.get('feedback'),
                            prompt=session.get('prompt'))
 
-@app.route('/feedback', methods=['POST'])
-@login_required
-def generate_feedback():
-    conversation = session.get('conversation', [])
-    if not conversation:
-        flash("No conversation available for feedback", "warning")
-        return redirect(url_for('simulation'))
-    conv_text = "\n".join([
-        f"{'User' if m['role']=='user' else 'Patient'}: {m['content']}"
-        for m in conversation if m['role'] != 'system'
-    ])
-    prompt_text = FEEDBACK_INSTRUCTION + "\n" + conv_text
-    try:
-        res = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "system", "content": prompt_text}]
-        )
-        fb = res.choices[0].message["content"]
-    except Exception as e:
-        fb = f"Error generating feedback: {str(e)}"
-    session['feedback'] = fb
-    return redirect(url_for('simulation'))
-
 @app.route('/prompt', methods=['POST'])
 @login_required
-def generate_prompt():
+def prompt():
     conversation = session.get('conversation', [])
     if not conversation:
         flash("No conversation available for prompt suggestions", "warning")
@@ -202,15 +179,40 @@ def generate_prompt():
         for m in conversation if m['role'] != 'system'
     ])
     prompt_text = PROMPT_INSTRUCTION + "\n" + conv_text
+    prompt_conversation = [{'role': 'system', 'content': prompt_text}]
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=prompt_conversation
+        )
+        pr = response.choices[0].message["content"]
+    except Exception as e:
+        pr = f"Error with API: {str(e)}"
+    session['prompt'] = pr
+    return redirect(url_for('simulation'))
+
+@app.route('/feedback', methods=['POST'])
+@login_required
+def feedback():
+    conversation = session.get('conversation', [])
+    if not conversation:
+        flash("No conversation available for feedback", "warning")
+        return redirect(url_for('simulation'))
+    conv_text = "\n".join([
+        f"{'User' if m['role']=='user' else 'Patient'}: {m['content']}"
+        for m in conversation if m['role'] != 'system'
+    ])
+    feedback_prompt = FEEDBACK_INSTRUCTION + "\n" + conv_text
+    feedback_conversation = [{'role': 'system', 'content': feedback_prompt}]
     try:
         res = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
-            messages=[{"role": "system", "content": prompt_text}]
+            messages=feedback_conversation
         )
-        pr = res.choices[0].message["content"]
+        fb = res.choices[0].message["content"]
     except Exception as e:
-        pr = f"Error generating prompt: {str(e)}"
-    session['prompt'] = pr
+        fb = f"Error generating feedback: {str(e)}"
+    session['feedback'] = fb
     return redirect(url_for('simulation'))
 
 @app.route('/download_feedback', methods=['GET'])
