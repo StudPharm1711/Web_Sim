@@ -12,7 +12,8 @@
         button { margin-top: 5px; padding: 5px 10px; }
         .feedback { border: 1px solid #005f73; background-color: #e0fbfc; padding: 10px; margin-top: 20px; }
         .prompt-box { border: 1px solid #005f73; background-color: #e0fbfc; padding: 10px; margin-top: 20px; }
-        #spinner { display: none; margin-top: 10px; font-style: italic; color: #005f73; }
+        #spinnerPrompt { display: none; margin-top: 10px; font-style: italic; color: #005f73; }
+        #spinnerFeedback { display: none; margin-top: 10px; font-style: italic; color: #005f73; }
     </style>
 </head>
 <body>
@@ -23,7 +24,7 @@
     <div class="container">
         {% if not conversation %}
             <h2>Start Simulation</h2>
-            <form method="POST" action="{{ url_for('generate_prompt') }}" id="promptForm">
+            <form method="POST" action="{{ url_for('start_simulation') }}" id="startSimForm">
                 <label for="simulation_level">Select Simulation Level:</label>
                 <select id="simulation_level" name="simulation_level" required>
                     <option value="">--Select--</option>
@@ -46,17 +47,17 @@
             <form method="POST" action="{{ url_for('prompt') }}" id="promptForm">
                 <button type="submit" id="promptBtn" title="Press for hints if you are stuck!">Prompt</button>
             </form>
-            <div id="spinner">Generating hints, please wait...</div>
+            <div id="spinnerPrompt">Generating hints, please wait...</div>
             {% if prompt %}
                 <div class="prompt-box">
-                    <h3>Suggested Next Questions:</h3>
+                    <h3>Suggested Next Question:</h3>
                     <p>{{ prompt }}</p>
                 </div>
             {% endif %}
             <form method="POST" action="{{ url_for('feedback') }}" id="feedbackForm">
                 <button type="submit" id="feedbackBtn">Request Feedback</button>
             </form>
-            <div id="spinnerFeedback" style="display:none;">Generating feedback, please wait...</div>
+            <div id="spinnerFeedback">Generating feedback, please wait...</div>
             {% if feedback %}
                 <div class="feedback">
                     <h3>Feedback:</h3>
@@ -67,6 +68,9 @@
             <button onclick="location.href='{{ url_for('clear_simulation') }}'">Clear Conversation</button>
         {% endif %}
     </div>
+    <footer class="text-center mt-4 py-3" style="background-color: #f7f7f7;">
+        <small>&copy; 2025 William Swain. All rights reserved.</small>
+    </footer>
     <script>
         // Show spinner for feedback form submission
         document.getElementById('feedbackForm')?.addEventListener('submit', function(e) {
@@ -76,7 +80,7 @@
         // Show spinner for prompt form submission
         document.getElementById('promptForm')?.addEventListener('submit', function(e) {
             document.getElementById('promptBtn').disabled = true;
-            document.getElementById('spinner').style.display = 'block';
+            document.getElementById('spinnerPrompt').style.display = 'block';
         });
         // Add event listener to the message form so that pressing Enter (without Shift) submits the form.
         document.getElementById('messageForm')?.addEventListener('keypress', function(e) {
@@ -88,6 +92,3 @@
     </script>
 </body>
 </html>
-<footer class="text-center mt-4 py-3" style="background-color: #f7f7f7;">
-    <small>&copy; 2025 William Swain. All rights reserved.</small>
-</footer>
