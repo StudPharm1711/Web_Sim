@@ -2,18 +2,157 @@
 <html>
 <head>
     <title>Simul-AI-tor Simulation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f7f7f7; margin: 0; padding: 0; }
-        header { background-color: #005f73; color: white; padding: 20px; display: flex; align-items: center; }
-        header img { height: 50px; margin-right: 20px; }
-        .container { padding: 20px; }
-        .chat-log { border: 1px solid #ccc; background-color: white; padding: 10px; height: 300px; overflow-y: scroll; }
-        textarea { width: 100%; }
-        button { margin-top: 5px; padding: 5px 10px; }
-        .feedback { border: 1px solid #005f73; background-color: #e0fbfc; padding: 10px; margin-top: 20px; }
-        .prompt-box { border: 1px solid #005f73; background-color: #e0fbfc; padding: 10px; margin-top: 20px; }
-        #spinnerPrompt { display: none; margin-top: 10px; font-style: italic; color: #005f73; }
-        #spinnerFeedback { display: none; margin-top: 10px; font-style: italic; color: #005f73; }
+        /* Global Styles */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: "Open Sans", Arial, sans-serif;
+            background-color: #f7f7f7;
+        }
+        header {
+            background: linear-gradient(to right, #005f73, #0a6c82);
+            color: white;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            text-align: center;
+        }
+        header img {
+            height: 60px;
+            margin-bottom: 10px;
+        }
+        header h1 {
+            font-size: 2rem;
+            margin: 0;
+        }
+        .container {
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            background-color: #f7f7f7;
+        }
+        footer small {
+            color: #333;
+        }
+
+        /* Chat Container & Bubbles */
+        .chat-container {
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        .chat-log {
+            height: 300px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            padding: 0 10px;
+        }
+        .chat-message {
+            margin: 10px 0;
+            display: flex;
+            align-items: flex-start;
+        }
+        .chat-message .bubble {
+            padding: 10px 15px;
+            border-radius: 15px;
+            max-width: 70%;
+            line-height: 1.4;
+            font-size: 0.95rem;
+        }
+        /* Patient messages on left */
+        .chat-message.patient {
+            flex-direction: row;
+        }
+        .chat-message.patient .bubble {
+            background-color: #e6f7f7;
+            border-top-left-radius: 0;
+            margin-right: auto;
+        }
+        /* User messages on right */
+        .chat-message.user {
+            flex-direction: row-reverse;
+        }
+        .chat-message.user .bubble {
+            background-color: #cce2e9;
+            border-top-right-radius: 0;
+            margin-left: auto;
+        }
+        .name {
+            font-weight: bold;
+            margin-bottom: 3px;
+            font-size: 0.85rem;
+        }
+
+        /* Input & Button Area */
+        .input-area {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 15px;
+        }
+        .input-area textarea {
+            width: 100%;
+            resize: none;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 0.95rem;
+            outline: none;
+            box-sizing: border-box;
+        }
+        .buttons-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        /* 3D Button Style for All Buttons */
+        .btn-3d {
+            background: linear-gradient(145deg, #005f73, #0a6c82);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 20px;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 5px 5px 10px #cccccc, -5px -5px 10px #ffffff;
+            transition: background 0.3s, transform 0.1s;
+        }
+        .btn-3d:hover {
+            background: linear-gradient(145deg, #0a6c82, #005f73);
+        }
+        .btn-3d:active {
+            transform: translateY(2px);
+            box-shadow: 3px 3px 6px #cccccc, -3px -3px 6px #ffffff;
+        }
+
+        /* Prompt & Feedback Boxes */
+        .prompt-box, .feedback {
+            border: 1px solid #005f73;
+            background-color: #e0fbfc;
+            padding: 10px;
+            margin-top: 20px;
+            border-radius: 6px;
+        }
+        #spinnerPrompt, #spinnerFeedback {
+            display: none;
+            margin-top: 10px;
+            font-style: italic;
+            color: #005f73;
+        }
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -24,71 +163,115 @@
     <div class="container">
         {% if not conversation %}
             <h2>Start Simulation</h2>
-            <form method="POST" action="{{ url_for('start_simulation') }}" id="startSimForm">
-                <label for="simulation_level">Select Simulation Level:</label>
-                <select id="simulation_level" name="simulation_level" required>
-                    <option value="">--Select--</option>
-                    <option value="Foundation">Foundation</option>
-                    <option value="Enhanced">Enhanced</option>
-                    <option value="Advanced">Advanced</option>
-                </select>
-                <button type="submit">Start Simulation</button>
-            </form>
-        {% else %}
-            <div class="chat-log" id="chatLog">
-                {% for msg in conversation %}
-                    <p><strong>{{ "Patient" if msg.role == "assistant" else msg.role|capitalize }}:</strong> {{ msg.content }}</p>
-                {% endfor %}
+            <div class="chat-container">
+                <form method="POST" action="{{ url_for('start_simulation') }}" id="startSimForm">
+                    <label for="simulation_level" style="display:block; margin-bottom: 5px;">
+                        Level of Practice:
+                    </label>
+                    <select id="simulation_level" name="simulation_level" required style="padding: 5px; margin-bottom: 10px;">
+                        <option value="">Level of Practice</option>
+                        <option value="Foundation">Foundation</option>
+                        <option value="Enhanced">Enhanced</option>
+                        <option value="Advanced">Advanced</option>
+                    </select>
+                    <button type="submit" class="btn-3d">Start Simulation</button>
+                </form>
             </div>
-            <form method="POST" id="messageForm">
-                <textarea name="message" rows="3" placeholder="Type your message here..." required></textarea>
-                <button type="submit">Send</button>
-            </form>
-            <form method="POST" action="{{ url_for('prompt') }}" id="promptForm">
-                <button type="submit" id="promptBtn" title="Press for hints if you are stuck!">Prompt</button>
-            </form>
-            <div id="spinnerPrompt">Generating hints, please wait...</div>
-            {% if prompt %}
-                <div class="prompt-box">
-                    <h3>Suggested Next Question:</h3>
-                    <p>{{ prompt }}</p>
+        {% else %}
+            <div class="chat-container">
+                <div class="chat-log" id="chatLog">
+                    {% for msg in conversation %}
+                        {% if msg.role == 'assistant' %}
+                            <div class="chat-message patient">
+                                <div class="bubble">
+                                    <div class="name">Patient</div>
+                                    {{ msg.content }}
+                                </div>
+                            </div>
+                        {% elif msg.role == 'user' %}
+                            <div class="chat-message user">
+                                <div class="bubble">
+                                    <div class="name">You</div>
+                                    {{ msg.content }}
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
                 </div>
-            {% endif %}
-            <form method="POST" action="{{ url_for('feedback') }}" id="feedbackForm">
-                <button type="submit" id="feedbackBtn">Request Feedback</button>
-            </form>
-            <div id="spinnerFeedback">Generating feedback, please wait...</div>
-            {% if feedback %}
-                <div class="feedback">
-                    <h3>Feedback:</h3>
-                    <p>{{ feedback }}</p>
-                    <button onclick="location.href='{{ url_for('download_feedback') }}'">Download Feedback as PDF</button>
+                <div class="input-area">
+                    <form method="POST" id="messageForm" style="margin-bottom: 10px;">
+                        <textarea name="message" rows="2" placeholder="Type your message here..." required></textarea>
+                        <div style="text-align: right; margin-top: 5px;">
+                            <button type="submit" class="btn-3d">Send</button>
+                        </div>
+                    </form>
                 </div>
-            {% endif %}
-            <button onclick="location.href='{{ url_for('clear_simulation') }}'">Clear Conversation</button>
+                <div class="buttons-row">
+                    <form method="POST" action="{{ url_for('prompt') }}" id="promptForm">
+                        <button type="submit" id="promptBtn" class="btn-3d" title="Press for hints if you are stuck!">Prompt</button>
+                    </form>
+                    <button id="feedbackBtnForm" class="btn-3d" onclick="document.getElementById('feedbackForm').submit();">
+                        Request Feedback
+                    </button>
+                    <button onclick="location.href='{{ url_for('clear_simulation') }}'" class="btn-3d">
+                        Clear Conversation
+                    </button>
+                </div>
+                <form method="POST" action="{{ url_for('feedback') }}" id="feedbackForm" class="hidden"></form>
+                <div id="spinnerPrompt">Generating hints, please wait...</div>
+                <div id="spinnerFeedback">Generating feedback, please wait...</div>
+                {% if prompt %}
+                    <div class="prompt-box">
+                        <h3>Suggested Next Question:</h3>
+                        <p>{{ prompt }}</p>
+                    </div>
+                {% endif %}
+                {% if feedback %}
+                    <div class="feedback">
+                        <h3>Feedback:</h3>
+                        <p>{{ feedback }}</p>
+                        <button onclick="location.href='{{ url_for('download_feedback') }}'" class="btn-3d">
+                            Download Feedback as PDF
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
         {% endif %}
     </div>
-    <footer class="text-center mt-4 py-3" style="background-color: #f7f7f7;">
+    <footer>
         <small>&copy; 2025 William Swain. All rights reserved.</small>
     </footer>
     <script>
-        // Show spinner for feedback form submission
-        document.getElementById('feedbackForm')?.addEventListener('submit', function(e) {
-            document.getElementById('feedbackBtn').disabled = true;
-            document.getElementById('spinnerFeedback').style.display = 'block';
-        });
-        // Show spinner for prompt form submission
+        // Function to auto-scroll the chat log to the bottom
+        function scrollChatToBottom() {
+            const chatLog = document.getElementById('chatLog');
+            if (chatLog) {
+                chatLog.scrollTop = chatLog.scrollHeight;
+            }
+        }
+        // Call auto-scroll on page load
+        window.onload = scrollChatToBottom;
+
+        // Show spinner for prompt submission
         document.getElementById('promptForm')?.addEventListener('submit', function(e) {
             document.getElementById('promptBtn').disabled = true;
             document.getElementById('spinnerPrompt').style.display = 'block';
         });
-        // Add event listener to the message form so that pressing Enter (without Shift) submits the form.
+        // Show spinner for feedback submission
+        document.getElementById('feedbackBtnForm')?.addEventListener('click', function(e) {
+            document.getElementById('spinnerFeedback').style.display = 'block';
+            this.disabled = true;
+        });
+        // Submit message form on Enter (without Shift) and auto-scroll after submit
         document.getElementById('messageForm')?.addEventListener('keypress', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 this.submit();
+                setTimeout(scrollChatToBottom, 100);
             }
         });
+        // Auto-scroll chat log after page load
+        scrollChatToBottom();
     </script>
 </body>
 </html>
