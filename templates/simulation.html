@@ -23,7 +23,7 @@
     <div class="container">
         {% if not conversation %}
             <h2>Start Simulation</h2>
-            <form method="POST" action="{{ url_for('start_simulation') }}">
+            <form method="POST" action="{{ url_for('generate_prompt') }}" id="promptForm">
                 <label for="simulation_level">Select Simulation Level:</label>
                 <select id="simulation_level" name="simulation_level" required>
                     <option value="">--Select--</option>
