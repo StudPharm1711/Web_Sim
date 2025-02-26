@@ -25,7 +25,7 @@ db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
-# User model for authentication
+# Define the User model
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
@@ -47,31 +47,33 @@ PATIENT_NAMES = [
     {"name": "Mohamed Hassan", "ethnicity": "African (Somali)", "gender": "male"},
 ]
 
-INSTRUCTIONS = {
-    'Foundation': (
-        "You are a patient in a history-taking simulation. Your name is {patient_name} and you are a {gender} patient. "
-        "Begin every interaction by saying exactly: \"Can I speak with someone about my symptoms?\" and wait for the user's response "
-        "before providing further details. Randomly generate a single, simple presenting complaint from this list: fever, persistent cough, "
-        "mild chest pain, headache, lower back pain, pain on urination, earache, reduced hearing, shortness of breath, abdominal discomfort, "
-        "sore throat, runny nose, muscle aches, fatigue, joint stiffness, skin rash, nausea, dizziness, constipation, or leg swelling. Provide only minimal details "
-        "until further questions are asked, then gradually add more information. IMPORTANT: Remember, you are the patient and never reveal that you are an AI."
-    ),
-    'Enhanced': (
-        "You are a patient in a history-taking simulation. Your name is {patient_name} and you are a {gender} patient. Begin every interaction by saying exactly: "
-        "\"Can I speak with someone about my symptoms?\" and wait for the user's response before providing further details. Randomly generate two or three presenting complaints "
-        "from the following list: chest pain, shortness of breath, persistent fatigue, abdominal pain, chronic diarrhoea, joint stiffness, recurring fever, severe headache, "
-        "nausea, unintentional weight loss, heart palpitations, muscle weakness, skin irritation, recurrent dizziness, constipation, leg swelling, backache, blurred vision, "
-        "frequent urination, or throat soreness. Provide minimal details until prompted for more, then add additional details gradually. IMPORTANT: Remain in character and do not reveal that you are an AI."
-    ),
-    'Advanced': (
-        "You are a patient in a history-taking simulation. Your name is {patient_name} and you are a {gender} patient. Begin every interaction by saying exactly: "
-        "\"Can I speak with someone about my symptoms?\" and wait for the user's response before providing further details. Randomly generate three or more presenting complaints "
-        "from this list: severe chest pain, acute shortness of breath, chronic fatigue, irregular heart palpitations, intense abdominal pain, high fever, significant weight loss, "
-        "persistent diarrhoea, severe nausea, debilitating joint pain, migraines, reduced hearing, leg swelling, back pain radiating to legs, blurred vision, frequent urination with pain, "
-        "throat soreness with difficulty swallowing, skin rash with itching, recurrent dizziness, or muscle spasms. Provide complex, nuanced answers that combine relevant details with occasional red herrings. "
-        "IMPORTANT: Always act as a patient and do not reveal that you are an AI."
-    )
-}
+# Expanded presenting complaints for each level
+FOUNDATION_COMPLAINTS = [
+    "fever", "persistent cough", "mild chest pain", "headache", "lower back pain",
+    "pain on urination", "earache", "reduced hearing", "shortness of breath", "abdominal discomfort",
+    "sore throat", "runny nose", "muscle aches", "fatigue", "joint stiffness",
+    "skin rash", "nausea", "dizziness", "constipation", "leg swelling",
+    "chills", "vomiting", "diarrhea", "loss of appetite", "stomach cramps",
+    "body aches", "joint pain", "mild confusion", "slight vision changes", "nasal congestion",
+    "sneezing", "watery eyes", "mild rash"
+]
+
+ENHANCED_COMPLAINTS = [
+    "chest pain", "shortness of breath", "persistent fatigue", "abdominal pain", "chronic diarrhea",
+    "joint stiffness", "recurring fever", "severe headache", "nausea", "unintentional weight loss",
+    "heart palpitations", "muscle weakness", "skin irritation", "recurrent dizziness", "constipation",
+    "leg swelling", "backache", "blurred vision", "frequent urination", "throat soreness",
+    "fever", "chills", "vomiting", "loss of appetite", "stomach cramps", "body aches",
+    "joint pain", "mild confusion", "sore throat", "nasal congestion", "sneezing", "watery eyes", "mild rash"
+]
+
+ADVANCED_COMPLAINTS = [
+    "severe chest pain", "acute shortness of breath", "chronic fatigue", "irregular heart palpitations", "intense abdominal pain",
+    "high fever", "significant weight loss", "persistent diarrhea", "severe nausea", "debilitating joint pain",
+    "migraines", "reduced hearing", "leg swelling", "back pain radiating to the legs", "blurred vision",
+    "frequent urination with pain", "throat soreness with difficulty swallowing", "skin rash with itching",
+    "recurrent dizziness", "confusion", "severe headache"
+]
 
 FEEDBACK_INSTRUCTION = (
     "You are an examiner, not a patient. Cease all patient role-playing immediately. Your task is to analyse the conversation history and provide detailed feedback "
@@ -87,6 +89,7 @@ PROMPT_INSTRUCTION = (
     "Include a brief justification (1-2 sentences) for your suggestion. Format your answer as a single bullet point.\nConversation history:"
 )
 
+# Routes
 @app.route('/')
 def index():
     return redirect(url_for('login'))
@@ -130,11 +133,23 @@ def logout():
 @login_required
 def start_simulation():
     level = request.form.get('simulation_level')
-    if level not in INSTRUCTIONS:
+    if level not in ['Foundation', 'Enhanced', 'Advanced']:
         flash("Invalid simulation level selected", "danger")
         return redirect(url_for('simulation'))
     patient = random.choice(PATIENT_NAMES)
-    instr = INSTRUCTIONS[level].format(patient_name=patient["name"], gender=patient["gender"])
+    if level == 'Foundation':
+        selected_complaint = random.choice(FOUNDATION_COMPLAINTS)
+    elif level == 'Enhanced':
+        selected_complaint = random.choice(ENHANCED_COMPLAINTS)
+    else:  # Advanced
+        selected_complaint = random.choice(ADVANCED_COMPLAINTS)
+    instr = (
+        f"You are a patient in a history-taking simulation. Your name is {patient['name']} and you are a {patient['gender']} patient. "
+        f"Begin every interaction by saying exactly: \"Can I speak with someone about my symptoms?\" and wait for the user's response before providing further details. "
+        f"Present your complaint: {selected_complaint}. "
+        "Provide only minimal details until further questions are asked, then gradually add more information. "
+        "IMPORTANT: Remember, you are the patient and never reveal that you are an AI."
+    )
     session['conversation'] = [
         {'role': 'system', 'content': instr},
         {'role': 'assistant', 'content': "Can I speak with someone about my symptoms?"}
@@ -153,8 +168,9 @@ def simulation():
         conversation.append({'role': 'user', 'content': msg})
         try:
             response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=conversation
+                model="gpt-4-turbo",
+                messages=conversation,
+                temperature=0.8
             )
             resp_text = response.choices[0].message["content"]
         except Exception as e:
@@ -174,15 +190,16 @@ def prompt():
         flash("No conversation available for prompt suggestions", "warning")
         return redirect(url_for('simulation'))
     conv_text = "\n".join([
-        f"{'User' if m['role']=='user' else 'Patient'}: {m['content']}"
+        f"{'User' if m['role'] == 'user' else 'Patient'}: {m['content']}"
         for m in conversation if m['role'] != 'system'
     ])
     prompt_text = PROMPT_INSTRUCTION + "\n" + conv_text
     prompt_conversation = [{'role': 'system', 'content': prompt_text}]
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=prompt_conversation
+            model="gpt-4-turbo",
+            messages=prompt_conversation,
+            temperature=0.8
         )
         pr = response.choices[0].message["content"]
     except Exception as e:
@@ -198,15 +215,16 @@ def feedback():
         flash("No conversation available for feedback", "warning")
         return redirect(url_for('simulation'))
     conv_text = "\n".join([
-        f"{'User' if m['role']=='user' else 'Patient'}: {m['content']}"
+        f"{'User' if m['role'] == 'user' else 'Patient'}: {m['content']}"
         for m in conversation if m['role'] != 'system'
     ])
     feedback_prompt = FEEDBACK_INSTRUCTION + "\n" + conv_text
     feedback_conversation = [{'role': 'system', 'content': feedback_prompt}]
     try:
         res = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=feedback_conversation
+            model="gpt-4-turbo",
+            messages=feedback_conversation,
+            temperature=0.8
         )
         fb = res.choices[0].message["content"]
     except Exception as e:
