@@ -11,16 +11,18 @@
             font-family: "Open Sans", Arial, sans-serif;
             background-color: #f7f7f7;
         }
-        header {
-            background: linear-gradient(to right, #005f73, #0a6c82);
-            color: white;
-            padding: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            text-align: center;
-        }
+header {
+    background-color: #ffffff; /* White background */
+    color: #005f73;            /* Green text */
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+    border-bottom: 1px solid #ddd;
+}
+
         header img {
             height: 60px;
             margin-bottom: 10px;
@@ -78,14 +80,15 @@
             border-top-left-radius: 0;
             margin-right: auto;
         }
-        /* User messages on right */
+        /* User messages on right with pastel styling */
         .chat-message.user {
             flex-direction: row-reverse;
         }
         .chat-message.user .bubble {
-            background-color: #cce2e9;
+            background-color: #FFD1B3;
             border-top-right-radius: 0;
             margin-left: auto;
+            color: #333;
         }
         .name {
             font-weight: bold;
@@ -115,7 +118,6 @@
             gap: 10px;
             margin-bottom: 10px;
         }
-
         /* 3D Button Style for All Buttons */
         .btn-3d {
             background: linear-gradient(145deg, #005f73, #0a6c82);
@@ -153,6 +155,28 @@
         .hidden {
             display: none;
         }
+        /* Media Queries for Mobile Responsiveness */
+        @media (max-width: 600px) {
+            header h1 {
+                font-size: 1.5rem;
+            }
+            header img {
+                height: 50px;
+            }
+            .container {
+                padding: 10px;
+            }
+            .chat-log {
+                height: 200px;
+            }
+            .btn-3d {
+                padding: 8px 16px;
+                font-size: 0.9rem;
+            }
+            .input-area textarea {
+                font-size: 0.9rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -164,16 +188,14 @@
         {% if not conversation %}
             <h2>Start Simulation</h2>
             <div class="chat-container">
-                <form method="POST" action="{{ url_for('start_simulation') }}" id="startSimForm">
-                    <label for="simulation_level" style="display:block; margin-bottom: 5px;">
-                        Level of Practice:
-                    </label>
+                <form method="POST" action="{{ url_for('start_simulation') }}" id="startSimForm" style="text-align: center;">
                     <select id="simulation_level" name="simulation_level" required style="padding: 5px; margin-bottom: 10px;">
                         <option value="">Level of Practice</option>
                         <option value="Foundation">Foundation</option>
                         <option value="Enhanced">Enhanced</option>
                         <option value="Advanced">Advanced</option>
                     </select>
+                    <br>
                     <button type="submit" class="btn-3d">Start Simulation</button>
                 </form>
             </div>
@@ -242,16 +264,14 @@
         <small>&copy; 2025 William Swain. All rights reserved.</small>
     </footer>
     <script>
-        // Function to auto-scroll the chat log to the bottom
+        // Auto-scroll chat log to bottom
         function scrollChatToBottom() {
             const chatLog = document.getElementById('chatLog');
-            if (chatLog) {
+            if(chatLog) {
                 chatLog.scrollTop = chatLog.scrollHeight;
             }
         }
-        // Call auto-scroll on page load
         window.onload = scrollChatToBottom;
-
         // Show spinner for prompt submission
         document.getElementById('promptForm')?.addEventListener('submit', function(e) {
             document.getElementById('promptBtn').disabled = true;
@@ -270,7 +290,6 @@
                 setTimeout(scrollChatToBottom, 100);
             }
         });
-        // Auto-scroll chat log after page load
         scrollChatToBottom();
     </script>
 </body>
