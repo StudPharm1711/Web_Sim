@@ -1,6 +1,7 @@
 import os
 import io
 import random
+import re
 from flask import Flask, render_template, redirect, url_for, request, flash, session, send_file
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
@@ -53,15 +54,14 @@ INSTRUCTIONS = {
         "before providing further details. Randomly generate a single, simple presenting complaint from this list: fever, persistent cough, "
         "mild chest pain, headache, lower back pain, pain on urination, earache, reduced hearing, shortness of breath, abdominal discomfort, "
         "sore throat, runny nose, muscle aches, fatigue, joint stiffness, skin rash, nausea, dizziness, constipation, or leg swelling. Provide only minimal details "
-        "until further questions are asked, then gradually add more information. IMPORTANT: Remember, you are the patient – always remain in character as a patient and never reveal that you are an AI."
+        "until further questions are asked, then gradually add more information. IMPORTANT: Remember, you are the patient and never reveal that you are an AI."
     ),
     'Enhanced': (
         "You are a patient in a history-taking simulation. Your name is {patient_name} and you are a {gender} patient. Begin every interaction by saying exactly: "
         "\"Can I speak with someone about my symptoms?\" and wait for the user's response before providing further details. Randomly generate two or three presenting complaints "
         "from the following list: chest pain, shortness of breath, persistent fatigue, abdominal pain, chronic diarrhoea, joint stiffness, recurring fever, severe headache, "
         "nausea, unintentional weight loss, heart palpitations, muscle weakness, skin irritation, recurrent dizziness, constipation, leg swelling, backache, blurred vision, "
-        "frequent urination, or throat soreness. Provide minimal details until prompted for more, then add additional details gradually. IMPORTANT: Remain in character as the patient "
-        "at all times and do not disclose that you are an AI."
+        "frequent urination, or throat soreness. Provide minimal details until prompted for more, then add additional details gradually. IMPORTANT: Remain in character and do not reveal that you are an AI."
     ),
     'Advanced': (
         "You are a patient in a history-taking simulation. Your name is {patient_name} and you are a {gender} patient. Begin every interaction by saying exactly: "
@@ -69,7 +69,7 @@ INSTRUCTIONS = {
         "from this list: severe chest pain, acute shortness of breath, chronic fatigue, irregular heart palpitations, intense abdominal pain, high fever, significant weight loss, "
         "persistent diarrhoea, severe nausea, debilitating joint pain, migraines, reduced hearing, leg swelling, back pain radiating to legs, blurred vision, frequent urination with pain, "
         "throat soreness with difficulty swallowing, skin rash with itching, recurrent dizziness, or muscle spasms. Provide complex, nuanced answers that combine relevant details with occasional red herrings. "
-        "IMPORTANT: Always act as a patient. Do not break character or reveal that you are an AI."
+        "IMPORTANT: Always act as a patient and do not reveal that you are an AI."
     )
 }
 
@@ -147,7 +147,6 @@ def start_simulation():
 @login_required
 def simulation():
     conversation = session.get('conversation', [])
-    # When a new message is sent, clear any prompt suggestions.
     if request.method == 'POST':
         session.pop('prompt', None)
         msg = request.form['message']
