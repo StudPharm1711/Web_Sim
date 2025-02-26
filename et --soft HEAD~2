@@ -1,0 +1,12 @@
+[33md9288fa[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Added About and Logout routes; renamed prompt to hint in main.py
+[33mb0fb238[m Center start simulation button; remove level label; update header layout with About and Logout
+[33med21609[m Update header layout: logo sits next to title for mobile
+[33m8996572[m[33m ([m[1;32mexperimental-update[m[33m)[m Update header: white background with green text
+[33m54862a6[m Merge pull request #1 from StudPharm1711/experimental-update
+[33m9307a1a[m Current version before further changes
+[33m30cb3c0[m Updated main.py with prompt and feedback endpoints
+[33m1ee0b9d[m Rename prompt endpoint to match template
+[33m274917f[m Rename prompt endpoint to match template
+[33m390b6c1[m Add gunicorn to requirements
+[33m7440eea[m Add requirements.txt
+[33mc79e741[m Initial commit for Web_Sim

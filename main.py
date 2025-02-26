@@ -1,8 +1,8 @@
 import os
 import io
 import random
-import re
-from flask import Flask, render_template, redirect, url_for, request, flash, session, send_file
+import time
+from flask import Flask, render_template, redirect, url_for, request, flash, session, send_file, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -77,12 +77,6 @@ ADVANCED_COMPLAINTS = [
     "frequent urination with pain", "throat soreness with difficulty swallowing", "skin rash with itching",
     "recurrent dizziness", "confusion", "severe headache"
 ]
-
-def get_shuffled_complaints(complaints_list):
-    """Return a comma-separated string of randomly shuffled complaints."""
-    complaints = complaints_list.copy()
-    random.shuffle(complaints)
-    return ", ".join(complaints)
 
 FEEDBACK_INSTRUCTION = (
     "You are an examiner, not a patient. Cease all patient role-playing immediately. Your task is to analyse the conversation history and provide detailed feedback "
@@ -167,37 +161,61 @@ def start_simulation():
         "Provide only minimal details until further questions are asked, then gradually add more information. "
         "IMPORTANT: Remember, you are the patient and never reveal that you are an AI."
     )
-    session['conversation'] = [
-        {'role': 'system', 'content': instr},
-        {'role': 'assistant', 'content': "Can I speak with someone about my symptoms?"}
-    ]
+    session['conversation'] = [{'role': 'system', 'content': instr}]
+    # Pre-fetch the first assistant reply immediately
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4-turbo",
+            messages=session['conversation'],
+            temperature=0.8
+        )
+        first_reply = response.choices[0].message["content"]
+    except Exception as e:
+        first_reply = f"Error with API: {str(e)}"
+    session['conversation'].append({'role': 'assistant', 'content': first_reply})
     session.pop('feedback', None)
     session.pop('hint', None)
     return redirect(url_for('simulation'))
 
-@app.route('/simulation', methods=['GET', 'POST'])
+@app.route('/simulation', methods=['GET'])
 @login_required
 def simulation():
     conversation = session.get('conversation', [])
-    if request.method == 'POST':
-        session.pop('hint', None)
-        msg = request.form['message']
-        conversation.append({'role': 'user', 'content': msg})
-        try:
-            response = openai.ChatCompletion.create(
-                model="gpt-4-turbo",
-                messages=conversation,
-                temperature=0.8
-            )
-            resp_text = response.choices[0].message["content"]
-        except Exception as e:
-            resp_text = f"Error with API: {str(e)}"
-        conversation.append({'role': 'assistant', 'content': resp_text})
-        session['conversation'] = conversation
     display_conv = [m for m in conversation if m['role'] != 'system']
     return render_template('simulation.html', conversation=display_conv,
                            feedback=session.get('feedback'),
                            hint=session.get('hint'))
+
+# New endpoint to process a user message asynchronously
+@app.route('/send_message', methods=['POST'])
+@login_required
+def send_message():
+    conversation = session.get('conversation', [])
+    msg = request.form.get('message')
+    if msg:
+        conversation.append({'role': 'user', 'content': msg})
+        session['conversation'] = conversation
+        return jsonify({"status": "ok"}), 200
+    return jsonify({"status": "error", "message": "No message provided"}), 400
+
+# New endpoint to get the assistant's reply after a delay
+@app.route('/get_reply', methods=['POST'])
+@login_required
+def get_reply():
+    conversation = session.get('conversation', [])
+    time.sleep(2)  # Delay of 2 seconds to simulate natural response time
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4-turbo",
+            messages=conversation,
+            temperature=0.8
+        )
+        resp_text = response.choices[0].message["content"]
+    except Exception as e:
+        resp_text = f"Error with API: {str(e)}"
+    conversation.append({'role': 'assistant', 'content': resp_text})
+    session['conversation'] = conversation
+    return jsonify({"reply": resp_text}), 200
 
 @app.route('/hint', methods=['POST'])
 @login_required

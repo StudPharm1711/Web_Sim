@@ -55,30 +55,26 @@
             margin: 20px auto;
             padding: 20px;
         }
-        /* Scrolling banner */
+        /* Scrolling Banner */
         #scroll-banner {
             background-color: #e0fbfc;
             color: #005f73;
-            padding: 10px 0;
+            padding: 0px 0;
             white-space: nowrap;
             overflow: hidden;
             margin-bottom: 20px;
-            border: 1px solid #005f73;
-            border-radius: 6px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         #scroll-banner p {
             display: inline-block;
             padding-left: 100%;
             animation: scroll-left 18s linear infinite;
-            font-size: 1rem;
+            font-size: 1.2rem;
         }
         @keyframes scroll-left {
-            0% {
-                transform: translateX(0);
-            }
-            100% {
-                transform: translateX(-100%);
-            }
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-100%); }
         }
         footer {
             text-align: center;
@@ -103,18 +99,17 @@
             padding: 0 10px;
         }
         .chat-message {
-            margin: 10px 0;
+            margin: 5px 0; /* slightly larger margin than 2px but less than original 10px */
             display: flex;
             align-items: flex-start;
         }
         .chat-message .bubble {
-            padding: 10px 15px;
-            border-radius: 15px;
-            max-width: 70%;
-            line-height: 1.4;
-            font-size: 0.95rem;
+            padding: 6px 10px; /* moderate padding */
+            border-radius: 12px; /* in-between corner radius */
+            max-width: 70%;      /* in-between bubble width */
+            line-height: 1.2;    /* moderate line height */
+            font-size: 0.95rem;  /* slightly larger font */
         }
-        /* Patient messages on left */
         .chat-message.patient {
             flex-direction: row;
         }
@@ -123,7 +118,6 @@
             border-top-left-radius: 0;
             margin-right: auto;
         }
-        /* User messages on right with pastel styling */
         .chat-message.user {
             flex-direction: row-reverse;
         }
@@ -135,7 +129,7 @@
         }
         .name {
             font-weight: bold;
-            margin-bottom: 3px;
+            margin-bottom: 3px; /* small gap under the name */
             font-size: 0.85rem;
         }
         /* Input & Button Area */
@@ -147,10 +141,10 @@
         .input-area textarea {
             width: 100%;
             resize: none;
-            padding: 10px;
+            padding: 8px;
             border-radius: 6px;
             border: 1px solid #ccc;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             outline: none;
             box-sizing: border-box;
         }
@@ -166,10 +160,10 @@
             color: white;
             border: none;
             border-radius: 6px;
-            padding: 10px 20px;
+            padding: 8px 16px;
             font-size: 1rem;
             cursor: pointer;
-            box-shadow: 5px 5px 10px #cccccc, -5px -5px 10px #ffffff;
+            box-shadow: 4px 4px 8px #cccccc, -4px -4px 8px #ffffff;
             transition: background 0.3s, transform 0.1s;
         }
         .btn-3d:hover {
@@ -183,11 +177,12 @@
         .prompt-box, .feedback {
             border: 1px solid #005f73;
             background-color: #e0fbfc;
-            padding: 10px;
-            margin-top: 20px;
+            padding: 8px;
+            margin-top: 10px;
             border-radius: 6px;
+            font-size: 0.9rem;
         }
-        #spinnerPrompt, #spinnerFeedback {
+        #spinnerHint, #spinnerFeedback {
             display: none;
             margin-top: 10px;
             font-style: italic;
@@ -237,7 +232,7 @@
         </div>
     </header>
     <div class="container">
-        <!-- Moving scrolling banner -->
+        <!-- Scrolling Banner -->
         <div id="scroll-banner">
             <p>Select your level of practice, play the part of a healthcare professional, click for hints on what to ask next if you're learning and then don't forget to request feedback! :D</p>
         </div>
@@ -277,7 +272,7 @@
                     {% endfor %}
                 </div>
                 <div class="input-area">
-                    <form method="POST" id="messageForm" style="margin-bottom: 10px;">
+                    <form id="messageForm" style="margin-bottom: 10px;">
                         <textarea name="message" rows="2" placeholder="Type your message here..." required></textarea>
                         <div style="text-align: right; margin-top: 5px;">
                             <button type="submit" class="btn-3d">Send</button>
@@ -285,18 +280,18 @@
                     </form>
                 </div>
                 <div class="buttons-row">
-                    <form method="POST" action="{{ url_for('hint') }}" id="promptForm">
-                        <button type="submit" id="promptBtn" class="btn-3d" title="Press for hints if you are stuck!">Hint</button>
+                    <form id="hintForm" method="POST" action="{{ url_for('hint') }}">
+                        <button type="submit" id="hintBtn" class="btn-3d" title="Press for hints if you are stuck!">Hint</button>
                     </form>
-                    <button id="feedbackBtnForm" class="btn-3d" onclick="document.getElementById('feedbackForm').submit();">
+                    <button id="feedbackBtnForm" class="btn-3d" onclick="submitFeedbackForm();">
                         Request Feedback
                     </button>
                     <button onclick="location.href='{{ url_for('clear_simulation') }}'" class="btn-3d">
                         Clear Conversation
                     </button>
                 </div>
-                <form method="POST" action="{{ url_for('feedback') }}" id="feedbackForm" class="hidden"></form>
-                <div id="spinnerPrompt">Generating hints, please wait...</div>
+                <form id="feedbackForm" method="POST" action="{{ url_for('feedback') }}" class="hidden"></form>
+                <div id="spinnerHint">Generating hints, please wait...</div>
                 <div id="spinnerFeedback">Generating feedback, please wait...</div>
                 {% if hint %}
                     <div class="prompt-box">
@@ -323,30 +318,88 @@
         // Auto-scroll chat log to bottom
         function scrollChatToBottom() {
             const chatLog = document.getElementById('chatLog');
-            if (chatLog) {
+            if(chatLog) {
                 chatLog.scrollTop = chatLog.scrollHeight;
             }
         }
         window.onload = scrollChatToBottom;
+
+        // Intercept message form submission using AJAX with keydown for reliability
+        const messageForm = document.getElementById('messageForm');
+        messageForm.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                submitMessage();
+            }
+        });
+
+        function submitMessage() {
+            const textarea = messageForm.querySelector('textarea');
+            const userMessage = textarea.value.trim();
+            if (userMessage === "") return;
+
+            // Append user's message immediately and scroll down
+            appendMessage("user", userMessage);
+            scrollChatToBottom();
+            textarea.value = "";
+
+            // Send the message to the server
+            fetch("{{ url_for('send_message') }}", {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: new URLSearchParams({ "message": userMessage })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Immediately fetch the assistant's reply without additional delay
+                fetch("{{ url_for('get_reply') }}", {
+                    method: "POST"
+                })
+                .then(response => response.json())
+                .then(data => {
+                    appendMessage("assistant", data.reply);
+                    scrollChatToBottom();
+                });
+            });
+        }
+
+        // Function to append a message to the chat log
+        function appendMessage(role, message) {
+            const chatLog = document.getElementById('chatLog');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = "chat-message " + (role === "assistant" ? "patient" : "user");
+
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = "bubble";
+            const nameDiv = document.createElement('div');
+            nameDiv.className = "name";
+            nameDiv.textContent = role === "assistant" ? "Patient" : "You";
+            bubbleDiv.appendChild(nameDiv);
+
+            const messageP = document.createElement('p');
+            messageP.textContent = message;
+            bubbleDiv.appendChild(messageP);
+
+            messageDiv.appendChild(bubbleDiv);
+            chatLog.appendChild(messageDiv);
+        }
+
         // Show spinner for hint submission
-        document.getElementById('promptForm')?.addEventListener('submit', function(e) {
-            document.getElementById('promptBtn').disabled = true;
-            document.getElementById('spinnerPrompt').style.display = 'block';
+        document.getElementById('hintForm')?.addEventListener('submit', function(e) {
+            document.getElementById('hintBtn').disabled = true;
+            document.getElementById('spinnerHint').style.display = 'block';
         });
         // Show spinner for feedback submission
         document.getElementById('feedbackBtnForm')?.addEventListener('click', function(e) {
             document.getElementById('spinnerFeedback').style.display = 'block';
             this.disabled = true;
         });
-        // Submit message form on Enter (without Shift) and auto-scroll after submit
-        document.getElementById('messageForm')?.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                this.submit();
-                setTimeout(scrollChatToBottom, 100);
-            }
-        });
+        // Auto-scroll chat log initially
         scrollChatToBottom();
+
+        function submitFeedbackForm() {
+            document.getElementById('feedbackForm').submit();
+        }
     </script>
 </body>
 </html>
