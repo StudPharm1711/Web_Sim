@@ -17,11 +17,13 @@ load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 openai.api_key = OPENAI_API_KEY
 
-# Flask app setup
+# Initialize Flask app and configuration
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'  # Replace with a strong secret key
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 db = SQLAlchemy(app)
+
+# Initialize Flask-Login
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
@@ -31,6 +33,7 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(150), nullable=False)
 
+# User loader callback
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -75,6 +78,12 @@ ADVANCED_COMPLAINTS = [
     "recurrent dizziness", "confusion", "severe headache"
 ]
 
+def get_shuffled_complaints(complaints_list):
+    """Return a comma-separated string of randomly shuffled complaints."""
+    complaints = complaints_list.copy()
+    random.shuffle(complaints)
+    return ", ".join(complaints)
+
 FEEDBACK_INSTRUCTION = (
     "You are an examiner, not a patient. Cease all patient role-playing immediately. Your task is to analyse the conversation history and provide detailed feedback "
     "on the user's communication and history-taking skills using the Calgary-Cambridge model. Also evaluate their clinical reasoning using hypothetical-deductive reasoning, "
@@ -90,6 +99,7 @@ PROMPT_INSTRUCTION = (
 )
 
 # Routes
+
 @app.route('/')
 def index():
     return redirect(url_for('login'))
@@ -101,6 +111,7 @@ def login():
         password = request.form['password']
         user = User.query.filter_by(username=username).first()
         if user and check_password_hash(user.password, password):
+            session.pop('conversation', None)  # Clear previous conversation on login
             login_user(user)
             return redirect(url_for('simulation'))
         else:
@@ -126,8 +137,14 @@ def register():
 @app.route('/logout')
 @login_required
 def logout():
+    session.pop('conversation', None)
     logout_user()
     return redirect(url_for('login'))
+
+@app.route('/about')
+@login_required
+def about():
+    return render_template('about.html')
 
 @app.route('/start_simulation', methods=['POST'])
 @login_required
@@ -141,7 +158,7 @@ def start_simulation():
         selected_complaint = random.choice(FOUNDATION_COMPLAINTS)
     elif level == 'Enhanced':
         selected_complaint = random.choice(ENHANCED_COMPLAINTS)
-    else:  # Advanced
+    else:
         selected_complaint = random.choice(ADVANCED_COMPLAINTS)
     instr = (
         f"You are a patient in a history-taking simulation. Your name is {patient['name']} and you are a {patient['gender']} patient. "
@@ -155,7 +172,7 @@ def start_simulation():
         {'role': 'assistant', 'content': "Can I speak with someone about my symptoms?"}
     ]
     session.pop('feedback', None)
-    session.pop('prompt', None)
+    session.pop('hint', None)
     return redirect(url_for('simulation'))
 
 @app.route('/simulation', methods=['GET', 'POST'])
@@ -163,7 +180,7 @@ def start_simulation():
 def simulation():
     conversation = session.get('conversation', [])
     if request.method == 'POST':
-        session.pop('prompt', None)
+        session.pop('hint', None)
         msg = request.form['message']
         conversation.append({'role': 'user', 'content': msg})
         try:
@@ -180,31 +197,31 @@ def simulation():
     display_conv = [m for m in conversation if m['role'] != 'system']
     return render_template('simulation.html', conversation=display_conv,
                            feedback=session.get('feedback'),
-                           prompt=session.get('prompt'))
+                           hint=session.get('hint'))
 
-@app.route('/prompt', methods=['POST'])
+@app.route('/hint', methods=['POST'])
 @login_required
-def prompt():
+def hint():
     conversation = session.get('conversation', [])
     if not conversation:
-        flash("No conversation available for prompt suggestions", "warning")
+        flash("No conversation available for hint suggestions", "warning")
         return redirect(url_for('simulation'))
     conv_text = "\n".join([
         f"{'User' if m['role'] == 'user' else 'Patient'}: {m['content']}"
         for m in conversation if m['role'] != 'system'
     ])
-    prompt_text = PROMPT_INSTRUCTION + "\n" + conv_text
-    prompt_conversation = [{'role': 'system', 'content': prompt_text}]
+    hint_text = PROMPT_INSTRUCTION + "\n" + conv_text
+    hint_conversation = [{'role': 'system', 'content': hint_text}]
     try:
         response = openai.ChatCompletion.create(
             model="gpt-4-turbo",
-            messages=prompt_conversation,
+            messages=hint_conversation,
             temperature=0.8
         )
-        pr = response.choices[0].message["content"]
+        hint_response = response.choices[0].message["content"]
     except Exception as e:
-        pr = f"Error with API: {str(e)}"
-    session['prompt'] = pr
+        hint_response = f"Error with API: {str(e)}"
+    session['hint'] = hint_response
     return redirect(url_for('simulation'))
 
 @app.route('/feedback', methods=['POST'])
@@ -255,7 +272,7 @@ def download_feedback():
 def clear_simulation():
     session.pop('conversation', None)
     session.pop('feedback', None)
-    session.pop('prompt', None)
+    session.pop('hint', None)
     return redirect(url_for('simulation'))
 
 if __name__ == '__main__':
