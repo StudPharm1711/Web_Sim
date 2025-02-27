@@ -1,422 +1,435 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Simul-AI-tor Simulation</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    /* Global Styles */
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: "Open Sans", Arial, sans-serif;
-      background-color: #f7f7f7;
-    }
-    /* Header Section */
-    header {
-      background-color: #ffffff;
-      border-bottom: 1px solid #ddd;
-    }
-    /* Constrained header container matching the main content width */
-    .header-container {
-      max-width: 900px;
-      margin: 0 auto;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      height: 80px;
-    }
-    .header-left, .header-center, .header-right {
-      display: flex;
-      align-items: center;
-    }
-    /* Do not allow left/right sections to expand */
-    .header-left, .header-right {
-      flex: none;
-    }
-    /* Center section takes remaining space */
-    .header-center {
-      flex: 1;
-      justify-content: center;
-      text-align: center;
-    }
-    .header-left a,
-    .header-right a {
-      text-decoration: none;
-      color: #005f73;
-      font-size: 1rem;
-      padding: 5px 10px;
-      border: 1px solid #005f73;
-      border-radius: 6px;
-      transition: background 0.3s;
-    }
-    .header-left a:hover,
-    .header-right a:hover {
-      background-color: #005f73;
-      color: white;
-    }
-    .header-center img {
-      height: 50px;
-      margin-right: 10px;
-    }
-    .header-center h1 {
-      font-size: 1.8rem;
-      margin: 0;
-      color: #005f73;
-    }
-    .container {
-      max-width: 900px;
-      margin: 20px auto;
-      padding: 20px;
-    }
-    /* Scrolling Banner */
-    #scroll-banner {
-      background-color: #e0fbfc;
-      color: #005f73;
-      padding: 0;
-      white-space: nowrap;
-      overflow: hidden;
-      margin-bottom: 20px;
-      border-radius: 10px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    #scroll-banner p {
-      display: inline-block;
-      padding-left: 100%;
-      animation: scroll-left 18s linear infinite;
-      font-size: 1.2rem;
-    }
-    @keyframes scroll-left {
-      0% { transform: translateX(0); }
-      100% { transform: translateX(-100%); }
-    }
-    footer {
-      text-align: center;
-      margin-top: 40px;
-      padding: 20px;
-      background-color: #f7f7f7;
-    }
-    footer small {
-      color: #333;
-    }
-    /* Chat Container & Bubbles (unchanged from previous version) */
-    .chat-container {
-      background: #ffffff;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      padding: 20px;
-    }
-    .chat-log {
-      height: 300px;
-      overflow-y: auto;
-      margin-bottom: 15px;
-      padding: 0 10px;
-    }
-    .chat-message {
-      margin: 5px 0;
-      display: flex;
-      align-items: flex-start;
-    }
-    .chat-message .bubble {
-      padding: 6px 10px;
-      border-radius: 12px;
-      max-width: 70%;
-      line-height: 1.2;
-      font-size: 0.95rem;
-    }
-    .chat-message.patient {
-      flex-direction: row;
-    }
-    .chat-message.patient .bubble {
-      background-color: #e6f7f7;
-      border-top-left-radius: 0;
-      margin-right: auto;
-    }
-    .chat-message.user {
-      flex-direction: row-reverse;
-    }
-    .chat-message.user .bubble {
-      background-color: #FFD1B3;
-      border-top-right-radius: 0;
-      margin-left: auto;
-      color: #333;
-    }
-    .name {
-      font-weight: bold;
-      margin-bottom: 3px;
-      font-size: 0.85rem;
-    }
-    /* Input & Button Area */
-    .input-area {
-      display: flex;
-      flex-direction: column;
-      margin-bottom: 15px;
-    }
-    .input-area textarea {
-      width: 100%;
-      resize: none;
-      padding: 8px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      font-size: 0.9rem;
-      outline: none;
-      box-sizing: border-box;
-    }
-    .buttons-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 10px;
-    }
-    /* 3D Button Style */
-    .btn-3d {
-      background: linear-gradient(145deg, #005f73, #0a6c82);
-      color: white;
-      border: none;
-      border-radius: 6px;
-      padding: 8px 16px;
-      font-size: 1rem;
-      cursor: pointer;
-      box-shadow: 4px 4px 8px #cccccc, -4px -4px 8px #ffffff;
-      transition: background 0.3s, transform 0.1s;
-    }
-    .btn-3d:hover {
-      background: linear-gradient(145deg, #0a6c82, #005f73);
-    }
-    .btn-3d:active {
-      transform: translateY(2px);
-      box-shadow: 3px 3px 6px #cccccc, -3px -3px 6px #ffffff;
-    }
-    /* Prompt & Feedback Boxes */
-    .prompt-box, .feedback {
-      border: 1px solid #005f73;
-      background-color: #e0fbfc;
-      padding: 8px;
-      margin-top: 10px;
-      border-radius: 6px;
-      font-size: 0.9rem;
-    }
-    #spinnerHint, #spinnerFeedback {
-      display: none;
-      margin-top: 10px;
-      font-style: italic;
-      color: #005f73;
-    }
-    .hidden {
-      display: none;
-    }
-    /* Media Queries */
-    @media (max-width: 600px) {
-      .header-container {
-        height: auto;
-      }
-      .header-center img {
-        height: 40px;
-      }
-      .header-center h1 {
-        font-size: 1.5rem;
-      }
-      .container {
-        padding: 10px;
-      }
-      .chat-log {
-        height: 200px;
-      }
-      .btn-3d {
-        padding: 8px 16px;
-        font-size: 0.9rem;
-      }
-      .input-area textarea {
-        font-size: 0.9rem;
-      }
-      #scroll-banner p {
-        font-size: 0.9rem;
-      }
-    }
-  </style>
+    <title>Simul-AI-tor Simulation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        /* Global Styles */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: "Open Sans", Arial, sans-serif;
+            background-color: #f7f7f7;
+        }
+        /* Header Container */
+        .header-container {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 80px;
+            padding: 0 20px;
+            background-color: #ffffff;
+            border-bottom: 1px solid #ddd;
+        }
+        .header-left,
+        .header-center,
+        .header-right {
+            display: flex;
+            align-items: center;
+        }
+        .header-left, .header-right {
+            flex: none;
+        }
+        .header-center {
+            flex: 1;
+            justify-content: center;
+            text-align: center;
+        }
+        .header-left a,
+        .header-right a {
+            text-decoration: none;
+            color: #005f73;
+            font-size: 1rem;
+            padding: 5px 10px;
+            border: 1px solid #005f73;
+            border-radius: 6px;
+            transition: background 0.3s;
+            margin: 0 5px;
+        }
+        .header-left a:hover,
+        .header-right a:hover {
+            background-color: #005f73;
+            color: white;
+        }
+        .header-center img {
+            height: 50px;
+            margin-right: 10px;
+        }
+        .header-center h1 {
+            font-size: 1.8rem;
+            margin: 0;
+            color: #005f73;
+        }
+        /* Overall header wrapper */
+        header {
+            background-color: #ffffff;
+        }
+        .container {
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        /* Scrolling Banner - Updated Settings */
+        #scroll-banner {
+            background-color: #e0fbfc;
+            color: #005f73;
+            padding: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        #scroll-banner p {
+            display: inline-block;
+            padding-left: 100%;
+            animation: scroll-left 18s linear infinite;
+            font-size: 1.2rem;
+        }
+        @keyframes scroll-left {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-100%); }
+        }
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            background-color: #f7f7f7;
+        }
+        footer small {
+            color: #333;
+        }
+        /* Chat Container & Bubbles */
+        .chat-container {
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        .chat-log {
+            height: 300px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            padding: 0 10px;
+        }
+        .chat-message {
+            margin: 5px 0;
+            display: flex;
+            align-items: flex-start;
+        }
+        .chat-message .bubble {
+            padding: 6px 10px;
+            border-radius: 12px;
+            max-width: 70%;
+            line-height: 1.2;
+            font-size: 0.95rem;
+        }
+        .chat-message.patient {
+            flex-direction: row;
+        }
+        .chat-message.patient .bubble {
+            background-color: #e6f7f7;
+            border-top-left-radius: 0;
+            margin-right: auto;
+        }
+        .chat-message.user {
+            flex-direction: row-reverse;
+        }
+        .chat-message.user .bubble {
+            background-color: #FFD1B3;
+            border-top-right-radius: 0;
+            margin-left: auto;
+            color: #333;
+        }
+        .name {
+            font-weight: bold;
+            margin-bottom: 3px;
+            font-size: 0.85rem;
+        }
+        /* Input & Button Area */
+        .input-area {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 15px;
+        }
+        .input-area textarea {
+            width: 100%;
+            resize: none;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 0.9rem;
+            outline: none;
+            box-sizing: border-box;
+        }
+        .buttons-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        /* 3D Button Style */
+        .btn-3d {
+            background: linear-gradient(145deg, #005f73, #0a6c82);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 4px 4px 8px #cccccc, -4px -4px 8px #ffffff;
+            transition: background 0.3s, transform 0.1s;
+        }
+        .btn-3d:hover {
+            background: linear-gradient(145deg, #0a6c82, #005f73);
+        }
+        .btn-3d:active {
+            transform: translateY(2px);
+            box-shadow: 3px 3px 6px #cccccc, -3px -3px 6px #ffffff;
+        }
+        /* Prompt & Feedback Boxes */
+        .prompt-box, .feedback {
+            border: 1px solid #005f73;
+            background-color: #e0fbfc;
+            padding: 8px;
+            margin-top: 10px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        #spinnerHint, #spinnerFeedback {
+            display: none;
+            margin-top: 10px;
+            font-style: italic;
+            color: #005f73;
+        }
+        .hidden {
+            display: none;
+        }
+        /* Media Queries */
+        @media (max-width: 600px) {
+            .header-container {
+                height: auto;
+            }
+            .header-center img {
+                height: 40px;
+            }
+            .header-center h1 {
+                font-size: 1.5rem;
+            }
+            .container {
+                padding: 10px;
+            }
+            .chat-log {
+                height: 200px;
+            }
+            .btn-3d {
+                padding: 8px 16px;
+                font-size: 0.9rem;
+            }
+            .input-area textarea {
+                font-size: 0.9rem;
+            }
+            #scroll-banner p {
+                font-size: 0.9rem;
+            }
+        }
+    </style>
 </head>
 <body>
-  <header>
-    <div class="header-container">
-      <div class="header-left">
-        <a href="{{ url_for('about') }}">About</a>
-      </div>
-      <div class="header-center">
-        <img src="/static/new_logo.avif" alt="Logo">
-        <h1>Simul-AI-tor</h1>
-      </div>
-      <div class="header-right">
-        <a href="{{ url_for('logout') }}">Logout</a>
-      </div>
-    </div>
-  </header>
-  <div class="container">
-    <!-- Scrolling Banner with Updated Text -->
-    <div id="scroll-banner">
-      <p>Select your level of practice, play the part of a healthcare professional holding a consultation, click for hints on what to ask next if you're just getting started..and don't forget to request feedback!</p>
-    </div>
-    {% if not conversation %}
-      <div class="chat-container">
-        <form method="POST" action="{{ url_for('start_simulation') }}" id="startSimForm" style="text-align: center;">
-          <select id="simulation_level" name="simulation_level" required style="padding: 5px; margin-bottom: 10px;">
-            <option value="">Level of Practice</option>
-            <option value="Foundation">Foundation</option>
-            <option value="Enhanced">Enhanced</option>
-            <option value="Advanced">Advanced</option>
-          </select>
-          <br>
-          <button type="submit" class="btn-3d">Start Simulation</button>
-        </form>
-      </div>
-    {% else %}
-      <div class="chat-container">
-        <div class="chat-log" id="chatLog">
-          {% for msg in conversation %}
-            {% if msg.role == 'assistant' %}
-              <div class="chat-message patient">
-                <div class="bubble">
-                  <div class="name">Patient</div>
-                  {{ msg.content }}
-                </div>
-              </div>
-            {% elif msg.role == 'user' %}
-              <div class="chat-message user">
-                <div class="bubble">
-                  <div class="name">You</div>
-                  {{ msg.content }}
-                </div>
-              </div>
-            {% endif %}
-          {% endfor %}
-        </div>
-        <div class="input-area">
-          <form id="messageForm" style="margin-bottom: 10px;">
-            <textarea name="message" rows="2" placeholder="Type your message here..." required></textarea>
-            <div style="text-align: right; margin-top: 5px;">
-              <button type="submit" class="btn-3d">Send</button>
+    <!-- Header Container -->
+    <header>
+        <div class="header-container">
+            <div class="header-left">
+                <a href="{{ url_for('about') }}">About</a>
             </div>
-          </form>
+            <div class="header-center">
+                <img src="/static/new_logo.avif" alt="Logo">
+                <h1>Simul-AI-tor</h1>
+            </div>
+            <div class="header-right">
+                <a href="{{ url_for('logout') }}">Logout</a>
+            </div>
         </div>
-        <div class="buttons-row">
-          <form id="hintForm" method="POST" action="{{ url_for('hint') }}">
-            <button type="submit" id="hintBtn" class="btn-3d" title="Press for hints if you are stuck!">Hint</button>
-          </form>
-          <button id="feedbackBtnForm" class="btn-3d" onclick="submitFeedbackForm();">
-            Request Feedback
-          </button>
-          <button onclick="location.href='{{ url_for('clear_simulation') }}'" class="btn-3d">
-            Clear Conversation
-          </button>
+    </header>
+
+    <div class="container">
+        <!-- Scrolling Banner with Updated Text -->
+        <div id="scroll-banner">
+            <p>Select your level of practice, play the part of a healthcare professional holding a consultation, click for hints on what to ask next if you're just getting started..and don't forget to request feedback!</p>
         </div>
-        <form id="feedbackForm" method="POST" action="{{ url_for('feedback') }}" class="hidden"></form>
-        <div id="spinnerHint">Generating hints, please wait...</div>
-        <div id="spinnerFeedback">Generating feedback, please wait...</div>
-        {% if hint %}
-          <div class="prompt-box">
-            <h3>Suggested Next Question:</h3>
-            <p>{{ hint }}</p>
-          </div>
+        {% if not conversation %}
+            <div class="chat-container">
+                <form method="POST" action="{{ url_for('start_simulation') }}" id="startSimForm" style="text-align: center;">
+                    <select id="simulation_level" name="simulation_level" required style="padding: 5px; margin-bottom: 10px;">
+                        <option value="">Level of Practice</option>
+                        <option value="Foundation">Foundation</option>
+                        <option value="Enhanced">Enhanced</option>
+                        <option value="Advanced">Advanced</option>
+                    </select>
+                    <br>
+                    <button type="submit" class="btn-3d">Start Simulation</button>
+                </form>
+            </div>
+        {% else %}
+            <div class="chat-container">
+                <div class="chat-log" id="chatLog">
+                    {% for msg in conversation %}
+                        {% if msg.role == 'assistant' %}
+                            <div class="chat-message patient">
+                                <div class="bubble">
+                                    <div class="name">Patient</div>
+                                    {{ msg.content }}
+                                </div>
+                            </div>
+                        {% elif msg.role == 'user' %}
+                            <div class="chat-message user">
+                                <div class="bubble">
+                                    <div class="name">You</div>
+                                    {{ msg.content }}
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                <div class="input-area">
+                    <form id="messageForm" style="margin-bottom: 10px;">
+                        <textarea name="message" rows="2" placeholder="Type your message here..." required></textarea>
+                        <div style="text-align: right; margin-top: 5px;">
+                            <button type="submit" class="btn-3d">Send</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="buttons-row">
+                    <form id="hintForm" method="POST" action="{{ url_for('hint') }}">
+                        <button type="submit" id="hintBtn" class="btn-3d" title="Press for hints if you are stuck!">Hint</button>
+                    </form>
+                    <button id="feedbackBtnForm" class="btn-3d" onclick="submitFeedbackForm();">
+                        Request Feedback
+                    </button>
+                    <button onclick="location.href='{{ url_for('clear_simulation') }}'" class="btn-3d">
+                        Clear Conversation
+                    </button>
+                </div>
+                <form id="feedbackForm" method="POST" action="{{ url_for('feedback') }}" class="hidden"></form>
+                <div id="spinnerHint">Generating hints, please wait...</div>
+                <div id="spinnerFeedback">Generating feedback, please wait...</div>
+                {% if hint %}
+                    <div class="prompt-box">
+                        <h3>Suggested Next Question:</h3>
+                        <p>{{ hint }}</p>
+                    </div>
+                {% endif %}
+                {% if feedback %}
+                    <div class="feedback">
+                        <h3>Feedback:</h3>
+                        <p>{{ feedback }}</p>
+                        <button onclick="location.href='{{ url_for('download_feedback') }}'" class="btn-3d">
+                            Download Feedback as PDF
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
         {% endif %}
-        {% if feedback %}
-          <div class="feedback">
-            <h3>Feedback:</h3>
-            <p>{{ feedback }}</p>
-            <button onclick="location.href='{{ url_for('download_feedback') }}'" class="btn-3d">
-              Download Feedback as PDF
-            </button>
-          </div>
-        {% endif %}
-      </div>
-    {% endif %}
-  </div>
-  <footer>
-    <small>&copy; 2025 William Swain. All rights reserved.</small>
-  </footer>
-  <script>
-    // Auto-scroll chat log to bottom
-    function scrollChatToBottom() {
-      const chatLog = document.getElementById('chatLog');
-      if(chatLog) {
-        chatLog.scrollTop = chatLog.scrollHeight;
-      }
-    }
-    window.onload = scrollChatToBottom;
+    </div>
 
-    // Intercept message form submission using AJAX with keydown for reliability
-    const messageForm = document.getElementById('messageForm');
-    messageForm.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        submitMessage();
-      }
-    });
+    <footer>
+        <small>&copy; 2025 William Swain. All rights reserved.</small>
+    </footer>
 
-    function submitMessage() {
-      const textarea = messageForm.querySelector('textarea');
-      const userMessage = textarea.value.trim();
-      if (userMessage === "") return;
+    <script>
+        // Auto-scroll chat log to bottom
+        function scrollChatToBottom() {
+            const chatLog = document.getElementById('chatLog');
+            if (chatLog) {
+                chatLog.scrollTop = chatLog.scrollHeight;
+            }
+        }
+        window.onload = scrollChatToBottom;
 
-      // Append user's message immediately and scroll down
-      appendMessage("user", userMessage);
-      scrollChatToBottom();
-      textarea.value = "";
-
-      // Send the message to the server
-      fetch("{{ url_for('send_message') }}", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ "message": userMessage })
-      })
-      .then(response => response.json())
-      .then(data => {
-        // Immediately fetch the assistant's reply without additional delay
-        fetch("{{ url_for('get_reply') }}", {
-          method: "POST"
-        })
-        .then(response => response.json())
-        .then(data => {
-          appendMessage("assistant", data.reply);
-          scrollChatToBottom();
+        // Intercept form submit event to trigger AJAX call (for clicking Send button)
+        const messageForm = document.getElementById('messageForm');
+        messageForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            submitMessage();
         });
-      });
-    }
 
-    // Function to append a message to the chat log
-    function appendMessage(role, message) {
-      const chatLog = document.getElementById('chatLog');
-      const messageDiv = document.createElement('div');
-      messageDiv.className = "chat-message " + (role === "assistant" ? "patient" : "user");
+        // Also listen for keydown (Enter key) in the form
+        messageForm.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                submitMessage();
+            }
+        });
 
-      const bubbleDiv = document.createElement('div');
-      bubbleDiv.className = "bubble";
-      const nameDiv = document.createElement('div');
-      nameDiv.className = "name";
-      nameDiv.textContent = role === "assistant" ? "Patient" : "You";
-      bubbleDiv.appendChild(nameDiv);
+        function submitMessage() {
+            const textarea = messageForm.querySelector('textarea');
+            const userMessage = textarea.value.trim();
+            if (userMessage === "") return;
 
-      const messageP = document.createElement('p');
-      messageP.textContent = message;
-      bubbleDiv.appendChild(messageP);
+            // Append user's message immediately and scroll down
+            appendMessage("user", userMessage);
+            scrollChatToBottom();
+            textarea.value = "";
 
-      messageDiv.appendChild(bubbleDiv);
-      chatLog.appendChild(messageDiv);
-    }
+            // Send the message to the server
+            fetch("{{ url_for('send_message') }}", {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: new URLSearchParams({ "message": userMessage })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Immediately fetch the assistant's reply without additional delay
+                fetch("{{ url_for('get_reply') }}", {
+                    method: "POST"
+                })
+                .then(response => response.json())
+                .then(data => {
+                    appendMessage("assistant", data.reply);
+                    scrollChatToBottom();
+                });
+            });
+        }
 
-    // Show spinner for hint submission
-    document.getElementById('hintForm')?.addEventListener('submit', function(e) {
-      document.getElementById('hintBtn').disabled = true;
-      document.getElementById('spinnerHint').style.display = 'block';
-    });
-    // Show spinner for feedback submission
-    document.getElementById('feedbackBtnForm')?.addEventListener('click', function(e) {
-      document.getElementById('spinnerFeedback').style.display = 'block';
-      this.disabled = true;
-    });
-    // Auto-scroll chat log initially
-    scrollChatToBottom();
+        // Function to append a message to the chat log
+        function appendMessage(role, message) {
+            const chatLog = document.getElementById('chatLog');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = "chat-message " + (role === "assistant" ? "patient" : "user");
 
-    function submitFeedbackForm() {
-      document.getElementById('feedbackForm').submit();
-    }
-  </script>
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = "bubble";
+            const nameDiv = document.createElement('div');
+            nameDiv.className = "name";
+            nameDiv.textContent = role === "assistant" ? "Patient" : "You";
+            bubbleDiv.appendChild(nameDiv);
+
+            const messageP = document.createElement('p');
+            messageP.textContent = message;
+            bubbleDiv.appendChild(messageP);
+
+            messageDiv.appendChild(bubbleDiv);
+            chatLog.appendChild(messageDiv);
+        }
+
+        // Show spinner for hint submission
+        document.getElementById('hintForm')?.addEventListener('submit', function(e) {
+            document.getElementById('hintBtn').disabled = true;
+            document.getElementById('spinnerHint').style.display = 'block';
+        });
+        // Show spinner for feedback submission
+        document.getElementById('feedbackBtnForm')?.addEventListener('click', function(e) {
+            document.getElementById('spinnerFeedback').style.display = 'block';
+            this.disabled = true;
+        });
+        // Auto-scroll chat log initially
+        scrollChatToBottom();
+
+        function submitFeedbackForm() {
+            document.getElementById('feedbackForm').submit();
+        }
+    </script>
 </body>
 </html>

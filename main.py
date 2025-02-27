@@ -17,28 +17,24 @@ load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 openai.api_key = OPENAI_API_KEY
 
-# Initialize Flask app and configuration
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'  # Replace with a strong secret key
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 db = SQLAlchemy(app)
 
-# Initialize Flask-Login
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
-# Define the User model
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(150), nullable=False)
 
-# User loader callback
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# Global variables for simulation
+# Global simulation variables
 PATIENT_NAMES = [
     {"name": "Aisha Patel", "ethnicity": "South Asian (Indian)", "gender": "female"},
     {"name": "John Smith", "ethnicity": "British (White)", "gender": "male"},
@@ -50,32 +46,14 @@ PATIENT_NAMES = [
     {"name": "Mohamed Hassan", "ethnicity": "African (Somali)", "gender": "male"},
 ]
 
-# Expanded presenting complaints for each level
 FOUNDATION_COMPLAINTS = [
-    "fever", "persistent cough", "mild chest pain", "headache", "lower back pain",
-    "pain on urination", "earache", "reduced hearing", "shortness of breath", "abdominal discomfort",
-    "sore throat", "runny nose", "muscle aches", "fatigue", "joint stiffness",
-    "skin rash", "nausea", "dizziness", "constipation", "leg swelling",
-    "chills", "vomiting", "diarrhea", "loss of appetite", "stomach cramps",
-    "body aches", "joint pain", "mild confusion", "slight vision changes", "nasal congestion",
-    "sneezing", "watery eyes", "mild rash"
+    "fever", "persistent cough", "mild chest pain", "headache", "lower back pain"
 ]
-
 ENHANCED_COMPLAINTS = [
-    "chest pain", "shortness of breath", "persistent fatigue", "abdominal pain", "chronic diarrhea",
-    "joint stiffness", "recurring fever", "severe headache", "nausea", "unintentional weight loss",
-    "heart palpitations", "muscle weakness", "skin irritation", "recurrent dizziness", "constipation",
-    "leg swelling", "backache", "blurred vision", "frequent urination", "throat soreness",
-    "fever", "chills", "vomiting", "loss of appetite", "stomach cramps", "body aches",
-    "joint pain", "mild confusion", "sore throat", "nasal congestion", "sneezing", "watery eyes", "mild rash"
+    "chest pain", "shortness of breath", "persistent fatigue", "abdominal pain", "chronic diarrhea"
 ]
-
 ADVANCED_COMPLAINTS = [
-    "severe chest pain", "acute shortness of breath", "chronic fatigue", "irregular heart palpitations", "intense abdominal pain",
-    "high fever", "significant weight loss", "persistent diarrhea", "severe nausea", "debilitating joint pain",
-    "migraines", "reduced hearing", "leg swelling", "back pain radiating to the legs", "blurred vision",
-    "frequent urination with pain", "throat soreness with difficulty swallowing", "skin rash with itching",
-    "recurrent dizziness", "confusion", "severe headache"
+    "severe chest pain", "acute shortness of breath", "chronic fatigue", "irregular heart palpitations", "intense abdominal pain"
 ]
 
 FEEDBACK_INSTRUCTION = (
@@ -92,8 +70,7 @@ PROMPT_INSTRUCTION = (
     "Include a brief justification (1-2 sentences) for your suggestion. Format your answer as a single bullet point.\nConversation history:"
 )
 
-# Routes
-
+# Redirect '/' to login page
 @app.route('/')
 def index():
     return redirect(url_for('login'))
@@ -105,7 +82,7 @@ def login():
         password = request.form['password']
         user = User.query.filter_by(username=username).first()
         if user and check_password_hash(user.password, password):
-            session.pop('conversation', None)  # Clear previous conversation on login
+            session.pop('conversation', None)
             login_user(user)
             return redirect(url_for('simulation'))
         else:
@@ -162,7 +139,6 @@ def start_simulation():
         "IMPORTANT: Remember, you are the patient and never reveal that you are an AI."
     )
     session['conversation'] = [{'role': 'system', 'content': instr}]
-    # Pre-fetch the first assistant reply immediately
     try:
         response = openai.ChatCompletion.create(
             model="gpt-4-turbo",
@@ -186,7 +162,6 @@ def simulation():
                            feedback=session.get('feedback'),
                            hint=session.get('hint'))
 
-# New endpoint to process a user message asynchronously
 @app.route('/send_message', methods=['POST'])
 @login_required
 def send_message():
@@ -198,12 +173,10 @@ def send_message():
         return jsonify({"status": "ok"}), 200
     return jsonify({"status": "error", "message": "No message provided"}), 400
 
-# New endpoint to get the assistant's reply after a delay
 @app.route('/get_reply', methods=['POST'])
 @login_required
 def get_reply():
     conversation = session.get('conversation', [])
-    time.sleep(2)  # Delay of 2 seconds to simulate natural response time
     try:
         response = openai.ChatCompletion.create(
             model="gpt-4-turbo",

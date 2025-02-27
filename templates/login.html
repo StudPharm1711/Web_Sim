@@ -1,160 +1,109 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Login - Simul-AI-tor</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!-- Import Roboto from Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
-    <style>
-        /* Global Styles */
-        body {
-            font-family: 'Roboto', Arial, sans-serif;
-            background-color: #f7f7f7;
-            margin: 0;
-            padding: 0;
-        }
-        header {
-            background-color: #ffffff; /* white background */
-            padding: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-bottom: 1px solid #ddd;
-        }
-        header img {
-            height: 50px;
-            margin-right: 10px;
-        }
-        header h1 {
-            font-size: 1.8rem;
-            margin: 0;
-            color: #005f73;
-        }
-        .login-container {
-            max-width: 400px;
-            margin: 30px auto;
-            padding: 20px;
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            text-align: center;
-        }
-        .quote-container {
-            font-size: 1rem;
-            color: #005f73;
-            min-height: 40px;
-            margin-bottom: 20px;
-            position: relative;
-            /* Add quotes before and after via pseudo-elements */
-        }
-        .quote-container::before {
-            content: "“";
-            font-size: 1.2rem;
-            vertical-align: middle;
-        }
-        .quote-container::after {
-            content: "”";
-            font-size: 1.2rem;
-            vertical-align: middle;
-        }
-        /* Form styling for alignment */
-        form {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        form input, form button {
-            width: 100%;
-            max-width: 300px;
-            margin: 8px 0;
-            padding: 10px;
-            font-size: 1rem;
-        }
-        form input {
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        form button {
-            background-color: #005f73;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        form button:hover {
-            background-color: #0a6c82;
-        }
-        /* Mobile adjustments */
-        @media (max-width: 600px) {
-            header {
-                padding: 15px;
-            }
-            header img {
-                height: 40px;
-            }
-            header h1 {
-                font-size: 1.5rem;
-            }
-            .login-container {
-                margin: 20px;
-                padding: 15px;
-            }
-        }
-    </style>
+  <title>Login - Simul-AI-tor</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: 'Open Sans', Arial, sans-serif;
+      background-color: #f7f7f7;
+      margin: 0;
+      padding: 0;
+    }
+    .login-container {
+      max-width: 400px;
+      margin: 50px auto;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    #quotes-container {
+      font-size: 1rem;
+      color: #005f73;
+      min-height: 50px;
+      margin-bottom: 20px;
+    }
+    form input {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    form button {
+      background-color: #005f73;
+      color: white;
+      border: none;
+      padding: 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1rem;
+      width: 100%;
+    }
+    form button:hover {
+      background-color: #0a6c82;
+    }
+    p.register {
+      font-size: 0.9rem;
+      margin-top: 10px;
+    }
+    p.register a {
+      color: #005f73;
+      text-decoration: underline;
+    }
+  </style>
 </head>
 <body>
-    <header>
-        <img src="/static/new_logo.avif" alt="Logo">
-        <h1>Simul-AI-tor</h1>
-    </header>
-    <div class="login-container">
-        <div id="quotes-container" class="quote-container"></div>
-        <form action="/login" method="POST">
-            <input type="text" name="username" placeholder="Username" required>
-            <input type="password" name="password" placeholder="Password" required>
-            <button type="submit">Log In</button>
-        </form>
-    </div>
+  <div class="login-container">
+    <h1>Welcome to Simul-AI-tor</h1>
+    <div id="quotes-container"></div>
+    <form action="{{ url_for('login') }}" method="POST">
+      <input type="text" name="username" placeholder="Username" required>
+      <input type="password" name="password" placeholder="Password" required>
+      <button type="submit">Log In</button>
+    </form>
+    <p class="register">
+      Don't have an account? <a href="{{ url_for('register') }}">Register here</a>.
+    </p>
+  </div>
+  <script>
+    const quotes = [
+      "Great simulation! It really helped me practice my consultation skills.",
+      "This tool is incredibly realistic and educational.",
+      "I love how it simulates real patient responses."
+    ];
+    let quoteIndex = 0;
+    const typingSpeed = 100;
+    const delayBetweenQuotes = 3000;
+    const quotesContainer = document.getElementById("quotes-container");
 
-    <script>
-        // List of quotes to display without manual speech marks since CSS adds them
-        const quotes = [
-            "Great simulation! It really helped me practice my consultation skills.",
-            "This tool is incredibly realistic and educational.",
-            "I love how it simulates real patient responses."
-        ];
-        let quoteIndex = 0;
-        const typingSpeed = 100; // milliseconds per character
-        const delayBetweenQuotes = 3000; // delay after a quote is fully typed
-        const quotesContainer = document.getElementById("quotes-container");
+    function typeQuote(quote, charIndex, callback) {
+      if (charIndex < quote.length) {
+        quotesContainer.textContent += quote.charAt(charIndex);
+        setTimeout(() => typeQuote(quote, charIndex + 1, callback), typingSpeed);
+      } else {
+        callback();
+      }
+    }
 
-        // Function to type out a quote character by character
-        function typeQuote(quote, charIndex, callback) {
-            if (charIndex < quote.length) {
-                quotesContainer.textContent += quote.charAt(charIndex);
-                setTimeout(() => typeQuote(quote, charIndex + 1, callback), typingSpeed);
-            } else {
-                callback();
-            }
-        }
+    function showNextQuote() {
+      quotesContainer.textContent = "";
+      const quote = quotes[quoteIndex];
+      typeQuote(quote, 0, () => {
+        setTimeout(() => {
+          quoteIndex = (quoteIndex + 1) % quotes.length;
+          showNextQuote();
+        }, delayBetweenQuotes);
+      });
+    }
 
-        // Function to display quotes sequentially (clear the container entirely between quotes)
-        function showNextQuote() {
-            quotesContainer.textContent = ""; // clear container
-            const quote = quotes[quoteIndex];
-            typeQuote(quote, 0, () => {
-                setTimeout(() => {
-                    quoteIndex = (quoteIndex + 1) % quotes.length;
-                    showNextQuote();
-                }, delayBetweenQuotes);
-            });
-        }
-
-        window.onload = function() {
-            if (quotes.length) {
-                showNextQuote();
-            }
-        };
-    </script>
+    window.onload = function() {
+      if (quotes.length) {
+        showNextQuote();
+      }
+    };
+  </script>
 </body>
 </html>
