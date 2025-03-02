@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Simul-AI-tor - Account</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Shared CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <style>
+    /* Example 3D button style (as in simulation.html) */
+    .btn-3d {
+      background: linear-gradient(145deg, #005f73, #0a6c82);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 16px;
+      font-size: 1rem;
+      cursor: pointer;
+      box-shadow: 4px 4px 8px #cccccc, -4px -4px 8px #ffffff;
+      transition: background 0.3s, transform 0.1s;
+    }
+    .btn-3d:hover {
+      background: linear-gradient(145deg, #0a6c82, #005f73);
+    }
+    .btn-3d:active {
+      transform: translateY(2px);
+      box-shadow: 3px 3px 6px #cccccc, -3px -3px 6px #ffffff;
+    }
+    /* Matching container, header, footer styles */
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "Open Sans", Arial, sans-serif;
+      background-color: #f7f7f7;
+    }
+    .header-container {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 80px;
+      padding: 0 20px;
+      background-color: #ffffff;
+      border-bottom: 1px solid #ddd;
+    }
+    header {
+      background-color: #005f73;
+      color: white;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 {
+      margin: 0;
+      flex: 1;
+      text-align: center;
+    }
+    .back-button {
+      padding: 10px 20px;
+      background: linear-gradient(145deg, #005f73, #0a6c82);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 1rem;
+      transition: background 0.3s;
+    }
+    .back-button:hover {
+      background: linear-gradient(145deg, #0a6c82, #005f73);
+    }
+    .container {
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 20px;
+      background-color: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      font-size: 1.1rem;
+    }
+    footer {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 0.9rem;
+    }
+    footer small {
+      color: #333;
+    }
+    @media (max-width: 600px) {
+      body {
+        padding: 10px;
+      }
+      header {
+        padding: 15px;
+      }
+      .container {
+        padding: 15px;
+        font-size: 1rem;
+      }
+      footer {
+        font-size: 0.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="{{ url_for('simulation') }}" class="back-button" title="Back to Simulation">Back</a>
+    <h1>Account Settings</h1>
+    <!-- Placeholder for balance -->
+    <div style="width: 100px;"></div>
+  </header>
+
+  <div class="container">
+    <section id="subscription">
+      <h2>Subscription</h2>
+      <p>Manage your subscription settings below.</p>
+      <form action="{{ url_for('cancel_subscription') }}" method="POST">
+        <input type="hidden" name="user_id" value="{{ current_user.id }}">
+        <button type="submit" class="btn-3d"
+                onclick="return confirm('Are you sure you want to cancel your subscription? Your access will remain active until the end of the current billing period (approximately 1 month).');">
+          Cancel Subscription
+        </button>
+      </form>
+    </section>
+
+
+  <footer>
+    <small>&copy; 2025 William Swain. All rights reserved.</small>
+  </footer>
+</body>
+</html>

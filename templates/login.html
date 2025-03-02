@@ -1,109 +1,166 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
   <title>Login - Simul-AI-tor</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body {
-      font-family: 'Open Sans', Arial, sans-serif;
-      background-color: #f7f7f7;
+    /* Reset and basic styles */
+    * {
+      box-sizing: border-box;
       margin: 0;
       padding: 0;
     }
-    .login-container {
-      max-width: 400px;
-      margin: 50px auto;
-      padding: 20px;
-      background-color: #fff;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      color: #333;
+    }
+    /* Demo Container for Video */
+    .demo-container {
+      max-width: 800px;
+      margin: 40px auto 20px auto;
       text-align: center;
     }
-    #quotes-container {
-      font-size: 1rem;
-      color: #005f73;
-      min-height: 50px;
-      margin-bottom: 20px;
-    }
-    form input {
+    .demo-container video {
       width: 100%;
-      padding: 10px;
-      margin: 8px 0;
+      max-width: 800px;
+      border-radius: 10px;
+      box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    }
+    /* Login Container */
+    .login-container {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      width: 350px;
+      margin: 0 auto 40px auto;
+    }
+    h1 {
+      font-size: 1.8em;
+      margin-bottom: 10px;
+    }
+    .flash-messages {
+      margin-bottom: 15px;
+    }
+    .flash-messages ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .flash-messages li {
+      padding: 5px;
+      margin-bottom: 5px;
       border: 1px solid #ccc;
-      border-radius: 4px;
+      background: #f2f2f2;
+    }
+    form input[type="text"],
+    form input[type="password"] {
+      width: 90%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
     }
     form button {
-      background-color: #005f73;
+      width: 100%;
+      padding: 10px;
+      background-color: #006d77;
       color: white;
       border: none;
-      padding: 10px;
-      border-radius: 4px;
+      border-radius: 5px;
+      font-size: 1em;
       cursor: pointer;
-      font-size: 1rem;
-      width: 100%;
     }
     form button:hover {
-      background-color: #0a6c82;
+      background-color: #005f69;
     }
-    p.register {
-      font-size: 0.9rem;
+    .admin-section {
+      margin-top: 15px;
+      text-align: left;
+    }
+    .admin-section input[type="checkbox"] {
+      margin-right: 5px;
+    }
+    .admin-password {
+      display: none;
+      width: 90%;
+      padding: 10px;
+      margin-top: 8px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    .extra-links {
       margin-top: 10px;
+      font-size: 0.9rem;
     }
-    p.register a {
-      color: #005f73;
+    .extra-links a {
+      color: #006d77;
+      text-decoration: underline;
+      margin: 0 5px;
+    }
+    .login-link {
+      margin-top: 15px;
+      font-size: 0.9rem;
+    }
+    .login-link a {
+      color: #006d77;
       text-decoration: underline;
     }
   </style>
 </head>
 <body>
+  <!-- Login Form Section -->
   <div class="login-container">
-    <h1>Welcome to Simul-AI-tor</h1>
-    <div id="quotes-container"></div>
-    <form action="{{ url_for('login') }}" method="POST">
+    <h1>Login</h1>
+
+    <div class="flash-messages">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <ul>
+            {% for category, message in messages %}
+              <li class="{{ category }}">{{ message }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      {% endwith %}
+    </div>
+
+    <form method="POST" action="{{ url_for('login') }}">
       <input type="text" name="username" placeholder="Username" required>
       <input type="password" name="password" placeholder="Password" required>
+
+      <!-- Admin Section -->
+      <div class="admin-section">
+        <label>
+          <input type="checkbox" id="adminCheckbox" name="admin" value="true">
+          Log in as admin
+        </label>
+        <input type="password" id="adminPassword" name="admin_password" class="admin-password" placeholder="Enter admin password">
+      </div>
+
       <button type="submit">Log In</button>
     </form>
-    <p class="register">
-      Don't have an account? <a href="{{ url_for('register') }}">Register here</a>.
+
+    <div class="extra-links">
+      <a href="{{ url_for('forgot_password') }}">Forgot Password?</a>
+    </div>
+
+    <p class="login-link">
+      Don't have an account? <a href="{{ url_for('register') }}">Register here.</a>
     </p>
   </div>
+
   <script>
-    const quotes = [
-      "Great simulation! It really helped me practice my consultation skills.",
-      "This tool is incredibly realistic and educational.",
-      "I love how it simulates real patient responses."
-    ];
-    let quoteIndex = 0;
-    const typingSpeed = 100;
-    const delayBetweenQuotes = 3000;
-    const quotesContainer = document.getElementById("quotes-container");
+    // Show/hide the admin password field when the checkbox is toggled.
+    const adminCheckbox = document.getElementById('adminCheckbox');
+    const adminPasswordField = document.getElementById('adminPassword');
 
-    function typeQuote(quote, charIndex, callback) {
-      if (charIndex < quote.length) {
-        quotesContainer.textContent += quote.charAt(charIndex);
-        setTimeout(() => typeQuote(quote, charIndex + 1, callback), typingSpeed);
-      } else {
-        callback();
-      }
-    }
-
-    function showNextQuote() {
-      quotesContainer.textContent = "";
-      const quote = quotes[quoteIndex];
-      typeQuote(quote, 0, () => {
-        setTimeout(() => {
-          quoteIndex = (quoteIndex + 1) % quotes.length;
-          showNextQuote();
-        }, delayBetweenQuotes);
-      });
-    }
-
-    window.onload = function() {
-      if (quotes.length) {
-        showNextQuote();
-      }
-    };
+    adminCheckbox.addEventListener('change', function() {
+      adminPasswordField.style.display = this.checked ? 'block' : 'none';
+    });
   </script>
 </body>
 </html>

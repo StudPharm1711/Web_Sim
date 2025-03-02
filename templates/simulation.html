@@ -3,6 +3,10 @@
 <head>
     <title>Simul-AI-tor Simulation</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Shared CSS file -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <!-- Font Awesome for the cog icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         /* Global Styles */
         body {
@@ -23,35 +27,15 @@
             background-color: #ffffff;
             border-bottom: 1px solid #ddd;
         }
-        .header-left,
         .header-center,
         .header-right {
             display: flex;
             align-items: center;
         }
-        .header-left, .header-right {
-            flex: none;
-        }
         .header-center {
             flex: 1;
             justify-content: center;
             text-align: center;
-        }
-        .header-left a,
-        .header-right a {
-            text-decoration: none;
-            color: #005f73;
-            font-size: 1rem;
-            padding: 5px 10px;
-            border: 1px solid #005f73;
-            border-radius: 6px;
-            transition: background 0.3s;
-            margin: 0 5px;
-        }
-        .header-left a:hover,
-        .header-right a:hover {
-            background-color: #005f73;
-            color: white;
         }
         .header-center img {
             height: 50px;
@@ -62,6 +46,42 @@
             margin: 0;
             color: #005f73;
         }
+        /* Dropdown Styles */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        .dropbtn {
+            background: none;
+            border: none;
+            color: #005f73;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 5px 10px;
+        }
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            background-color: #ffffff;
+            min-width: 150px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            z-index: 1;
+        }
+        .dropdown-content a {
+            color: #005f73;
+            padding: 8px 12px;
+            text-decoration: none;
+            display: block;
+            font-size: 1rem;
+            transition: background 0.3s;
+        }
+        .dropdown-content a:hover {
+            background-color: #005f73;
+            color: #ffffff;
+        }
         /* Overall header wrapper */
         header {
             background-color: #ffffff;
@@ -71,7 +91,7 @@
             margin: 20px auto;
             padding: 20px;
         }
-        /* Scrolling Banner - Updated Settings */
+        /* Scrolling Banner */
         #scroll-banner {
             background-color: #e0fbfc;
             color: #005f73;
@@ -238,26 +258,30 @@
     </style>
 </head>
 <body>
-    <!-- Header Container -->
+    <!-- Header Container with Click-Activated Dropdown -->
     <header>
         <div class="header-container">
-            <div class="header-left">
-                <a href="{{ url_for('about') }}">About</a>
-            </div>
             <div class="header-center">
                 <img src="/static/new_logo.avif" alt="Logo">
                 <h1>Simul-AI-tor</h1>
             </div>
             <div class="header-right">
-                <a href="{{ url_for('logout') }}">Logout</a>
+                <div class="dropdown" title="Account">
+                    <button class="dropbtn" id="dropbtn"><i class="fa fa-cog"></i></button>
+                    <div class="dropdown-content" id="dropdown-content">
+                        <a href="{{ url_for('about') }}">About</a>
+                        <a href="{{ url_for('account.account') }}">Subscription</a>
+                        <a href="{{ url_for('logout') }}">Logout</a>
+                    </div>
+                </div>
             </div>
         </div>
     </header>
 
     <div class="container">
-        <!-- Scrolling Banner with Updated Text -->
+        <!-- Scrolling Banner -->
         <div id="scroll-banner">
-            <p>Select your level of practice, play the part of a healthcare professional holding a consultation, click for hints on what to ask next if you're just getting started..and don't forget to request feedback!</p>
+            <p>Select your level of practice, play the part of a healthcare professional holding a consultation, click for hints on what to ask next if you're just getting started... and don't forget to request feedback!</p>
         </div>
         {% if not conversation %}
             <div class="chat-container">
@@ -339,6 +363,24 @@
     </footer>
 
     <script>
+        // Toggle dropdown on click
+        document.getElementById('dropbtn').addEventListener('click', function(event) {
+            event.stopPropagation();
+            var dropdownContent = document.getElementById('dropdown-content');
+            if (dropdownContent.style.display === 'block') {
+                dropdownContent.style.display = 'none';
+            } else {
+                dropdownContent.style.display = 'block';
+            }
+        });
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            var dropdownContent = document.getElementById('dropdown-content');
+            if (!event.target.closest('.dropdown')) {
+                dropdownContent.style.display = 'none';
+            }
+        });
+
         // Auto-scroll chat log to bottom
         function scrollChatToBottom() {
             const chatLog = document.getElementById('chatLog');
@@ -354,7 +396,6 @@
             e.preventDefault();
             submitMessage();
         });
-
         // Also listen for keydown (Enter key) in the form
         messageForm.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -362,18 +403,13 @@
                 submitMessage();
             }
         });
-
         function submitMessage() {
             const textarea = messageForm.querySelector('textarea');
             const userMessage = textarea.value.trim();
             if (userMessage === "") return;
-
-            // Append user's message immediately and scroll down
             appendMessage("user", userMessage);
             scrollChatToBottom();
             textarea.value = "";
-
-            // Send the message to the server
             fetch("{{ url_for('send_message') }}", {
                 method: "POST",
                 headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -381,7 +417,6 @@
             })
             .then(response => response.json())
             .then(data => {
-                // Immediately fetch the assistant's reply without additional delay
                 fetch("{{ url_for('get_reply') }}", {
                     method: "POST"
                 })
@@ -392,41 +427,31 @@
                 });
             });
         }
-
-        // Function to append a message to the chat log
         function appendMessage(role, message) {
             const chatLog = document.getElementById('chatLog');
             const messageDiv = document.createElement('div');
             messageDiv.className = "chat-message " + (role === "assistant" ? "patient" : "user");
-
             const bubbleDiv = document.createElement('div');
             bubbleDiv.className = "bubble";
             const nameDiv = document.createElement('div');
             nameDiv.className = "name";
             nameDiv.textContent = role === "assistant" ? "Patient" : "You";
             bubbleDiv.appendChild(nameDiv);
-
             const messageP = document.createElement('p');
             messageP.textContent = message;
             bubbleDiv.appendChild(messageP);
-
             messageDiv.appendChild(bubbleDiv);
             chatLog.appendChild(messageDiv);
         }
-
-        // Show spinner for hint submission
         document.getElementById('hintForm')?.addEventListener('submit', function(e) {
             document.getElementById('hintBtn').disabled = true;
             document.getElementById('spinnerHint').style.display = 'block';
         });
-        // Show spinner for feedback submission
         document.getElementById('feedbackBtnForm')?.addEventListener('click', function(e) {
             document.getElementById('spinnerFeedback').style.display = 'block';
             this.disabled = true;
         });
-        // Auto-scroll chat log initially
         scrollChatToBottom();
-
         function submitFeedbackForm() {
             document.getElementById('feedbackForm').submit();
         }

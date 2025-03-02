@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Welcome to Simul-AI-tor</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Link to any shared CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <!-- Font Awesome (if needed) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    /* Global Reset & Base Styles */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: "Open Sans", Arial, sans-serif;
+      background-color: #ffffff;
+      color: #333;
+    }
+    /* Header */
+    .header-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 40px;
+      background-color: #ffffff;
+      box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    .logo-group {
+      display: flex;
+      align-items: center;
+    }
+    .logo-group img {
+      height: 80px; /* Larger logo */
+      margin-right: 15px;
+    }
+    .logo-group h1 {
+      font-size: 2rem;
+      color: #005f73;
+    }
+    .header-right {
+      display: flex;
+      gap: 15px;
+    }
+    .header-right a {
+      padding: 10px 20px;
+      background: linear-gradient(145deg, #005f73, #0a6c82);
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+      font-size: 1.1rem;
+      transition: background 0.3s;
+    }
+    .header-right a:hover {
+      background: linear-gradient(145deg, #0a6c82, #005f73);
+    }
+    /* Introductory Text */
+    .intro-text {
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 0 20px;
+      font-size: 1.2rem;
+      text-align: center;
+    }
+    /* Quotes Heading */
+    .quotes-heading {
+      text-align: center;
+      margin: 40px auto 10px auto;
+      font-size: 1.5rem;
+      color: #005f73;
+    }
+    /* Typed Text Container */
+    .typed-container {
+      max-width: 800px;
+      margin: 0 auto 30px auto;
+      text-align: center;
+      font-size: 1.1rem;
+      color: #005f73;
+      min-height: 1.5em; /* reserve space for text to avoid layout shift */
+    }
+    #typedText {
+      display: inline-block;
+      border-right: 2px solid #005f73;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    /* Video Section */
+    .video-container {
+      max-width: 800px;
+      margin: 20px auto 40px auto;
+      text-align: center;
+    }
+    .video-container video {
+      width: 100%;
+      max-width: 800px;
+      border-radius: 10px;
+      box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+    }
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 20px;
+      background-color: #ffffff;
+      font-size: 0.9rem;
+      color: #333;
+      border-top: 1px solid #ddd;
+    }
+    /* Responsive Adjustments */
+    @media (max-width: 600px) {
+      .header-container {
+        flex-direction: column;
+        padding: 15px 20px;
+      }
+      .logo-group img {
+        height: 60px; /* slightly smaller on mobile */
+        margin-right: 10px;
+      }
+      .logo-group h1 {
+        font-size: 1.5rem;
+      }
+      .header-right {
+        margin-top: 10px;
+        width: 100%;
+        justify-content: center;
+      }
+      .intro-text {
+        font-size: 1rem;
+      }
+      .quotes-heading {
+        font-size: 1.2rem;
+      }
+      .typed-container {
+        font-size: 1rem;
+      }
+      .header-right a {
+        font-size: 1rem;
+        padding: 8px 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header with Logo and Buttons -->
+  <header>
+    <div class="header-container">
+      <div class="logo-group">
+        <img src="{{ url_for('static', filename='new_logo.avif') }}" alt="Simul-AI-tor Logo">
+        <h1>Simul-AI-tor</h1>
+      </div>
+      <div class="header-right">
+        <a href="{{ url_for('login') }}">Log In</a>
+        <a href="{{ url_for('register') }}">Register</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Introductory Text -->
+  <div class="intro-text">
+    <p>Welcome to Simul-AI-tor – a cutting-edge clinical history-taking simulation tool designed for every healthcare professional. Whether you're a GP, nurse, pharmacist, or specialist, our platform supports all disciplines and skill levels, from foundation through advanced.</p>
+  </div>
+
+  <!-- Quotes Heading -->
+  <div class="quotes-heading">What do users think?</div>
+
+  <!-- Typed Effect Container -->
+  <div class="typed-container">
+    <span id="typedText"></span>
+  </div>
+
+  <!-- Video Section -->
+  <div class="video-container">
+    <video controls autoplay muted loop>
+      <source src="{{ url_for('static', filename='demo.mp4') }}" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <small>&copy; 2025 William Swain. All rights reserved.</small>
+  </footer>
+
+  <!-- Typed Effect JavaScript -->
+  <script>
+    // Quotes array
+    const quotes = [
+      "“This is the future of simulation right here.” – GP",
+      "“An indispensable tool for modern pharmacy education.” – Pharmacist",
+      "“It helped me prepare for my prescribing OSCE.” – Nurse"
+    ];
+
+    const typedText = document.getElementById("typedText");
+    let quoteIndex = 0;
+    let charIndex = 0;
+    let currentQuote = quotes[quoteIndex];
+    let typingSpeed = 50;     // speed of typing in ms
+    let pauseBetweenQuotes = 2000; // pause in ms after a quote finishes
+    let deletingSpeed = 25;   // speed of deleting in ms
+
+    // Type the current quote
+    function type() {
+      if (charIndex < currentQuote.length) {
+        typedText.textContent += currentQuote.charAt(charIndex);
+        charIndex++;
+        setTimeout(type, typingSpeed);
+      } else {
+        // pause, then start erase
+        setTimeout(erase, pauseBetweenQuotes);
+      }
+    }
+
+    // Erase the current quote
+    function erase() {
+      if (charIndex > 0) {
+        typedText.textContent = currentQuote.substring(0, charIndex - 1);
+        charIndex--;
+        setTimeout(erase, deletingSpeed);
+      } else {
+        // move to next quote
+        quoteIndex = (quoteIndex + 1) % quotes.length;
+        currentQuote = quotes[quoteIndex];
+        setTimeout(type, 500);
+      }
+    }
+
+    // Start the typing effect on page load
+    document.addEventListener("DOMContentLoaded", function() {
+      type();
+    });
+  </script>
+</body>
+</html>

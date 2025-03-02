@@ -15,7 +15,28 @@
             background-color: #005f73;
             color: white;
             padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        header h1 {
+            margin: 0;
+            flex: 1;
             text-align: center;
+        }
+        .back-button {
+            padding: 10px 20px;
+            background: linear-gradient(145deg, #005f73, #0a6c82);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 1rem;
+            transition: background 0.3s;
+        }
+        .back-button:hover {
+            background: linear-gradient(145deg, #0a6c82, #005f73);
         }
         .container {
             max-width: 800px;
@@ -47,7 +68,10 @@
 </head>
 <body>
     <header>
+        <a href="{{ url_for('simulation') }}" class="back-button" title="Back to Simulation">Back</a>
         <h1>About Simul-AI-tor</h1>
+        <!-- Placeholder to balance the flex layout -->
+        <div style="width: 100px;"></div>
     </header>
     <div class="container">
         <p>Simul-AI-tor is a clinical history-taking simulation tool designed to help healthcare professionals and trainees practice patient consultations. The simulated patient is powered by advanced AI and provides realistic responses. This tool is developed by William Swain for educational and training purposes.</p>
