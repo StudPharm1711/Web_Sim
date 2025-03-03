@@ -33,7 +33,8 @@ STRIPE_NONSTUDENT_PRICE_ID = os.getenv("STRIPE_NONSTUDENT_PRICE_ID")  # e.g., fo
 app = Flask(__name__)
 app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_TYPE'] = "filesystem"
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL", "postgresql://postgres:London22!!@localhost/project_db")
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL",
+                                                  "postgresql://postgres:London22!!@localhost/project_db")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", os.urandom(24).hex())
 
@@ -330,6 +331,7 @@ def reset_password(token):
     except BadSignature:
         flash("Invalid password reset token.", "danger")
         return redirect(url_for('forgot_password'))
+
     if request.method == 'POST':
         new_password = request.form.get('password')
         confirm_password = request.form.get('confirm_password')
@@ -509,7 +511,7 @@ def clear_simulation():
     session.pop('hint', None)
     return redirect(url_for('simulation'))
 
-# --- New Generate Exam Route (Updated) ---
+# --- New Generate Exam Route (Updated for Abbreviated Vitals) ---
 @app.route('/generate_exam', methods=['POST'])
 @login_required
 def generate_exam():
@@ -524,10 +526,11 @@ def generate_exam():
     if not complaint:
         return jsonify({"error": "No complaint provided"}), 400
 
+    # Updated prompt to use abbreviated vital signs
     exam_prompt = (
-        f"Generate a complete and concise set of physical examination findings for a patient presenting with '{complaint}'. "
-        "Include the following sections: General Appearance, Vital Signs (heart rate, blood pressure, respiratory rate, temperature, oxygen saturation), "
-        "and relevant findings for head, neck, chest, abdomen, and extremities. Do not include any introductory phrases or extra text; provide only the exam findings."
+        f"Generate a complete and concise set of abbreviated physical examination findings for a patient presenting with '{complaint}'. "
+        "Include abbreviated vital signs: HR (heart rate), BP (blood pressure), RR (respiratory rate), Temp (temperature), and O2 Sat (oxygen saturation). "
+        "Also include abbreviated findings for head, neck, chest, abdomen, and extremities. Do not include any introductory phrases or extra text; provide only the exam findings."
     )
     try:
         response = openai.ChatCompletion.create(
