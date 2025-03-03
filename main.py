@@ -33,8 +33,7 @@ STRIPE_NONSTUDENT_PRICE_ID = os.getenv("STRIPE_NONSTUDENT_PRICE_ID")  # e.g., fo
 app = Flask(__name__)
 app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_TYPE'] = "filesystem"
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL",
-                                                  "postgresql://postgres:London22!!@localhost/project_db")
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL", "postgresql://postgres:London22!!@localhost/project_db")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", os.urandom(24).hex())
 
@@ -58,7 +57,6 @@ login_manager.login_view = 'login'
 # Initialize serializer for password reset tokens
 s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
-
 # --- User Model Definition ---
 class User(UserMixin, db.Model):
     __tablename__ = 'user'  # Explicit table name
@@ -73,11 +71,9 @@ class User(UserMixin, db.Model):
     subscription_status = db.Column(db.String(50))
     is_admin = db.Column(db.Boolean, default=False)
 
-
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
-
 
 # --- Global Simulation Variables ---
 PATIENT_NAMES = [
@@ -118,16 +114,11 @@ PROMPT_INSTRUCTION = (
 
 # --- Account Blueprint ---
 account_bp = Blueprint('account', __name__, url_prefix='/account')
-
-
 @account_bp.route('/')
 @login_required
 def account():
     return render_template('account.html')
-
-
 app.register_blueprint(account_bp)
-
 
 # --- Subscription Cancellation Route ---
 @app.route('/cancel_subscription', methods=['POST'])
@@ -149,7 +140,6 @@ def cancel_subscription():
         flash(f"Error cancelling subscription: {str(e)}", "danger")
     return redirect(url_for('account.account'))
 
-
 # --- Before Request Hook to Enforce Active Subscription ---
 @app.before_request
 def require_active_subscription():
@@ -162,7 +152,7 @@ def require_active_subscription():
         'payment_success',
         'payment_cancel',
         'static',
-        'landing'  # Allow landing page access
+        'landing'
     }
     if current_user.is_authenticated and not current_user.is_admin:
         if current_user.subscription_status != 'active' and request.endpoint:
@@ -170,17 +160,13 @@ def require_active_subscription():
                 flash("Your subscription is not active. Please register to subscribe.", "warning")
                 return redirect(url_for('register'))
 
-
 # --- Landing Page Route ---
 @app.route('/')
 def landing():
     return render_template('landing.html')
 
-
 # --- Login & Registration Routes ---
 ADMIN_LOGIN_PASSWORD = os.getenv("ADMIN_LOGIN_PASSWORD")
-
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -215,7 +201,6 @@ def login():
             else:
                 flash("Invalid username or password", "danger")
     return render_template('login.html')
-
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -257,7 +242,6 @@ def register():
         return redirect(stripe_checkout_url)
     return render_template('register.html')
 
-
 # --- Payment Routes ---
 @app.route('/payment_success')
 @login_required
@@ -287,12 +271,10 @@ def payment_success():
         return redirect(url_for('register'))
     return redirect(url_for('simulation'))
 
-
 @app.route('/payment_cancel')
 def payment_cancel():
     flash("Payment was cancelled. Please try again.", "warning")
     return redirect(url_for('register'))
-
 
 # --- Logout & About Routes ---
 @app.route('/logout')
@@ -302,12 +284,10 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
-
 @app.route('/about')
 @login_required
 def about():
     return render_template('about.html')
-
 
 # --- Forgot Password & Reset Password Routes ---
 @app.route('/forgot_password', methods=['GET', 'POST'])
@@ -340,7 +320,6 @@ Your Support Team
         return redirect(url_for('login'))
     return render_template('forgot_password.html')
 
-
 @app.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
     try:
@@ -351,7 +330,6 @@ def reset_password(token):
     except BadSignature:
         flash("Invalid password reset token.", "danger")
         return redirect(url_for('forgot_password'))
-
     if request.method == 'POST':
         new_password = request.form.get('password')
         confirm_password = request.form.get('confirm_password')
@@ -369,29 +347,38 @@ def reset_password(token):
             return redirect(url_for('forgot_password'))
     return render_template('reset_password.html', token=token)
 
-
 # --- Simulation & Chat Routes ---
 @app.route('/start_simulation', methods=['POST'])
 @login_required
 def start_simulation():
     level = request.form.get('simulation_level')
-    if level not in ['Foundation', 'Enhanced', 'Advanced']:
+    country = request.form.get('country')
+    # Expecting "Beginner", "Intermediate", or "Advanced"
+    if level not in ['Beginner', 'Intermediate', 'Advanced']:
         flash("Invalid simulation level selected", "danger")
         return redirect(url_for('simulation'))
+    if not country:
+        flash("Please select a country.", "danger")
+        return redirect(url_for('simulation'))
     patient = random.choice(PATIENT_NAMES)
-    if level == 'Foundation':
+    # Map levels to complaint sets
+    if level == 'Beginner':
         selected_complaint = random.choice(FOUNDATION_COMPLAINTS)
-    elif level == 'Enhanced':
+    elif level == 'Intermediate':
         selected_complaint = random.choice(ENHANCED_COMPLAINTS)
-    else:
+    else:  # Advanced
         selected_complaint = random.choice(ADVANCED_COMPLAINTS)
+    # Build simulation instructions with country and level details
     instr = (
-        f"You are a patient in a history-taking simulation. Your name is {patient['name']} and you are a {patient['gender']} patient. "
+        f"You are a patient in a history-taking simulation taking place in {country}. "
+        f"Your level is {level}. "
+        f"Your name is {patient['name']} and you are a {patient['gender']} patient. "
         f"Begin every interaction by saying exactly: \"Can I speak with someone about my symptoms?\" and wait for the user's response before providing further details. "
         f"Present your complaint: {selected_complaint}. "
         "Provide only minimal details until further questions are asked, then gradually add more information. "
         "IMPORTANT: Remember, you are the patient and never reveal that you are an AI."
     )
+    session['country'] = country
     session['conversation'] = [{'role': 'system', 'content': instr}]
     try:
         response = openai.ChatCompletion.create(
@@ -407,7 +394,6 @@ def start_simulation():
     session.pop('hint', None)
     return redirect(url_for('simulation'))
 
-
 @app.route('/simulation', methods=['GET'])
 @login_required
 def simulation():
@@ -416,7 +402,6 @@ def simulation():
     return render_template('simulation.html', conversation=display_conv,
                            feedback=session.get('feedback'),
                            hint=session.get('hint'))
-
 
 @app.route('/send_message', methods=['POST'])
 @login_required
@@ -428,7 +413,6 @@ def send_message():
         session['conversation'] = conversation
         return jsonify({"status": "ok"}), 200
     return jsonify({"status": "error", "message": "No message provided"}), 400
-
 
 @app.route('/get_reply', methods=['POST'])
 @login_required
@@ -448,7 +432,6 @@ def get_reply():
     conversation.append({'role': 'assistant', 'content': resp_text})
     session['conversation'] = conversation
     return jsonify({"reply": resp_text}), 200
-
 
 @app.route('/hint', methods=['POST'])
 @login_required
@@ -475,7 +458,6 @@ def hint():
     session['hint'] = hint_response
     return redirect(url_for('simulation'))
 
-
 @app.route('/feedback', methods=['POST'])
 @login_required
 def feedback():
@@ -501,7 +483,6 @@ def feedback():
     session['feedback'] = fb
     return redirect(url_for('simulation'))
 
-
 @app.route('/download_feedback', methods=['GET'])
 @login_required
 def download_feedback():
@@ -520,7 +501,6 @@ def download_feedback():
                      download_name="feedback.pdf",
                      mimetype="application/pdf")
 
-
 @app.route('/clear_simulation')
 @login_required
 def clear_simulation():
@@ -529,6 +509,37 @@ def clear_simulation():
     session.pop('hint', None)
     return redirect(url_for('simulation'))
 
+# --- New Generate Exam Route (Updated) ---
+@app.route('/generate_exam', methods=['POST'])
+@login_required
+def generate_exam():
+    # Check if at least two user messages exist
+    conversation = session.get('conversation', [])
+    user_messages = [msg for msg in conversation if msg.get('role') == 'user']
+    if len(user_messages) < 2:
+        return jsonify({"error": "Please ask at least two questions before accessing exam results."}), 403
+
+    data = request.get_json()
+    complaint = data.get('complaint')
+    if not complaint:
+        return jsonify({"error": "No complaint provided"}), 400
+
+    exam_prompt = (
+        f"Generate a complete and concise set of physical examination findings for a patient presenting with '{complaint}'. "
+        "Include the following sections: General Appearance, Vital Signs (heart rate, blood pressure, respiratory rate, temperature, oxygen saturation), "
+        "and relevant findings for head, neck, chest, abdomen, and extremities. Do not include any introductory phrases or extra text; provide only the exam findings."
+    )
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4-turbo",
+            messages=[{"role": "system", "content": exam_prompt}],
+            temperature=0.7,
+            max_tokens=200
+        )
+        exam_results = response.choices[0].message["content"].strip()
+    except Exception as e:
+        exam_results = f"Error generating exam results: {str(e)}"
+    return jsonify({"results": exam_results}), 200
 
 if __name__ == '__main__':
     app.run(debug=True)

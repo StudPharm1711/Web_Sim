@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <!-- Font Awesome for the cog icon -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <style>
         /* Global Styles */
         body {
@@ -209,6 +211,38 @@
             transform: translateY(2px);
             box-shadow: 3px 3px 6px #cccccc, -3px -3px 6px #ffffff;
         }
+        /* Additional style for Clear Conversation button */
+        .btn-clear {
+            background: #ff9999;
+            color: black;
+            box-shadow: 4px 4px 8px #ffcccc, -4px -4px 8px #ffffff;
+        }
+        .btn-clear:hover {
+            background: #ff6666;
+        }
+        /* Disabled state for exam button */
+        .btn-3d:disabled {
+            background: #cccccc !important;
+            color: #666666;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        /* Labeled form groups */
+        .form-group {
+            margin-bottom: 10px;
+            display: inline-block;
+            text-align: left;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: bold;
+            color: #005f73;
+        }
+        /* Limit select width */
+        .select2-container {
+            width: 200px !important;
+        }
         /* Prompt & Feedback Boxes */
         .prompt-box, .feedback {
             border: 1px solid #005f73;
@@ -218,7 +252,7 @@
             border-radius: 6px;
             font-size: 0.9rem;
         }
-        #spinnerHint, #spinnerFeedback {
+        #spinnerHint, #spinnerFeedback, #spinnerExam {
             display: none;
             margin-top: 10px;
             font-style: italic;
@@ -286,13 +320,31 @@
         {% if not conversation %}
             <div class="chat-container">
                 <form method="POST" action="{{ url_for('start_simulation') }}" id="startSimForm" style="text-align: center;">
-                    <select id="simulation_level" name="simulation_level" required style="padding: 5px; margin-bottom: 10px;">
-                        <option value="">Level of Practice</option>
-                        <option value="Foundation">Foundation</option>
-                        <option value="Enhanced">Enhanced</option>
-                        <option value="Advanced">Advanced</option>
-                    </select>
-                    <br>
+                    <div class="form-group">
+                        <label for="simulation_level">Level of Practice</label>
+                        <select id="simulation_level" name="simulation_level" class="select2" required>
+                            <option value="">Select Level</option>
+                            <option value="Beginner" data-description="Simple Patient : Simple Problem">Beginner</option>
+                            <option value="Intermediate" data-description="Simple Patient : Complex Problem">Intermediate</option>
+                            <option value="Advanced" data-description="Complex Patient : Complex Problem">Advanced</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="country_select">Country</label>
+                        <select id="country_select" name="country" class="select2" required>
+                            <option value="">Select Country</option>
+                            <option value="United Kingdom">United Kingdom</option>
+                            <option value="USA">USA</option>
+                            <optgroup label="Other Countries">
+                                <option value="Canada">Canada</option>
+                                <option value="Australia">Australia</option>
+                                <option value="Germany">Germany</option>
+                                <option value="France">France</option>
+                                <option value="India">India</option>
+                                <option value="Japan">Japan</option>
+                            </optgroup>
+                        </select>
+                    </div>
                     <button type="submit" class="btn-3d">Start Simulation</button>
                 </form>
             </div>
@@ -332,10 +384,15 @@
                     <button id="feedbackBtnForm" class="btn-3d" onclick="submitFeedbackForm();">
                         Request Feedback
                     </button>
-                    <button onclick="location.href='{{ url_for('clear_simulation') }}'" class="btn-3d">
+                    <!-- Physical Examination button starts as disabled and grey -->
+                    <button id="examBtn" class="btn-3d" disabled title="This option becomes available once you have explored the symptoms">Physical Examination Results</button>
+                    <button onclick="confirmClear()" class="btn-3d btn-clear">
                         Clear Conversation
                     </button>
                 </div>
+                <!-- New spinner and exam results container -->
+                <div id="spinnerExam">Generating physical examination results, please wait...</div>
+                <div id="examResults" class="prompt-box" style="display: none;"></div>
                 <form id="feedbackForm" method="POST" action="{{ url_for('feedback') }}" class="hidden"></form>
                 <div id="spinnerHint">Generating hints, please wait...</div>
                 <div id="spinnerFeedback">Generating feedback, please wait...</div>
@@ -362,8 +419,34 @@
         <small>&copy; 2025 William Swain. All rights reserved.</small>
     </footer>
 
+    <!-- Include jQuery and Select2 JS -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
     <script>
-        // Toggle dropdown on click
+        // Custom templating for the simulation level dropdown
+        function formatLevel(state) {
+            if (!state.id) { return state.text; }
+            var description = $(state.element).data('description');
+            var $state = $('<span><strong>' + state.text + '</strong><br><small>' + description + '</small></span>');
+            return $state;
+        }
+
+        // Initialize Select2
+        $(document).ready(function() {
+            // Use custom template for simulation level dropdown
+            $('#simulation_level').select2({
+                theme: "classic",
+                templateResult: formatLevel,
+                templateSelection: formatLevel
+            });
+            // Country dropdown uses default Select2 styling
+            $('#country_select').select2({
+                theme: "classic"
+            });
+        });
+
+        // Toggle dropdown on click for the account menu
         document.getElementById('dropbtn').addEventListener('click', function(event) {
             event.stopPropagation();
             var dropdownContent = document.getElementById('dropdown-content');
@@ -390,6 +473,19 @@
         }
         window.onload = scrollChatToBottom;
 
+        // Function to update exam button state based on number of user questions
+        function updateExamButtonState() {
+            const userMessages = document.querySelectorAll('.chat-message.user');
+            const examBtn = document.getElementById('examBtn');
+            if (userMessages.length >= 2) {
+                examBtn.disabled = false;
+                examBtn.title = "";
+            } else {
+                examBtn.disabled = true;
+                examBtn.title = "This option becomes available once you have explored the symptoms";
+            }
+        }
+
         // Intercept form submit event to trigger AJAX call (for clicking Send button)
         const messageForm = document.getElementById('messageForm');
         messageForm.addEventListener('submit', function(e) {
@@ -410,6 +506,7 @@
             appendMessage("user", userMessage);
             scrollChatToBottom();
             textarea.value = "";
+            updateExamButtonState(); // update exam button state after each user message
             fetch("{{ url_for('send_message') }}", {
                 method: "POST",
                 headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -442,6 +539,9 @@
             bubbleDiv.appendChild(messageP);
             messageDiv.appendChild(bubbleDiv);
             chatLog.appendChild(messageDiv);
+            if(role === "user") {
+                updateExamButtonState();
+            }
         }
         document.getElementById('hintForm')?.addEventListener('submit', function(e) {
             document.getElementById('hintBtn').disabled = true;
@@ -454,6 +554,60 @@
         scrollChatToBottom();
         function submitFeedbackForm() {
             document.getElementById('feedbackForm').submit();
+        }
+
+        // New function to get the presenting complaint.
+        // For this example, we assume the first patient message contains the presenting complaint.
+        function getPresentingComplaint() {
+            const chatLog = document.getElementById('chatLog');
+            if (chatLog) {
+                const messages = chatLog.getElementsByClassName('chat-message');
+                for (let msg of messages) {
+                    if (msg.classList.contains('patient')) {
+                        // Extract text content without the "Patient" label
+                        return msg.innerText.replace("Patient", "").trim();
+                    }
+                }
+            }
+            return "";
+        }
+
+        // Event listener for the Generate Exam Results button
+        document.getElementById('examBtn').addEventListener('click', function() {
+            const complaint = getPresentingComplaint();
+            if (!complaint) {
+                alert("Presenting complaint not found. Please ensure the patient has provided a complaint.");
+                return;
+            }
+            document.getElementById('spinnerExam').style.display = 'block';
+            // Clear any previous exam results
+            const examResultsDiv = document.getElementById('examResults');
+            examResultsDiv.style.display = 'none';
+            examResultsDiv.innerHTML = "";
+
+            fetch("{{ url_for('generate_exam') }}", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ complaint: complaint })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('spinnerExam').style.display = 'none';
+                examResultsDiv.style.display = 'block';
+                examResultsDiv.innerHTML = "<h3>Exam Results:</h3><p>" + data.results + "</p>";
+            })
+            .catch(error => {
+                document.getElementById('spinnerExam').style.display = 'none';
+                alert("Error generating exam results. Please try again.");
+                console.error("Error:", error);
+            });
+        });
+
+        // New function to confirm clearing conversation
+        function confirmClear() {
+            if (confirm("Are you sure?")) {
+                location.href = '{{ url_for("clear_simulation") }}';
+            }
         }
     </script>
 </body>
