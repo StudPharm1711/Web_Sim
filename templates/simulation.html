@@ -252,6 +252,11 @@
             border-radius: 6px;
             font-size: 0.9rem;
         }
+        #examResults {
+            min-height: 150px;
+            padding: 16px;
+            font-family: monospace;
+        }
         #spinnerHint, #spinnerFeedback, #spinnerExam {
             display: none;
             margin-top: 10px;
@@ -391,8 +396,8 @@
                     </button>
                 </div>
                 <!-- New spinner and exam results container -->
-                <div id="spinnerExam">You examine the patient, please wait...</div>
-                <div id="examResults" class="prompt-box" style="display: none;"></div>
+                <div id="spinnerExam">Gathering abbreviated physical exam results, please wait...</div>
+                <div id="examResults" class="prompt-box" style="display: none; min-height: 150px;"></div>
                 <form id="feedbackForm" method="POST" action="{{ url_for('feedback') }}" class="hidden"></form>
                 <div id="spinnerHint">Generating hints, please wait...</div>
                 <div id="spinnerFeedback">Generating feedback, please wait...</div>
@@ -402,10 +407,28 @@
                         <p>{{ hint }}</p>
                     </div>
                 {% endif %}
-                {% if feedback %}
+                <!-- Structured Feedback Display -->
+                {% if feedback_json %}
+                    <div class="feedback">
+                        <h3>Consultation Performance</h3>
+                        <ul>
+                            <li><strong>Initiating the session:</strong> Score: {{ feedback_json.initiating_session.score }}, Comment: {{ feedback_json.initiating_session.comment }}</li>
+                            <li><strong>Gathering information:</strong> Score: {{ feedback_json.gathering_information.score }}, Comment: {{ feedback_json.gathering_information.comment }}</li>
+                            <li><strong>Physical examination:</strong> Score: {{ feedback_json.physical_examination.score }}, Comment: {{ feedback_json.physical_examination.comment }}</li>
+                            <li><strong>Explanation & planning:</strong> Score: {{ feedback_json.explanation_planning.score }}, Comment: {{ feedback_json.explanation_planning.comment }}</li>
+                            <li><strong>Closing the session:</strong> Score: {{ feedback_json.closing_session.score }}, Comment: {{ feedback_json.closing_session.comment }}</li>
+                            <li><strong>Building a relationship:</strong> Score: {{ feedback_json.building_relationship.score }}, Comment: {{ feedback_json.building_relationship.comment }}</li>
+                            <li><strong>Providing structure:</strong> Score: {{ feedback_json.providing_structure.score }}, Comment: {{ feedback_json.providing_structure.comment }}</li>
+                            <li><strong>Overall Score:</strong> {{ feedback_json.overall }}/70</li>
+                        </ul>
+                        <button onclick="location.href='{{ url_for('download_feedback') }}'" class="btn-3d">
+                            Download Feedback as PDF
+                        </button>
+                    </div>
+                {% elif feedback_raw %}
                     <div class="feedback">
                         <h3>Feedback:</h3>
-                        <p>{{ feedback }}</p>
+                        <pre>{{ feedback_raw }}</pre>
                         <button onclick="location.href='{{ url_for('download_feedback') }}'" class="btn-3d">
                             Download Feedback as PDF
                         </button>
@@ -434,13 +457,11 @@
 
         // Initialize Select2
         $(document).ready(function() {
-            // Use custom template for simulation level dropdown
             $('#simulation_level').select2({
                 theme: "classic",
                 templateResult: formatLevel,
                 templateSelection: formatLevel
             });
-            // Country dropdown uses default Select2 styling
             $('#country_select').select2({
                 theme: "classic"
             });
@@ -450,13 +471,8 @@
         document.getElementById('dropbtn').addEventListener('click', function(event) {
             event.stopPropagation();
             var dropdownContent = document.getElementById('dropdown-content');
-            if (dropdownContent.style.display === 'block') {
-                dropdownContent.style.display = 'none';
-            } else {
-                dropdownContent.style.display = 'block';
-            }
+            dropdownContent.style.display = (dropdownContent.style.display === 'block') ? 'none' : 'block';
         });
-        // Close dropdown when clicking outside
         document.addEventListener('click', function(event) {
             var dropdownContent = document.getElementById('dropdown-content');
             if (!event.target.closest('.dropdown')) {
@@ -473,7 +489,7 @@
         }
         window.onload = scrollChatToBottom;
 
-        // Function to update exam button state based on number of user questions
+        // Update exam button state based on number of user messages
         function updateExamButtonState() {
             const userMessages = document.querySelectorAll('.chat-message.user');
             const examBtn = document.getElementById('examBtn');
@@ -486,13 +502,12 @@
             }
         }
 
-        // Intercept form submit event to trigger AJAX call (for clicking Send button)
+        // Intercept form submit event for sending messages
         const messageForm = document.getElementById('messageForm');
         messageForm.addEventListener('submit', function(e) {
             e.preventDefault();
             submitMessage();
         });
-        // Also listen for keydown (Enter key) in the form
         messageForm.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -506,7 +521,7 @@
             appendMessage("user", userMessage);
             scrollChatToBottom();
             textarea.value = "";
-            updateExamButtonState(); // update exam button state after each user message
+            updateExamButtonState();
             fetch("{{ url_for('send_message') }}", {
                 method: "POST",
                 headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -514,9 +529,7 @@
             })
             .then(response => response.json())
             .then(data => {
-                fetch("{{ url_for('get_reply') }}", {
-                    method: "POST"
-                })
+                fetch("{{ url_for('get_reply') }}", { method: "POST" })
                 .then(response => response.json())
                 .then(data => {
                     appendMessage("assistant", data.reply);
@@ -551,28 +564,21 @@
             document.getElementById('spinnerFeedback').style.display = 'block';
             this.disabled = true;
         });
-        scrollChatToBottom();
         function submitFeedbackForm() {
             document.getElementById('feedbackForm').submit();
         }
-
-        // New function to get the presenting complaint.
-        // For this example, we assume the first patient message contains the presenting complaint.
         function getPresentingComplaint() {
             const chatLog = document.getElementById('chatLog');
             if (chatLog) {
                 const messages = chatLog.getElementsByClassName('chat-message');
                 for (let msg of messages) {
                     if (msg.classList.contains('patient')) {
-                        // Extract text content without the "Patient" label
                         return msg.innerText.replace("Patient", "").trim();
                     }
                 }
             }
             return "";
         }
-
-        // Event listener for the Generate Exam Results button
         document.getElementById('examBtn').addEventListener('click', function() {
             const complaint = getPresentingComplaint();
             if (!complaint) {
@@ -580,11 +586,9 @@
                 return;
             }
             document.getElementById('spinnerExam').style.display = 'block';
-            // Clear any previous exam results
             const examResultsDiv = document.getElementById('examResults');
             examResultsDiv.style.display = 'none';
             examResultsDiv.innerHTML = "";
-
             fetch("{{ url_for('generate_exam') }}", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -602,8 +606,6 @@
                 console.error("Error:", error);
             });
         });
-
-        // New function to confirm clearing conversation
         function confirmClear() {
             if (confirm("Are you sure?")) {
                 location.href = '{{ url_for("clear_simulation") }}';

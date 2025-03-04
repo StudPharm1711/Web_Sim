@@ -2,6 +2,7 @@ import os
 import io
 import random
 import time
+import json  # for parsing JSON responses from the API
 from flask import Flask, render_template, redirect, url_for, request, flash, session, send_file, jsonify, Blueprint
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
@@ -14,8 +15,6 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 from flask_migrate import Migrate
-
-# Additional imports for email and token generation
 from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 
@@ -50,13 +49,13 @@ app.config['MAIL_DEFAULT_SENDER'] = os.getenv("MAIL_DEFAULT_SENDER", "noreply@ex
 mail = Mail(app)
 db = SQLAlchemy(app)
 
-# Initialize Flask-Migrate and Flask-Login
 migrate = Migrate(app, db)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
 # Initialize serializer for password reset tokens
 s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+
 
 # --- User Model Definition ---
 class User(UserMixin, db.Model):
@@ -72,9 +71,11 @@ class User(UserMixin, db.Model):
     subscription_status = db.Column(db.String(50))
     is_admin = db.Column(db.Boolean, default=False)
 
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
 
 # --- Global Simulation Variables ---
 PATIENT_NAMES = [
@@ -101,25 +102,29 @@ ADVANCED_COMPLAINTS = [
 
 FEEDBACK_INSTRUCTION = (
     "You are an examiner, not a patient. Cease all patient role-playing immediately. Your task is to analyse the conversation history and provide detailed feedback "
-    "on the user's communication and history-taking skills using the Calgary-Cambridge model. Also evaluate their clinical reasoning using hypothetical-deductive reasoning, "
+    "on the user's communication and history-taking skills using the Calgary–Cambridge model. Also evaluate their clinical reasoning using hypothetical-deductive reasoning, "
     "dual-process theory, and Bayesian theory, noting any biases. Use specific examples from the dialogue provided. Keep feedback constructive, clear, and professional. "
-    "Use British English spellings. End with: \"Thank you for the consultation. Goodbye.\" Here is the conversation history to review:"
+    "Use British English spellings. End with: \"Thank you for the consultation. Goodbye.\" Here is the consultation transcript to review:"
 )
 
 PROMPT_INSTRUCTION = (
-    "You are a Calgary Cambridge communication expert. Based on the conversation history below, provide one single, concise suggested next question that the user should ask "
-    "to advance the history-taking interview. Your suggestion must ensure that essential patient details—such as demographics, personal history, or key symptoms—are addressed. "
-    "If the conversation does not include any questions asking for the patient's name and/or date of birth, your suggestion should explicitly include a question to gather them. "
-    "Include a brief justification (1-2 sentences) for your suggestion. Format your answer as a single bullet point.\nConversation history:"
+    "You are a Calgary Cambridge communication expert. Based on the following consultation transcript, provide one single, concise suggested next question for the user to ask, "
+    "ensuring that essential patient details (e.g., demographics, personal history, key symptoms) are addressed. If the transcript does not include questions about the patient's name "
+    "or date of birth, include such a question. Provide a brief justification (1-2 sentences) for your suggestion. Format your answer as a single bullet point."
 )
 
 # --- Account Blueprint ---
 account_bp = Blueprint('account', __name__, url_prefix='/account')
+
+
 @account_bp.route('/')
 @login_required
 def account():
     return render_template('account.html')
+
+
 app.register_blueprint(account_bp)
+
 
 # --- Subscription Cancellation Route ---
 @app.route('/cancel_subscription', methods=['POST'])
@@ -130,10 +135,7 @@ def cancel_subscription():
         flash("No active subscription to cancel.", "warning")
         return redirect(url_for('account.account'))
     try:
-        subscription = stripe.Subscription.modify(
-            user.subscription_id,
-            cancel_at_period_end=True
-        )
+        subscription = stripe.Subscription.modify(user.subscription_id, cancel_at_period_end=True)
         user.subscription_status = subscription.status
         db.session.commit()
         flash("Your subscription will be cancelled at the end of the current billing period.", "success")
@@ -141,33 +143,28 @@ def cancel_subscription():
         flash(f"Error cancelling subscription: {str(e)}", "danger")
     return redirect(url_for('account.account'))
 
+
 # --- Before Request Hook to Enforce Active Subscription ---
 @app.before_request
 def require_active_subscription():
-    safe_endpoints = {
-        'login',
-        'register',
-        'forgot_password',
-        'reset_password',
-        'logout',
-        'payment_success',
-        'payment_cancel',
-        'static',
-        'landing'
-    }
+    safe_endpoints = {'login', 'register', 'forgot_password', 'reset_password', 'logout', 'payment_success',
+                      'payment_cancel', 'static', 'landing'}
     if current_user.is_authenticated and not current_user.is_admin:
         if current_user.subscription_status != 'active' and request.endpoint:
             if request.endpoint not in safe_endpoints:
                 flash("Your subscription is not active. Please register to subscribe.", "warning")
                 return redirect(url_for('register'))
 
+
 # --- Landing Page Route ---
 @app.route('/')
 def landing():
     return render_template('landing.html')
 
-# --- Login & Registration Routes ---
+
 ADMIN_LOGIN_PASSWORD = os.getenv("ADMIN_LOGIN_PASSWORD")
+
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -180,8 +177,7 @@ def login():
             admin_user = User.query.filter_by(username="admin").first()
             if not admin_user:
                 hashed_admin = generate_password_hash(ADMIN_LOGIN_PASSWORD)
-                admin_user = User(username="admin", email="admin@example.com",
-                                  password=hashed_admin, is_admin=True)
+                admin_user = User(username="admin", email="admin@example.com", password=hashed_admin, is_admin=True)
                 db.session.add(admin_user)
                 db.session.commit()
             else:
@@ -202,6 +198,7 @@ def login():
             else:
                 flash("Invalid username or password", "danger")
     return render_template('login.html')
+
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -229,8 +226,8 @@ def register():
         STRIPE_NONSTUDENT_LINK = "https://buy.stripe.com/28obIZ5Hj2qE9FedQS"
         stripe_checkout_url = STRIPE_STUDENT_LINK if category == 'health_student' else STRIPE_NONSTUDENT_LINK
         hashed_password = generate_password_hash(password)
-        new_user = User(username=username, email=email, password=hashed_password,
-                        category=category, discipline=discipline)
+        new_user = User(username=username, email=email, password=hashed_password, category=category,
+                        discipline=discipline)
         db.session.add(new_user)
         db.session.commit()
         try:
@@ -243,7 +240,7 @@ def register():
         return redirect(stripe_checkout_url)
     return render_template('register.html')
 
-# --- Payment Routes ---
+
 @app.route('/payment_success')
 @login_required
 def payment_success():
@@ -272,12 +269,13 @@ def payment_success():
         return redirect(url_for('register'))
     return redirect(url_for('simulation'))
 
+
 @app.route('/payment_cancel')
 def payment_cancel():
     flash("Payment was cancelled. Please try again.", "warning")
     return redirect(url_for('register'))
 
-# --- Logout & About Routes ---
+
 @app.route('/logout')
 @login_required
 def logout():
@@ -285,12 +283,13 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
+
 @app.route('/about')
 @login_required
 def about():
     return render_template('about.html')
 
-# --- Forgot Password & Reset Password Routes ---
+
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
@@ -321,6 +320,7 @@ Your Support Team
         return redirect(url_for('login'))
     return render_template('forgot_password.html')
 
+
 @app.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
     try:
@@ -331,7 +331,6 @@ def reset_password(token):
     except BadSignature:
         flash("Invalid password reset token.", "danger")
         return redirect(url_for('forgot_password'))
-
     if request.method == 'POST':
         new_password = request.form.get('password')
         confirm_password = request.form.get('confirm_password')
@@ -349,13 +348,12 @@ def reset_password(token):
             return redirect(url_for('forgot_password'))
     return render_template('reset_password.html', token=token)
 
-# --- Simulation & Chat Routes ---
+
 @app.route('/start_simulation', methods=['POST'])
 @login_required
 def start_simulation():
     level = request.form.get('simulation_level')
     country = request.form.get('country')
-    # Expecting "Beginner", "Intermediate", or "Advanced"
     if level not in ['Beginner', 'Intermediate', 'Advanced']:
         flash("Invalid simulation level selected", "danger")
         return redirect(url_for('simulation'))
@@ -363,14 +361,12 @@ def start_simulation():
         flash("Please select a country.", "danger")
         return redirect(url_for('simulation'))
     patient = random.choice(PATIENT_NAMES)
-    # Map levels to complaint sets
     if level == 'Beginner':
         selected_complaint = random.choice(FOUNDATION_COMPLAINTS)
     elif level == 'Intermediate':
         selected_complaint = random.choice(ENHANCED_COMPLAINTS)
-    else:  # Advanced
+    else:
         selected_complaint = random.choice(ADVANCED_COMPLAINTS)
-    # Build simulation instructions with country and level details
     instr = (
         f"You are a patient in a history-taking simulation taking place in {country}. "
         f"Your level is {level}. "
@@ -396,14 +392,17 @@ def start_simulation():
     session.pop('hint', None)
     return redirect(url_for('simulation'))
 
+
 @app.route('/simulation', methods=['GET'])
 @login_required
 def simulation():
     conversation = session.get('conversation', [])
     display_conv = [m for m in conversation if m['role'] != 'system']
     return render_template('simulation.html', conversation=display_conv,
-                           feedback=session.get('feedback'),
+                           feedback_json=session.get('feedback_json'),
+                           feedback_raw=session.get('feedback'),
                            hint=session.get('hint'))
+
 
 @app.route('/send_message', methods=['POST'])
 @login_required
@@ -415,6 +414,7 @@ def send_message():
         session['conversation'] = conversation
         return jsonify({"status": "ok"}), 200
     return jsonify({"status": "error", "message": "No message provided"}), 400
+
 
 @app.route('/get_reply', methods=['POST'])
 @login_required
@@ -434,6 +434,7 @@ def get_reply():
     conversation.append({'role': 'assistant', 'content': resp_text})
     session['conversation'] = conversation
     return jsonify({"reply": resp_text}), 200
+
 
 @app.route('/hint', methods=['POST'])
 @login_required
@@ -460,6 +461,7 @@ def hint():
     session['hint'] = hint_response
     return redirect(url_for('simulation'))
 
+
 @app.route('/feedback', methods=['POST'])
 @login_required
 def feedback():
@@ -467,23 +469,61 @@ def feedback():
     if not conversation:
         flash("No conversation available for feedback", "warning")
         return redirect(url_for('simulation'))
+
     conv_text = "\n".join([
         f"{'User' if m['role'] == 'user' else 'Patient'}: {m['content']}"
         for m in conversation if m['role'] != 'system'
     ])
-    feedback_prompt = FEEDBACK_INSTRUCTION + "\n" + conv_text
+
+    feedback_prompt = (
+            "Evaluate the following consultation transcript using the Calgary–Cambridge model. "
+            "Score each of these categories on a scale of 1 to 10, and provide a short comment for each:\n"
+            "1. Initiating the session\n"
+            "2. Gathering information\n"
+            "3. Physical examination\n"
+            "4. Explanation & planning\n"
+            "5. Closing the session\n"
+            "6. Building a relationship\n"
+            "7. Providing structure\n\n"
+            "Then, calculate the overall score by summing the scores for these seven categories (maximum score is 70), and include it in your JSON output. "
+            "Format your answer strictly as JSON in the following format:\n\n"
+            '{\n'
+            '  "initiating_session": {"score": X, "comment": "..."},\n'
+            '  "gathering_information": {"score": X, "comment": "..."},\n'
+            '  "physical_examination": {"score": X, "comment": "..."},\n'
+            '  "explanation_planning": {"score": X, "comment": "..."},\n'
+            '  "closing_session": {"score": X, "comment": "..."},\n'
+            '  "building_relationship": {"score": X, "comment": "..."},\n'
+            '  "providing_structure": {"score": X, "comment": "..."},\n'
+            '  "overall": Y\n'
+            '}\n\n'
+            "where Y is the sum of the scores from the seven sections.\n\n"
+            "Consultation Transcript:\n" + conv_text
+    )
+
     feedback_conversation = [{'role': 'system', 'content': feedback_prompt}]
+
     try:
-        res = openai.ChatCompletion.create(
-            model="gpt-4-turbo",
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
             messages=feedback_conversation,
-            temperature=0.8
+            temperature=0.8,
+            max_tokens=300
         )
-        fb = res.choices[0].message["content"]
+        fb = response.choices[0].message["content"]
     except Exception as e:
         fb = f"Error generating feedback: {str(e)}"
-    session['feedback'] = fb
+
+    try:
+        feedback_json = json.loads(fb)
+        session['feedback_json'] = feedback_json
+        session['feedback'] = fb
+    except Exception:
+        session['feedback_json'] = None
+        session['feedback'] = fb
+
     return redirect(url_for('simulation'))
+
 
 @app.route('/download_feedback', methods=['GET'])
 @login_required
@@ -503,19 +543,20 @@ def download_feedback():
                      download_name="feedback.pdf",
                      mimetype="application/pdf")
 
+
 @app.route('/clear_simulation')
 @login_required
 def clear_simulation():
     session.pop('conversation', None)
     session.pop('feedback', None)
+    session.pop('feedback_json', None)
     session.pop('hint', None)
     return redirect(url_for('simulation'))
 
-# --- New Generate Exam Route (Updated for Abbreviated Vitals) ---
+
 @app.route('/generate_exam', methods=['POST'])
 @login_required
 def generate_exam():
-    # Check if at least two user messages exist
     conversation = session.get('conversation', [])
     user_messages = [msg for msg in conversation if msg.get('role') == 'user']
     if len(user_messages) < 2:
@@ -526,7 +567,6 @@ def generate_exam():
     if not complaint:
         return jsonify({"error": "No complaint provided"}), 400
 
-    # Updated prompt to use abbreviated vital signs
     exam_prompt = (
         f"Generate a complete and concise set of abbreviated physical examination findings for a patient presenting with '{complaint}'. "
         "Include abbreviated vital signs: HR (heart rate), BP (blood pressure), RR (respiratory rate), Temp (temperature), and O2 Sat (oxygen saturation). "
@@ -543,6 +583,7 @@ def generate_exam():
     except Exception as e:
         exam_results = f"Error generating exam results: {str(e)}"
     return jsonify({"results": exam_results}), 200
+
 
 if __name__ == '__main__':
     app.run(debug=True)
