@@ -386,7 +386,7 @@ def start_simulation():
     session['conversation'] = [{'role': 'system', 'content': instr}]
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4-turbo",
             messages=session['conversation'],
             temperature=0.8
         )
@@ -471,9 +471,10 @@ def feedback():
         flash("No conversation available for feedback", "warning")
         return redirect(url_for('simulation'))
 
-    conv_text = "\n".join([
-        f"{'User' if m['role'] == 'user' else 'Patient'}: {m['content']}"
-        for m in conversation if m['role'] != 'system'
+    # Build transcript using only the healthcare professional's (user) messages.
+    user_conv_text = "\n".join([
+        f"User: {m['content']}"
+        for m in conversation if m.get('role') == 'user'
     ])
 
     feedback_prompt = (
@@ -481,7 +482,7 @@ def feedback():
             "Score each of these categories on a scale of 1 to 10, and provide a short comment for each:\n"
             "1. Initiating the session\n"
             "2. Gathering information\n"
-            "3. Physical examination\n"
+            "3. Physical examination: Award points if the user gains explicit consent for a physical examination and discusses the auto-generated exam results.\n"
             "4. Explanation & planning\n"
             "5. Closing the session\n"
             "6. Building a relationship\n"
@@ -499,7 +500,7 @@ def feedback():
             '  "overall": Y\n'
             '}\n\n'
             "where Y is the sum of the scores from the seven sections.\n\n"
-            "Consultation Transcript:\n" + conv_text
+            "Consultation Transcript:\n" + user_conv_text
     )
 
     feedback_conversation = [{'role': 'system', 'content': feedback_prompt}]

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- Shared CSS file -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-    <!-- Font Awesome for the cog icon -->
+    <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Select2 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
@@ -220,12 +220,19 @@
         .btn-clear:hover {
             background: #ff6666;
         }
-        /* Disabled state for exam button */
+        /* Unified disabled state for all .btn-3d */
         .btn-3d:disabled {
             background: #cccccc !important;
             color: #666666;
             cursor: not-allowed;
             box-shadow: none;
+            opacity: 0.5;
+        }
+        /* Tooltip icon style */
+        .tooltip-icon {
+            margin-left: 4px;
+            color: #005f73;
+            cursor: help;
         }
         /* Labeled form groups */
         .form-group {
@@ -326,7 +333,10 @@
             <div class="chat-container">
                 <form method="POST" action="{{ url_for('start_simulation') }}" id="startSimForm" style="text-align: center;">
                     <div class="form-group">
-                        <label for="simulation_level">Level of Practice</label>
+                        <label for="simulation_level">
+                            Level of Practice
+                            <i class="fa fa-info-circle tooltip-icon" title="Select the level of simulation. This determines the complexity of the patient's complaint and your challenges during the consultation."></i>
+                        </label>
                         <select id="simulation_level" name="simulation_level" class="select2" required>
                             <option value="">Select Level</option>
                             <option value="Beginner" data-description="Simple Patient : Simple Problem">Beginner</option>
@@ -335,7 +345,10 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="country_select">Country</label>
+                        <label for="country_select">
+                            Country
+                            <i class="fa fa-info-circle tooltip-icon" title="Select your country to tailor the simulation's cultural and healthcare context. This affects patient demographics, symptom presentation, and communication style, making your practice more realistic."></i>
+                        </label>
                         <select id="country_select" name="country" class="select2" required>
                             <option value="">Select Country</option>
                             <option value="United Kingdom">United Kingdom</option>
@@ -384,13 +397,20 @@
                 </div>
                 <div class="buttons-row">
                     <form id="hintForm" method="POST" action="{{ url_for('hint') }}">
-                        <button type="submit" id="hintBtn" class="btn-3d" title="Press for hints if you are stuck!">Hint</button>
+                        <button type="submit" id="hintBtn" class="btn-3d" title="Press for hints if you are stuck!">
+                            Hint
+                            <i class="fa fa-info-circle tooltip-icon" title="Press for hints if you are stuck!"></i>
+                        </button>
                     </form>
-                    <button id="feedbackBtnForm" class="btn-3d" onclick="submitFeedbackForm();">
+                    <button id="feedbackBtnForm" class="btn-3d" onclick="submitFeedbackForm();" disabled title="Feedback available after 5 interactions">
                         Request Feedback
+                        <i class="fa fa-info-circle tooltip-icon" title="Feedback available after 5 interactions"></i>
                     </button>
                     <!-- Physical Examination button starts as disabled and grey -->
-                    <button id="examBtn" class="btn-3d" disabled title="This option becomes available once you have explored the symptoms">Physical Examination Results</button>
+                    <button id="examBtn" class="btn-3d" disabled title="This option becomes available once you have explored the symptoms">
+                        Physical Examination Results
+                        <i class="fa fa-info-circle tooltip-icon" title="This option becomes available once you have explored the symptoms"></i>
+                    </button>
                     <button onclick="confirmClear()" class="btn-3d btn-clear">
                         Clear Conversation
                     </button>
@@ -502,41 +522,23 @@
             }
         }
 
-        // Intercept form submit event for sending messages
-        const messageForm = document.getElementById('messageForm');
-        messageForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            submitMessage();
-        });
-        messageForm.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                submitMessage();
-            }
-        });
-        function submitMessage() {
-            const textarea = messageForm.querySelector('textarea');
-            const userMessage = textarea.value.trim();
-            if (userMessage === "") return;
-            appendMessage("user", userMessage);
-            scrollChatToBottom();
-            textarea.value = "";
-            updateExamButtonState();
-            fetch("{{ url_for('send_message') }}", {
-                method: "POST",
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                body: new URLSearchParams({ "message": userMessage })
-            })
-            .then(response => response.json())
-            .then(data => {
-                fetch("{{ url_for('get_reply') }}", { method: "POST" })
-                .then(response => response.json())
-                .then(data => {
-                    appendMessage("assistant", data.reply);
-                    scrollChatToBottom();
-                });
-            });
+        // Check if there are at least 5 user interactions (messages)
+        function canShowFeedback() {
+            const userMessages = document.querySelectorAll('.chat-message.user');
+            return userMessages.length >= 5;
         }
+
+        // Update feedback button state
+        function updateFeedbackButton() {
+            const feedbackBtn = document.getElementById('feedbackBtnForm');
+            if (canShowFeedback()) {
+                feedbackBtn.disabled = false;
+            } else {
+                feedbackBtn.disabled = true;
+            }
+        }
+
+        // Append new messages and update button states
         function appendMessage(role, message) {
             const chatLog = document.getElementById('chatLog');
             const messageDiv = document.createElement('div');
@@ -552,21 +554,69 @@
             bubbleDiv.appendChild(messageP);
             messageDiv.appendChild(bubbleDiv);
             chatLog.appendChild(messageDiv);
-            if(role === "user") {
+
+            if (role === "user") {
                 updateExamButtonState();
+                updateFeedbackButton();
             }
+            scrollChatToBottom();
         }
+
+        // Intercept form submit event for sending messages
+        const messageForm = document.getElementById('messageForm');
+        messageForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            submitMessage();
+        });
+        messageForm.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                submitMessage();
+            }
+        });
+
+        function submitMessage() {
+            const textarea = messageForm.querySelector('textarea');
+            const userMessage = textarea.value.trim();
+            if (userMessage === "") return;
+            appendMessage("user", userMessage);
+            textarea.value = "";
+            updateExamButtonState();
+            updateFeedbackButton();
+
+            fetch("{{ url_for('send_message') }}", {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: new URLSearchParams({ "message": userMessage })
+            })
+            .then(response => response.json())
+            .then(data => {
+                fetch("{{ url_for('get_reply') }}", { method: "POST" })
+                .then(response => response.json())
+                .then(data => {
+                    appendMessage("assistant", data.reply);
+                    updateFeedbackButton();
+                });
+            });
+        }
+
+        // Hint button
         document.getElementById('hintForm')?.addEventListener('submit', function(e) {
             document.getElementById('hintBtn').disabled = true;
             document.getElementById('spinnerHint').style.display = 'block';
         });
+
+        // Feedback button
         document.getElementById('feedbackBtnForm')?.addEventListener('click', function(e) {
             document.getElementById('spinnerFeedback').style.display = 'block';
             this.disabled = true;
         });
+
         function submitFeedbackForm() {
             document.getElementById('feedbackForm').submit();
         }
+
+        // Extract the presenting complaint from the patient’s earliest message
         function getPresentingComplaint() {
             const chatLog = document.getElementById('chatLog');
             if (chatLog) {
@@ -579,6 +629,8 @@
             }
             return "";
         }
+
+        // Physical Exam button
         document.getElementById('examBtn').addEventListener('click', function() {
             const complaint = getPresentingComplaint();
             if (!complaint) {
@@ -606,6 +658,8 @@
                 console.error("Error:", error);
             });
         });
+
+        // Clear conversation
         function confirmClear() {
             if (confirm("Are you sure?")) {
                 location.href = '{{ url_for("clear_simulation") }}';
