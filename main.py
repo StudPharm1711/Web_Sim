@@ -28,12 +28,11 @@ stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_STUDENT_PRICE_ID = os.getenv("STRIPE_STUDENT_PRICE_ID")  # e.g., for £3.49/month
 STRIPE_NONSTUDENT_PRICE_ID = os.getenv("STRIPE_NONSTUDENT_PRICE_ID")  # e.g., for £4.99/month
 
-# Initialize Flask app and SQLAlchemy
+# Initialise Flask app and SQLAlchemy
 app = Flask(__name__)
 app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_TYPE'] = "filesystem"
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL",
-                                                  "postgresql://postgres:London22!!@localhost/project_db")
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL", "postgresql://postgres:London22!!@localhost/project_db")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", os.urandom(24).hex())
 
@@ -53,7 +52,7 @@ migrate = Migrate(app, db)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
-# Initialize serializer for password reset tokens
+# Initialise serializer for password reset tokens
 s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
 # --- User Model Definition ---
@@ -90,7 +89,7 @@ FOUNDATION_COMPLAINTS = [
     "fever", "persistent cough", "mild chest pain", "headache", "lower back pain"
 ]
 ENHANCED_COMPLAINTS = [
-    "chest pain", "shortness of breath", "persistent fatigue", "abdominal pain", "chronic diarrhea"
+    "chest pain", "shortness of breath", "persistent fatigue", "abdominal pain", "chronic diarrhoea"
 ]
 ADVANCED_COMPLAINTS = [
     "severe chest pain", "acute shortness of breath", "chronic fatigue", "irregular heart palpitations",
@@ -204,6 +203,7 @@ def register():
         category = request.form['category']
         discipline = request.form.get('discipline')
         other_discipline = request.form.get('otherDiscipline')
+        promo_code = request.form.get('promo_code')  # Capture promo code
 
         # Check for duplicate email or username in the database
         if User.query.filter_by(email=email).first():
@@ -225,17 +225,29 @@ def register():
             "email": email,
             "hashed_password": generate_password_hash(password),
             "category": category,
-            "discipline": discipline
+            "discipline": discipline,
+            "promo_code": promo_code  # Store promo code if entered
         }
         session['pending_registration'] = pending_registration
 
-        # Determine the appropriate Stripe checkout URL
-        STRIPE_STUDENT_LINK = "https://buy.stripe.com/fZe4gx9XzaXadVu28b"
-        STRIPE_NONSTUDENT_LINK = "https://buy.stripe.com/7sIaEV6Ln8P28BabIM"
-        stripe_checkout_url = STRIPE_STUDENT_LINK if category == 'health_student' else STRIPE_NONSTUDENT_LINK
+        # Determine the appropriate price ID based on category
+        price_id = STRIPE_STUDENT_PRICE_ID if category == 'health_student' else STRIPE_NONSTUDENT_PRICE_ID
 
-        # Redirect the user to the Stripe checkout
-        return redirect(stripe_checkout_url)
+        # Create a dynamic Stripe Checkout Session with promo codes enabled
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            line_items=[{
+                "price": price_id,
+                "quantity": 1,
+            }],
+            mode="subscription",
+            allow_promotion_codes=True,  # Enables the promo code field on Stripe's checkout page
+            success_url=url_for('payment_success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
+            cancel_url=url_for('payment_cancel', _external=True),
+        )
+
+        # Redirect the user to the Stripe Checkout page.
+        return redirect(checkout_session.url)
     return render_template('register.html')
 
 @app.route('/payment_success')
