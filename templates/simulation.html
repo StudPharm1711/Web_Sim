@@ -234,6 +234,10 @@
             color: #005f73;
             cursor: help;
         }
+        /* Specific style for Hint button icon to be white */
+        #hintBtn .tooltip-icon {
+            color: #ffffff;
+        }
         /* Labeled form groups */
         .form-group {
             margin-bottom: 10px;
@@ -347,7 +351,7 @@
                     <div class="form-group">
                         <label for="country_select">
                             Country
-                            <i class="fa fa-info-circle tooltip-icon" title="Select your country to tailor the simulation's cultural and healthcare context. This affects patient demographics, symptom presentation, and communication style, making your practice more realistic."></i>
+                            <i class="fa fa-info-circle tooltip-icon" title="Select your country to tailor the simulation's medication names and healthcare context."></i>
                         </label>
                         <select id="country_select" name="country" class="select2" required>
                             <option value="">Select Country</option>
@@ -389,7 +393,7 @@
                 </div>
                 <div class="input-area">
                     <form id="messageForm" style="margin-bottom: 10px;">
-                        <textarea name="message" rows="2" placeholder="Type your message here..." required></textarea>
+                        <textarea name="message" rows="2"></textarea>
                         <div style="text-align: right; margin-top: 5px;">
                             <button type="submit" class="btn-3d">Send</button>
                         </div>
@@ -475,7 +479,7 @@
             return $state;
         }
 
-        // Initialize Select2
+        // Initialize Select2 and start typewriter effect on placeholder
         $(document).ready(function() {
             $('#simulation_level').select2({
                 theme: "classic",
@@ -485,6 +489,19 @@
             $('#country_select').select2({
                 theme: "classic"
             });
+
+            // Typewriter effect for the textarea placeholder
+            const textarea = document.querySelector('textarea[name="message"]');
+            const text = "Type your response here to begin practicing your history taking...";
+            let index = 0;
+            function typeText() {
+                if (index <= text.length) {
+                    textarea.setAttribute('placeholder', text.substring(0, index));
+                    index++;
+                    setTimeout(typeText, 80);
+                }
+            }
+            typeText();
         });
 
         // Toggle dropdown on click for the account menu
