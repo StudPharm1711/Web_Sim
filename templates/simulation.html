@@ -94,6 +94,7 @@
             padding: 20px;
         }
         /* Scrolling Banner */
+        {% if not conversation %}
         #scroll-banner {
             background-color: #e0fbfc;
             color: #005f73;
@@ -114,6 +115,7 @@
             0% { transform: translateX(0); }
             100% { transform: translateX(-100%); }
         }
+        {% endif %}
         footer {
             text-align: center;
             margin-top: 40px;
@@ -301,9 +303,11 @@
             .input-area textarea {
                 font-size: 0.9rem;
             }
+            {% if not conversation %}
             #scroll-banner p {
                 font-size: 0.9rem;
             }
+            {% endif %}
         }
     </style>
 </head>
@@ -329,10 +333,12 @@
     </header>
 
     <div class="container">
-        <!-- Scrolling Banner -->
+        {% if not conversation %}
+        <!-- Scrolling Banner appears only when simulation hasn't started -->
         <div id="scroll-banner">
             <p>Select your level of practice, play the part of a healthcare professional holding a consultation, click for hints on what to ask next if you're just getting started... and don't forget to request feedback!</p>
         </div>
+        {% endif %}
         {% if not conversation %}
             <div class="chat-container">
                 <form method="POST" action="{{ url_for('start_simulation') }}" id="startSimForm" style="text-align: center;">
