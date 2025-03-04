@@ -477,12 +477,16 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
     <script>
-        // Custom templating for the simulation level dropdown
+        // Custom templating for the simulation level dropdown list results
         function formatLevel(state) {
             if (!state.id) { return state.text; }
             var description = $(state.element).data('description');
             var $state = $('<span><strong>' + state.text + '</strong><br><small>' + description + '</small></span>');
             return $state;
+        }
+        // When a level is selected, only display the text (without the description)
+        function simpleSelection(state) {
+            return state.text;
         }
 
         // Initialize Select2 and start typewriter effect on placeholder
@@ -490,7 +494,7 @@
             $('#simulation_level').select2({
                 theme: "classic",
                 templateResult: formatLevel,
-                templateSelection: formatLevel
+                templateSelection: simpleSelection
             });
             $('#country_select').select2({
                 theme: "classic"
