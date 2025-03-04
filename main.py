@@ -56,7 +56,6 @@ login_manager.login_view = 'login'
 # Initialize serializer for password reset tokens
 s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
-
 # --- User Model Definition ---
 class User(UserMixin, db.Model):
     __tablename__ = 'user'  # Explicit table name
@@ -71,11 +70,9 @@ class User(UserMixin, db.Model):
     subscription_status = db.Column(db.String(50))
     is_admin = db.Column(db.Boolean, default=False)
 
-
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
-
 
 # --- Global Simulation Variables ---
 PATIENT_NAMES = [
@@ -116,15 +113,17 @@ PROMPT_INSTRUCTION = (
 # --- Account Blueprint ---
 account_bp = Blueprint('account', __name__, url_prefix='/account')
 
-
 @account_bp.route('/')
 @login_required
 def account():
     return render_template('account.html')
 
-
 app.register_blueprint(account_bp)
 
+# --- New Route for Terms and Conditions ---
+@app.route('/terms.html')
+def terms():
+    return render_template('terms.html')
 
 # --- Subscription Cancellation Route ---
 @app.route('/cancel_subscription', methods=['POST'])
@@ -143,7 +142,6 @@ def cancel_subscription():
         flash(f"Error cancelling subscription: {str(e)}", "danger")
     return redirect(url_for('account.account'))
 
-
 # --- Before Request Hook to Enforce Active Subscription ---
 @app.before_request
 def require_active_subscription():
@@ -155,15 +153,12 @@ def require_active_subscription():
                 flash("Your subscription is not active. Please register to subscribe.", "warning")
                 return redirect(url_for('register'))
 
-
 # --- Landing Page Route ---
 @app.route('/')
 def landing():
     return render_template('landing.html')
 
-
 ADMIN_LOGIN_PASSWORD = os.getenv("ADMIN_LOGIN_PASSWORD")
-
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -199,54 +194,59 @@ def login():
                 flash("Invalid username or password", "danger")
     return render_template('login.html')
 
-
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
+        # Get form data
         username = request.form['username']
         email = request.form['email']
         password = request.form['password']
         category = request.form['category']
         discipline = request.form.get('discipline')
         other_discipline = request.form.get('otherDiscipline')
-        existing_email = User.query.filter_by(email=email).first()
-        if existing_email:
+
+        # Check for duplicate email or username in the database
+        if User.query.filter_by(email=email).first():
             flash("An account with this email already exists. Please use a different email.", "danger")
             return redirect(url_for('register'))
+        if User.query.filter_by(username=username).first():
+            flash("Username already exists. Please choose another one.", "danger")
+            return redirect(url_for('register'))
+
         if discipline == 'other' and other_discipline:
             discipline = other_discipline
         if category == 'health_student' and not email.lower().endswith('.ac.uk'):
             flash("For student registration, please use a valid academic email (ending with .ac.uk).", "danger")
             return redirect(url_for('register'))
-        existing_user = User.query.filter_by(username=username).first()
-        if existing_user:
-            flash("Username already exists. Please choose another one.", "danger")
-            return redirect(url_for('register'))
-        STRIPE_STUDENT_LINK = "https://buy.stripe.com/8wMfZf8Tvd5idVueUV"
-        STRIPE_NONSTUDENT_LINK = "https://buy.stripe.com/28obIZ5Hj2qE9FedQS"
+
+        # Store the registration details temporarily in the session
+        pending_registration = {
+            "username": username,
+            "email": email,
+            "hashed_password": generate_password_hash(password),
+            "category": category,
+            "discipline": discipline
+        }
+        session['pending_registration'] = pending_registration
+
+        # Determine the appropriate Stripe checkout URL
+        STRIPE_STUDENT_LINK = "https://buy.stripe.com/fZe4gx9XzaXadVu28b"
+        STRIPE_NONSTUDENT_LINK = "https://buy.stripe.com/7sIaEV6Ln8P28BabIM"
         stripe_checkout_url = STRIPE_STUDENT_LINK if category == 'health_student' else STRIPE_NONSTUDENT_LINK
-        hashed_password = generate_password_hash(password)
-        new_user = User(username=username, email=email, password=hashed_password, category=category,
-                        discipline=discipline)
-        db.session.add(new_user)
-        db.session.commit()
-        try:
-            customer = stripe.Customer.create(email=email)
-            new_user.stripe_customer_id = customer.id
-            db.session.commit()
-        except Exception as e:
-            flash(f"Error creating Stripe customer: {str(e)}", "danger")
-            return redirect(url_for('register'))
+
+        # Redirect the user to the Stripe checkout
         return redirect(stripe_checkout_url)
     return render_template('register.html')
 
-
 @app.route('/payment_success')
-@login_required
 def payment_success():
     session_id = request.args.get('session_id')
     if not session_id:
         flash("No session ID provided.", "warning")
+        return redirect(url_for('register'))
+    pending_registration = session.get('pending_registration')
+    if not pending_registration:
+        flash("No pending registration found. Please register again.", "danger")
         return redirect(url_for('register'))
     try:
         checkout_session = stripe.checkout.Session.retrieve(session_id)
@@ -256,25 +256,35 @@ def payment_success():
             return redirect(url_for('register'))
         subscription = stripe.Subscription.retrieve(subscription_id)
         stripe_customer_id = checkout_session.customer
-        user = User.query.filter_by(stripe_customer_id=stripe_customer_id).first()
-        if not user:
-            flash("User not found for this transaction. Please contact support.", "danger")
-            return redirect(url_for('register'))
-        user.subscription_id = subscription_id
-        user.subscription_status = subscription.status
+
+        # Create the new user record only after successful payment
+        new_user = User(
+            username=pending_registration["username"],
+            email=pending_registration["email"],
+            password=pending_registration["hashed_password"],
+            category=pending_registration["category"],
+            discipline=pending_registration["discipline"],
+            stripe_customer_id=stripe_customer_id,
+            subscription_id=subscription_id,
+            subscription_status=subscription.status
+        )
+        db.session.add(new_user)
         db.session.commit()
+
+        # Log the user in
+        login_user(new_user)
+        # Clear pending registration from session
+        session.pop('pending_registration', None)
         flash("Payment successful! Your subscription is now active.", "success")
     except Exception as e:
         flash(f"Error processing subscription: {str(e)}", "danger")
         return redirect(url_for('register'))
     return redirect(url_for('simulation'))
 
-
 @app.route('/payment_cancel')
 def payment_cancel():
     flash("Payment was cancelled. Please try again.", "warning")
     return redirect(url_for('register'))
-
 
 @app.route('/logout')
 @login_required
@@ -283,12 +293,10 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
-
 @app.route('/about')
 @login_required
 def about():
     return render_template('about.html')
-
 
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
@@ -320,7 +328,6 @@ Your Support Team
         return redirect(url_for('login'))
     return render_template('forgot_password.html')
 
-
 @app.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
     try:
@@ -347,7 +354,6 @@ def reset_password(token):
             flash("User not found.", "danger")
             return redirect(url_for('forgot_password'))
     return render_template('reset_password.html', token=token)
-
 
 @app.route('/start_simulation', methods=['POST'])
 @login_required
@@ -380,7 +386,7 @@ def start_simulation():
     session['conversation'] = [{'role': 'system', 'content': instr}]
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-4-turbo",
+            model="gpt-3.5-turbo",
             messages=session['conversation'],
             temperature=0.8
         )
@@ -392,7 +398,6 @@ def start_simulation():
     session.pop('hint', None)
     return redirect(url_for('simulation'))
 
-
 @app.route('/simulation', methods=['GET'])
 @login_required
 def simulation():
@@ -402,7 +407,6 @@ def simulation():
                            feedback_json=session.get('feedback_json'),
                            feedback_raw=session.get('feedback'),
                            hint=session.get('hint'))
-
 
 @app.route('/send_message', methods=['POST'])
 @login_required
@@ -415,14 +419,13 @@ def send_message():
         return jsonify({"status": "ok"}), 200
     return jsonify({"status": "error", "message": "No message provided"}), 400
 
-
 @app.route('/get_reply', methods=['POST'])
 @login_required
 def get_reply():
     conversation = session.get('conversation', [])
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-4-turbo",
+            model="gpt-3.5-turbo",
             messages=conversation,
             temperature=0.8
         )
@@ -434,7 +437,6 @@ def get_reply():
     conversation.append({'role': 'assistant', 'content': resp_text})
     session['conversation'] = conversation
     return jsonify({"reply": resp_text}), 200
-
 
 @app.route('/hint', methods=['POST'])
 @login_required
@@ -451,7 +453,7 @@ def hint():
     hint_conversation = [{'role': 'system', 'content': hint_text}]
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-4-turbo",
+            model="gpt-3.5-turbo",
             messages=hint_conversation,
             temperature=0.8
         )
@@ -460,7 +462,6 @@ def hint():
         hint_response = f"Error with API: {str(e)}"
     session['hint'] = hint_response
     return redirect(url_for('simulation'))
-
 
 @app.route('/feedback', methods=['POST'])
 @login_required
@@ -524,7 +525,6 @@ def feedback():
 
     return redirect(url_for('simulation'))
 
-
 @app.route('/download_feedback', methods=['GET'])
 @login_required
 def download_feedback():
@@ -543,7 +543,6 @@ def download_feedback():
                      download_name="feedback.pdf",
                      mimetype="application/pdf")
 
-
 @app.route('/clear_simulation')
 @login_required
 def clear_simulation():
@@ -552,7 +551,6 @@ def clear_simulation():
     session.pop('feedback_json', None)
     session.pop('hint', None)
     return redirect(url_for('simulation'))
-
 
 @app.route('/generate_exam', methods=['POST'])
 @login_required
@@ -574,7 +572,7 @@ def generate_exam():
     )
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-4-turbo",
+            model="gpt-3.5-turbo",
             messages=[{"role": "system", "content": exam_prompt}],
             temperature=0.7,
             max_tokens=200
@@ -583,7 +581,6 @@ def generate_exam():
     except Exception as e:
         exam_results = f"Error generating exam results: {str(e)}"
     return jsonify({"results": exam_results}), 200
-
 
 if __name__ == '__main__':
     app.run(debug=True)

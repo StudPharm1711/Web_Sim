@@ -11,8 +11,8 @@
       padding: 20px;
     }
     .container {
-      width: 300px; /* Fixed container width */
-      margin: 50px auto; /* Center horizontally */
+      width: 300px;
+      margin: 50px auto;
       padding: 20px;
       background-color: #fff;
       border-radius: 8px;
@@ -41,8 +41,8 @@
     form input,
     form select {
       display: block;
-      width: 100%; /* Fill container width */
-      box-sizing: border-box; /* Include padding in total width */
+      width: 100%;
+      box-sizing: border-box;
       margin: 8px 0;
       padding: 10px;
       border: 1px solid #ccc;
@@ -61,9 +61,11 @@
       color: #fff;
       font-size: 1rem;
       cursor: pointer;
+      transition: background 0.3s;
     }
-    form button:hover {
-      background-color: #0a6c82;
+    form button:disabled {
+      background-color: grey;
+      cursor: not-allowed;
     }
     #subscriptionPricing {
       margin-top: 10px;
@@ -75,6 +77,20 @@
       display: none;
       margin-top: 10px;
       text-align: left;
+    }
+    .terms {
+      margin-top: 15px;
+      text-align: left;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+    }
+    .terms input[type="checkbox"] {
+      margin-right: 8px;
+    }
+    .terms a {
+      color: #005f73;
+      text-decoration: underline;
     }
     .login-link {
       margin-top: 15px;
@@ -140,7 +156,14 @@
         <p>Please ensure your email ends with ".ac.uk" to receive the student rate.</p>
       </div>
 
-      <button type="submit">Register & Subscribe</button>
+      <div class="terms">
+        <input type="checkbox" id="agree_terms" name="agree_terms" required>
+        <label for="agree_terms">
+          I have read and agree to the <a href="/terms.html" target="_blank">Terms and Conditions</a>.
+        </label>
+      </div>
+
+      <button type="submit" id="submitBtn" disabled>Register & Subscribe</button>
     </form>
 
     <p class="login-link">
@@ -149,6 +172,15 @@
   </div>
 
   <script>
+    // Enable/disable submit button based on checkbox state
+    const agreeTermsCheckbox = document.getElementById('agree_terms');
+    const submitBtn = document.getElementById('submitBtn');
+
+    agreeTermsCheckbox.addEventListener('change', function() {
+      submitBtn.disabled = !this.checked;
+    });
+
+    // Existing JavaScript for category and discipline handling
     const categorySelect = document.getElementById('category');
     const disciplineContainer = document.getElementById('disciplineContainer');
     const disciplineSelect = document.getElementById('discipline');
@@ -176,10 +208,10 @@
 
     function updatePricingAndVerification(categoryValue) {
       if (categoryValue === 'health_student') {
-        subscriptionPricing.textContent = "Monthly Subscription: £3.49/month (Student Rate)";
+        subscriptionPricing.textContent = "Monthly Subscription: £4.99/month (Student Rate)";
         studentVerification.style.display = 'block';
       } else if (categoryValue === 'health_professional' || categoryValue === 'non_healthcare') {
-        subscriptionPricing.textContent = "Monthly Subscription: £4.99/month";
+        subscriptionPricing.textContent = "Monthly Subscription: £7.99/month";
         studentVerification.style.display = 'none';
       } else {
         subscriptionPricing.textContent = "";
