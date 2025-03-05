@@ -203,7 +203,7 @@ def register():
         category = request.form['category']
         discipline = request.form.get('discipline')
         other_discipline = request.form.get('otherDiscipline')
-        promo_code = request.form.get('promo_code')  # Capture promo code
+        promo_code = request.form.get('promo_code')  # Capture promo code if provided
 
         # Check for duplicate email or username in the database
         if User.query.filter_by(email=email).first():
@@ -226,14 +226,14 @@ def register():
             "hashed_password": generate_password_hash(password),
             "category": category,
             "discipline": discipline,
-            "promo_code": promo_code  # Store promo code if entered
+            "promo_code": promo_code
         }
         session['pending_registration'] = pending_registration
 
         # Determine the appropriate price ID based on category
         price_id = STRIPE_STUDENT_PRICE_ID if category == 'health_student' else STRIPE_NONSTUDENT_PRICE_ID
 
-        # Create a dynamic Stripe Checkout Session with promo codes enabled
+        # Create a Stripe Checkout Session with the proper line item.
         checkout_session = stripe.checkout.Session.create(
             payment_method_types=["card"],
             line_items=[{
@@ -241,7 +241,7 @@ def register():
                 "quantity": 1,
             }],
             mode="subscription",
-            allow_promotion_codes=True,  # Enables the promo code field on Stripe's checkout page
+            allow_promotion_codes=True,
             success_url=url_for('payment_success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
             cancel_url=url_for('payment_cancel', _external=True),
         )
