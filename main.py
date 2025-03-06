@@ -3,6 +3,7 @@ import io
 import random
 import time
 import json  # for parsing JSON responses from the API
+from datetime import datetime  # added for date conversion
 from flask import Flask, render_template, redirect, url_for, request, flash, session, send_file, jsonify, Blueprint
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
@@ -15,8 +16,13 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 from flask_migrate import Migrate
-from flask_mail import Mail, Message
+# Removed Flask-Mail import since we're now using SendGrid
+#from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
+
+# Import SendGrid libraries
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 
 # Load environment variables from .env file
 load_dotenv()
@@ -36,18 +42,18 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL", "postgresql://
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", os.urandom(24).hex())
 
-# Flask-Mail configuration
-app.config['MAIL_SERVER'] = os.getenv("MAIL_SERVER", "smtp.gmail.com")
-app.config['MAIL_PORT'] = int(os.getenv("MAIL_PORT", 587))
-app.config['MAIL_USE_TLS'] = os.getenv("MAIL_USE_TLS", "True") == "True"
-app.config['MAIL_USE_SSL'] = False
-app.config['MAIL_USERNAME'] = os.getenv("MAIL_USERNAME")
-app.config['MAIL_PASSWORD'] = os.getenv("MAIL_PASSWORD")
-app.config['MAIL_DEFAULT_SENDER'] = os.getenv("MAIL_DEFAULT_SENDER", "noreply@example.com")
+# (Optional) Remove or comment out Flask-Mail configuration if no longer used
+# app.config['MAIL_SERVER'] = os.getenv("MAIL_SERVER", "smtp.gmail.com")
+# app.config['MAIL_PORT'] = int(os.getenv("MAIL_PORT", 587))
+# app.config['MAIL_USE_TLS'] = os.getenv("MAIL_USE_TLS", "True") == "True"
+# app.config['MAIL_USE_SSL'] = False
+# app.config['MAIL_USERNAME'] = os.getenv("MAIL_USERNAME")
+# app.config['MAIL_PASSWORD'] = os.getenv("MAIL_PASSWORD")
+# app.config['MAIL_DEFAULT_SENDER'] = os.getenv("MAIL_DEFAULT_SENDER", "noreply@example.com")
+#
+# mail = Mail(app)
 
-mail = Mail(app)
 db = SQLAlchemy(app)
-
 migrate = Migrate(app, db)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
@@ -112,10 +118,24 @@ PROMPT_INSTRUCTION = (
 # --- Account Blueprint ---
 account_bp = Blueprint('account', __name__, url_prefix='/account')
 
-@account_bp.route('/')
+@app.route('/account')
 @login_required
 def account():
-    return render_template('account.html')
+    subscription_info = None
+    # If the user has a subscription, retrieve details from Stripe.
+    if current_user.subscription_id:
+        try:
+            subscription = stripe.Subscription.retrieve(current_user.subscription_id)
+            # Convert current_period_end Unix timestamp to a human-readable date.
+            current_period_end = datetime.utcfromtimestamp(subscription.current_period_end).strftime("%Y-%m-%d %H:%M:%S")
+            subscription_info = {
+                "cancel_at_period_end": subscription.cancel_at_period_end,
+                "current_period_end": current_period_end,
+                "status": subscription.status
+            }
+        except Exception as e:
+            flash(f"Error retrieving subscription info: {str(e)}", "danger")
+    return render_template('account.html', subscription_info=subscription_info)
 
 app.register_blueprint(account_bp)
 
@@ -131,7 +151,7 @@ def cancel_subscription():
     user = current_user
     if not user.subscription_id:
         flash("No active subscription to cancel.", "warning")
-        return redirect(url_for('account.account'))
+        return redirect(url_for('account'))
     try:
         subscription = stripe.Subscription.modify(user.subscription_id, cancel_at_period_end=True)
         user.subscription_status = subscription.status
@@ -139,7 +159,7 @@ def cancel_subscription():
         flash("Your subscription will be cancelled at the end of the current billing period.", "success")
     except Exception as e:
         flash(f"Error cancelling subscription: {str(e)}", "danger")
-    return redirect(url_for('account.account'))
+    return redirect(url_for('account'))
 
 # --- Before Request Hook to Enforce Active Subscription ---
 @app.before_request
@@ -318,8 +338,7 @@ def forgot_password():
         if user:
             token = s.dumps(email, salt='password-reset-salt')
             reset_url = url_for('reset_password', token=token, _external=True)
-            msg = Message("Password Reset Request", recipients=[email])
-            msg.body = f"""Dear {user.username},
+            email_content = f"""Dear {user.username},
 
 We received a request to reset your password. To reset your password, click the link below (this link is valid for 1 hour):
 
@@ -331,7 +350,14 @@ Best regards,
 Your Support Team
 """
             try:
-                mail.send(msg)
+                sg = SendGridAPIClient(os.getenv('SENDGRID_API_KEY'))
+                message = Mail(
+                    from_email=os.getenv('FROM_EMAIL', 'support@simul-ai-tor.com'),
+                    to_emails=email,
+                    subject="Password Reset Request",
+                    plain_text_content=email_content
+                )
+                response = sg.send(message)
                 flash("A password reset link has been sent to your email.", "info")
             except Exception as e:
                 flash(f"Error sending email: {str(e)}", "danger")
