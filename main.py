@@ -42,17 +42,6 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL", "postgresql://
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", os.urandom(24).hex())
 
-# (Optional) Remove or comment out Flask-Mail configuration if no longer used
-# app.config['MAIL_SERVER'] = os.getenv("MAIL_SERVER", "smtp.gmail.com")
-# app.config['MAIL_PORT'] = int(os.getenv("MAIL_PORT", 587))
-# app.config['MAIL_USE_TLS'] = os.getenv("MAIL_USE_TLS", "True") == "True"
-# app.config['MAIL_USE_SSL'] = False
-# app.config['MAIL_USERNAME'] = os.getenv("MAIL_USERNAME")
-# app.config['MAIL_PASSWORD'] = os.getenv("MAIL_PASSWORD")
-# app.config['MAIL_DEFAULT_SENDER'] = os.getenv("MAIL_DEFAULT_SENDER", "noreply@example.com")
-#
-# mail = Mail(app)
-
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 login_manager = LoginManager(app)
@@ -65,7 +54,7 @@ s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 class User(UserMixin, db.Model):
     __tablename__ = 'user'  # Explicit table name
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(150), unique=True, nullable=False)
+    # Removed username field completely
     email = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
     category = db.Column(db.String(50))
@@ -188,10 +177,11 @@ def login():
             if not admin_password or admin_password != ADMIN_LOGIN_PASSWORD:
                 flash("Invalid admin password.", "danger")
                 return redirect(url_for('login'))
-            admin_user = User.query.filter_by(username="admin").first()
+            # For admin, use email for identification
+            admin_user = User.query.filter_by(email="admin@example.com").first()
             if not admin_user:
                 hashed_admin = generate_password_hash(ADMIN_LOGIN_PASSWORD)
-                admin_user = User(username="admin", email="admin@example.com", password=hashed_admin, is_admin=True)
+                admin_user = User(email="admin@example.com", password=hashed_admin, is_admin=True)
                 db.session.add(admin_user)
                 db.session.commit()
             else:
@@ -202,22 +192,22 @@ def login():
             flash("Logged in as admin.", "success")
             return redirect(url_for('simulation'))
         else:
-            username = request.form['username']
+            # Use email for login instead of username
+            email = request.form['email']
             password = request.form['password']
-            user = User.query.filter_by(username=username).first()
+            user = User.query.filter_by(email=email).first()
             if user and check_password_hash(user.password, password):
                 session.pop('conversation', None)
                 login_user(user)
                 return redirect(url_for('simulation'))
             else:
-                flash("Invalid username or password", "danger")
+                flash("Invalid email or password", "danger")
     return render_template('login.html')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        # Get form data
-        username = request.form['username']
+        # Removed username field from registration form
         email = request.form['email']
         password = request.form['password']
         category = request.form['category']
@@ -225,12 +215,9 @@ def register():
         other_discipline = request.form.get('otherDiscipline')
         promo_code = request.form.get('promo_code')  # Capture promo code if provided
 
-        # Check for duplicate email or username in the database
+        # Check for duplicate email only
         if User.query.filter_by(email=email).first():
             flash("An account with this email already exists. Please use a different email.", "danger")
-            return redirect(url_for('register'))
-        if User.query.filter_by(username=username).first():
-            flash("Username already exists. Please choose another one.", "danger")
             return redirect(url_for('register'))
 
         if discipline == 'other' and other_discipline:
@@ -241,7 +228,6 @@ def register():
 
         # Store the registration details temporarily in the session
         pending_registration = {
-            "username": username,
             "email": email,
             "hashed_password": generate_password_hash(password),
             "category": category,
@@ -265,7 +251,6 @@ def register():
             success_url=url_for('payment_success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
             cancel_url=url_for('payment_cancel', _external=True),
         )
-
         # Redirect the user to the Stripe Checkout page.
         return redirect(checkout_session.url)
     return render_template('register.html')
@@ -289,9 +274,8 @@ def payment_success():
         subscription = stripe.Subscription.retrieve(subscription_id)
         stripe_customer_id = checkout_session.customer
 
-        # Create the new user record only after successful payment
+        # Create the new user record using email only
         new_user = User(
-            username=pending_registration["username"],
             email=pending_registration["email"],
             password=pending_registration["hashed_password"],
             category=pending_registration["category"],
@@ -338,7 +322,7 @@ def forgot_password():
         if user:
             token = s.dumps(email, salt='password-reset-salt')
             reset_url = url_for('reset_password', token=token, _external=True)
-            email_content = f"""Dear {user.username},
+            email_content = f"""Dear User,
 
 We received a request to reset your password. To reset your password, click the link below (this link is valid for 1 hour):
 
