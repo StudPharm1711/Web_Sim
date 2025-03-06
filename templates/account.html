@@ -122,20 +122,19 @@
           {% else %}
             <p>Your subscription is active and will renew automatically.</p>
             <p>Current period ends on: <strong>{{ subscription_info.current_period_end }}</strong></p>
+            <form action="{{ url_for('cancel_subscription') }}" method="POST">
+              <input type="hidden" name="user_id" value="{{ current_user.id }}">
+              <button type="submit" class="btn-3d"
+                      onclick="return confirm('Are you sure you want to cancel your subscription? Your access will remain active until the end of the current billing period (approximately 1 month).');">
+                Cancel Subscription
+              </button>
+            </form>
           {% endif %}
           <p>Status: <strong>{{ subscription_info.status }}</strong></p>
         </div>
       {% else %}
         <p>You do not have an active subscription.</p>
       {% endif %}
-
-      <form action="{{ url_for('cancel_subscription') }}" method="POST">
-        <input type="hidden" name="user_id" value="{{ current_user.id }}">
-        <button type="submit" class="btn-3d"
-                onclick="return confirm('Are you sure you want to cancel your subscription? Your access will remain active until the end of the current billing period (approximately 1 month).');">
-          Cancel Subscription
-        </button>
-      </form>
     </section>
   </div>
 

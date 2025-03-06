@@ -3,6 +3,7 @@ import io
 import random
 import time
 import json  # for parsing JSON responses from the API
+import re  # for password complexity validation
 from datetime import datetime  # added for date conversion
 from flask import Flask, render_template, redirect, url_for, request, flash, session, send_file, jsonify, Blueprint
 from flask_sqlalchemy import SQLAlchemy
@@ -16,8 +17,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 from flask_migrate import Migrate
-# Removed Flask-Mail import since we're now using SendGrid
-#from flask_mail import Mail, Message
+# from flask_mail import Mail, Message  # Removed since we're using SendGrid
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 
 # Import SendGrid libraries
@@ -38,7 +38,8 @@ STRIPE_NONSTUDENT_PRICE_ID = os.getenv("STRIPE_NONSTUDENT_PRICE_ID")  # e.g., fo
 app = Flask(__name__)
 app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_TYPE'] = "filesystem"
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL", "postgresql://postgres:London22!!@localhost/project_db")
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL",
+                                                  "postgresql://postgres:London22!!@localhost/project_db")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", os.urandom(24).hex())
 
@@ -49,6 +50,24 @@ login_manager.login_view = 'login'
 
 # Initialise serializer for password reset tokens
 s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+
+
+# --- Password Complexity Validator ---
+def validate_password(password):
+    """
+    Validate that the password meets the following criteria:
+      - At least 8 characters
+      - Contains at least one letter
+      - Contains at least one digit
+    """
+    if len(password) < 8:
+        return False, "Password must be at least 8 characters long."
+    if not re.search(r"[A-Za-z]", password):
+        return False, "Password must contain at least one letter."
+    if not re.search(r"[0-9]", password):
+        return False, "Password must contain at least one digit."
+    return True, ""
+
 
 # --- User Model Definition ---
 class User(UserMixin, db.Model):
@@ -64,9 +83,11 @@ class User(UserMixin, db.Model):
     subscription_status = db.Column(db.String(50))
     is_admin = db.Column(db.Boolean, default=False)
 
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
 
 # --- Global Simulation Variables ---
 PATIENT_NAMES = [
@@ -107,16 +128,16 @@ PROMPT_INSTRUCTION = (
 # --- Account Blueprint ---
 account_bp = Blueprint('account', __name__, url_prefix='/account')
 
+
 @app.route('/account')
 @login_required
 def account():
     subscription_info = None
-    # If the user has a subscription, retrieve details from Stripe.
     if current_user.subscription_id:
         try:
             subscription = stripe.Subscription.retrieve(current_user.subscription_id)
-            # Convert current_period_end Unix timestamp to a human-readable date.
-            current_period_end = datetime.utcfromtimestamp(subscription.current_period_end).strftime("%Y-%m-%d %H:%M:%S")
+            current_period_end = datetime.utcfromtimestamp(subscription.current_period_end).strftime(
+                "%Y-%m-%d %H:%M:%S")
             subscription_info = {
                 "cancel_at_period_end": subscription.cancel_at_period_end,
                 "current_period_end": current_period_end,
@@ -126,12 +147,15 @@ def account():
             flash(f"Error retrieving subscription info: {str(e)}", "danger")
     return render_template('account.html', subscription_info=subscription_info)
 
+
 app.register_blueprint(account_bp)
+
 
 # --- New Route for Terms and Conditions ---
 @app.route('/terms.html')
 def terms():
     return render_template('terms.html')
+
 
 # --- Subscription Cancellation Route ---
 @app.route('/cancel_subscription', methods=['POST'])
@@ -145,28 +169,88 @@ def cancel_subscription():
         subscription = stripe.Subscription.modify(user.subscription_id, cancel_at_period_end=True)
         user.subscription_status = subscription.status
         db.session.commit()
-        flash("Your subscription will be cancelled at the end of the current billing period.", "success")
+        try:
+            sg = SendGridAPIClient(os.getenv('SENDGRID_API_KEY'))
+            cancel_email = Mail(
+                from_email=os.getenv('FROM_EMAIL', 'support@simul-ai-tor.com'),
+                to_emails=user.email,
+                subject="Subscription Cancellation Confirmation",
+                plain_text_content=f"Hello,\n\nYour subscription has been scheduled for cancellation at the end of your current billing period. You will retain access until that time.\n\nThank you. Please note: This is an automated email and replies to this address are not monitored."
+            )
+            sg.send(cancel_email)
+        except Exception as e:
+            flash(f"Error sending cancellation email: {str(e)}", "warning")
+        flash("Your subscription will be cancelled at the end of the current billing period.Please note: This is an automated email and replies to this address are not monitored.", "success")
     except Exception as e:
         flash(f"Error cancelling subscription: {str(e)}", "danger")
     return redirect(url_for('account'))
 
-# --- Before Request Hook to Enforce Active Subscription ---
-@app.before_request
-def require_active_subscription():
-    safe_endpoints = {'login', 'register', 'forgot_password', 'reset_password', 'logout', 'payment_success',
-                      'payment_cancel', 'static', 'landing'}
-    if current_user.is_authenticated and not current_user.is_admin:
-        if current_user.subscription_status != 'active' and request.endpoint:
-            if request.endpoint not in safe_endpoints:
-                flash("Your subscription is not active. Please register to subscribe.", "warning")
-                return redirect(url_for('register'))
+
+# --- Reactivation Routes ---
+@app.route('/reactivate_subscription')
+@login_required
+def reactivate_subscription():
+    # Create a new Stripe Checkout session for reactivation.
+    price_id = STRIPE_STUDENT_PRICE_ID if current_user.category == 'health_student' else STRIPE_NONSTUDENT_PRICE_ID
+    checkout_session = stripe.checkout.Session.create(
+        payment_method_types=["card"],
+        line_items=[{"price": price_id, "quantity": 1}],
+        mode="subscription",
+        allow_promotion_codes=True,
+        success_url=url_for('reactivate_payment_success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
+        cancel_url=url_for('account', _external=True)
+    )
+    return redirect(checkout_session.url)
+
+
+@app.route('/reactivate_payment_success')
+@login_required
+def reactivate_payment_success():
+    session_id = request.args.get('session_id')
+    if not session_id:
+        flash("No session ID provided.", "warning")
+        return redirect(url_for('account'))
+    try:
+        checkout_session = stripe.checkout.Session.retrieve(session_id)
+        subscription_id = checkout_session.subscription
+        if not subscription_id:
+            flash("No subscription ID found in session.", "danger")
+            return redirect(url_for('account'))
+        subscription = stripe.Subscription.retrieve(subscription_id)
+        stripe_customer_id = checkout_session.customer
+
+        # Update the existing user's subscription details.
+        current_user.stripe_customer_id = stripe_customer_id
+        current_user.subscription_id = subscription_id
+        current_user.subscription_status = subscription.status
+        db.session.commit()
+
+        try:
+            sg = SendGridAPIClient(os.getenv('SENDGRID_API_KEY'))
+            confirmation_email = Mail(
+                from_email=os.getenv('FROM_EMAIL', 'support@simul-ai-tor.com'),
+                to_emails=current_user.email,
+                subject="Subscription Reactivation Confirmation",
+                plain_text_content=f"Hello,\n\nYour subscription has been reactivated. Enjoy using Simul-AI-tor.\n\nBest regards,\nThe Support Team. Please note: This is an automated email and replies to this address are not monitored."
+            )
+            sg.send(confirmation_email)
+        except Exception as e:
+            flash(f"Error sending reactivation email: {str(e)}", "warning")
+
+        flash("Subscription reactivated successfully! A confirmation email has been sent.", "success")
+    except Exception as e:
+        flash(f"Error processing reactivation: {str(e)}", "danger")
+    return redirect(url_for('account'))
+
 
 # --- Landing Page Route ---
 @app.route('/')
 def landing():
     return render_template('landing.html')
 
+
 ADMIN_LOGIN_PASSWORD = os.getenv("ADMIN_LOGIN_PASSWORD")
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -177,7 +261,6 @@ def login():
             if not admin_password or admin_password != ADMIN_LOGIN_PASSWORD:
                 flash("Invalid admin password.", "danger")
                 return redirect(url_for('login'))
-            # For admin, use email for identification
             admin_user = User.query.filter_by(email="admin@example.com").first()
             if not admin_user:
                 hashed_admin = generate_password_hash(ADMIN_LOGIN_PASSWORD)
@@ -192,7 +275,6 @@ def login():
             flash("Logged in as admin.", "success")
             return redirect(url_for('simulation'))
         else:
-            # Use email for login instead of username
             email = request.form['email']
             password = request.form['password']
             user = User.query.filter_by(email=email).first()
@@ -204,18 +286,22 @@ def login():
                 flash("Invalid email or password", "danger")
     return render_template('login.html')
 
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        # Removed username field from registration form
         email = request.form['email']
         password = request.form['password']
         category = request.form['category']
         discipline = request.form.get('discipline')
         other_discipline = request.form.get('otherDiscipline')
-        promo_code = request.form.get('promo_code')  # Capture promo code if provided
+        promo_code = request.form.get('promo_code')
 
-        # Check for duplicate email only
+        is_valid, message = validate_password(password)
+        if not is_valid:
+            flash(message, "danger")
+            return redirect(url_for('register'))
+
         if User.query.filter_by(email=email).first():
             flash("An account with this email already exists. Please use a different email.", "danger")
             return redirect(url_for('register'))
@@ -226,7 +312,6 @@ def register():
             flash("For student registration, please use a valid academic email (ending with .ac.uk).", "danger")
             return redirect(url_for('register'))
 
-        # Store the registration details temporarily in the session
         pending_registration = {
             "email": email,
             "hashed_password": generate_password_hash(password),
@@ -236,24 +321,19 @@ def register():
         }
         session['pending_registration'] = pending_registration
 
-        # Determine the appropriate price ID based on category
         price_id = STRIPE_STUDENT_PRICE_ID if category == 'health_student' else STRIPE_NONSTUDENT_PRICE_ID
 
-        # Create a Stripe Checkout Session with the proper line item.
         checkout_session = stripe.checkout.Session.create(
             payment_method_types=["card"],
-            line_items=[{
-                "price": price_id,
-                "quantity": 1,
-            }],
+            line_items=[{"price": price_id, "quantity": 1}],
             mode="subscription",
             allow_promotion_codes=True,
             success_url=url_for('payment_success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
             cancel_url=url_for('payment_cancel', _external=True),
         )
-        # Redirect the user to the Stripe Checkout page.
         return redirect(checkout_session.url)
     return render_template('register.html')
+
 
 @app.route('/payment_success')
 def payment_success():
@@ -274,7 +354,6 @@ def payment_success():
         subscription = stripe.Subscription.retrieve(subscription_id)
         stripe_customer_id = checkout_session.customer
 
-        # Create the new user record using email only
         new_user = User(
             email=pending_registration["email"],
             password=pending_registration["hashed_password"],
@@ -287,20 +366,32 @@ def payment_success():
         db.session.add(new_user)
         db.session.commit()
 
-        # Log the user in
+        try:
+            sg = SendGridAPIClient(os.getenv('SENDGRID_API_KEY'))
+            confirmation_email = Mail(
+                from_email=os.getenv('FROM_EMAIL', 'support@simul-ai-tor.com'),
+                to_emails=new_user.email,
+                subject="Subscription Confirmation",
+                plain_text_content=f"Hello,\n\nThank you for subscribing! Your subscription is now active. Enjoy using Simul-AI-tor.\n\nBest regards,\nThe Support Team"
+            )
+            sg.send(confirmation_email)
+        except Exception as e:
+            flash(f"Error sending confirmation email: {str(e)}", "warning")
+
         login_user(new_user)
-        # Clear pending registration from session
         session.pop('pending_registration', None)
-        flash("Payment successful! Your subscription is now active.", "success")
+        flash("Payment successful! Your subscription is now active. A confirmation email has been sent.", "success")
     except Exception as e:
         flash(f"Error processing subscription: {str(e)}", "danger")
         return redirect(url_for('register'))
     return redirect(url_for('simulation'))
 
+
 @app.route('/payment_cancel')
 def payment_cancel():
     flash("Payment was cancelled. Please try again.", "warning")
     return redirect(url_for('register'))
+
 
 @app.route('/logout')
 @login_required
@@ -309,10 +400,12 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
+
 @app.route('/about')
 @login_required
 def about():
     return render_template('about.html')
+
 
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
@@ -341,7 +434,7 @@ Your Support Team
                     subject="Password Reset Request",
                     plain_text_content=email_content
                 )
-                response = sg.send(message)
+                sg.send(message)
                 flash("A password reset link has been sent to your email.", "info")
             except Exception as e:
                 flash(f"Error sending email: {str(e)}", "danger")
@@ -349,6 +442,7 @@ Your Support Team
             flash("Email address not found.", "danger")
         return redirect(url_for('login'))
     return render_template('forgot_password.html')
+
 
 @app.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
@@ -366,6 +460,10 @@ def reset_password(token):
         if new_password != confirm_password:
             flash("Passwords do not match.", "danger")
             return redirect(url_for('reset_password', token=token))
+        is_valid, message = validate_password(new_password)
+        if not is_valid:
+            flash(message, "danger")
+            return redirect(url_for('reset_password', token=token))
         user = User.query.filter_by(email=email).first()
         if user:
             user.password = generate_password_hash(new_password)
@@ -376,6 +474,7 @@ def reset_password(token):
             flash("User not found.", "danger")
             return redirect(url_for('forgot_password'))
     return render_template('reset_password.html', token=token)
+
 
 @app.route('/start_simulation', methods=['POST'])
 @login_required
@@ -420,6 +519,7 @@ def start_simulation():
     session.pop('hint', None)
     return redirect(url_for('simulation'))
 
+
 @app.route('/simulation', methods=['GET'])
 @login_required
 def simulation():
@@ -429,6 +529,7 @@ def simulation():
                            feedback_json=session.get('feedback_json'),
                            feedback_raw=session.get('feedback'),
                            hint=session.get('hint'))
+
 
 @app.route('/send_message', methods=['POST'])
 @login_required
@@ -440,6 +541,7 @@ def send_message():
         session['conversation'] = conversation
         return jsonify({"status": "ok"}), 200
     return jsonify({"status": "error", "message": "No message provided"}), 400
+
 
 @app.route('/get_reply', methods=['POST'])
 @login_required
@@ -459,6 +561,7 @@ def get_reply():
     conversation.append({'role': 'assistant', 'content': resp_text})
     session['conversation'] = conversation
     return jsonify({"reply": resp_text}), 200
+
 
 @app.route('/hint', methods=['POST'])
 @login_required
@@ -485,6 +588,7 @@ def hint():
     session['hint'] = hint_response
     return redirect(url_for('simulation'))
 
+
 @app.route('/feedback', methods=['POST'])
 @login_required
 def feedback():
@@ -493,7 +597,6 @@ def feedback():
         flash("No conversation available for feedback", "warning")
         return redirect(url_for('simulation'))
 
-    # Build transcript using only the healthcare professional's (user) messages.
     user_conv_text = "\n".join([
         f"User: {m['content']}"
         for m in conversation if m.get('role') == 'user'
@@ -548,6 +651,7 @@ def feedback():
 
     return redirect(url_for('simulation'))
 
+
 @app.route('/download_feedback', methods=['GET'])
 @login_required
 def download_feedback():
@@ -566,6 +670,7 @@ def download_feedback():
                      download_name="feedback.pdf",
                      mimetype="application/pdf")
 
+
 @app.route('/clear_simulation')
 @login_required
 def clear_simulation():
@@ -574,6 +679,7 @@ def clear_simulation():
     session.pop('feedback_json', None)
     session.pop('hint', None)
     return redirect(url_for('simulation'))
+
 
 @app.route('/generate_exam', methods=['POST'])
 @login_required
@@ -604,6 +710,7 @@ def generate_exam():
     except Exception as e:
         exam_results = f"Error generating exam results: {str(e)}"
     return jsonify({"results": exam_results}), 200
+
 
 if __name__ == '__main__':
     app.run(debug=True)
