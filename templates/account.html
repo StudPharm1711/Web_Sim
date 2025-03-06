@@ -88,6 +88,14 @@
     footer small {
       color: #333;
     }
+    .subscription-info {
+      margin: 20px 0;
+      padding: 15px;
+      background-color: #e0fbfc;
+      border: 1px solid #005f73;
+      border-radius: 6px;
+      text-align: center;
+    }
     @media (max-width: 600px) {
       body {
         padding: 10px;
@@ -117,6 +125,21 @@
     <section id="subscription">
       <h2>Subscription</h2>
       <p>Manage your subscription settings below.</p>
+      {% if subscription_info %}
+        <div class="subscription-info">
+          {% if subscription_info.cancel_at_period_end %}
+            <p>Your subscription is scheduled to cancel at the end of your current billing period.</p>
+            <p>It will end on: <strong>{{ subscription_info.current_period_end }}</strong></p>
+          {% else %}
+            <p>Your subscription is active and will renew automatically.</p>
+            <p>Current period ends on: <strong>{{ subscription_info.current_period_end }}</strong></p>
+          {% endif %}
+          <p>Status: <strong>{{ subscription_info.status }}</strong></p>
+        </div>
+      {% else %}
+        <p>You do not have an active subscription.</p>
+      {% endif %}
+
       <form action="{{ url_for('cancel_subscription') }}" method="POST">
         <input type="hidden" name="user_id" value="{{ current_user.id }}">
         <button type="submit" class="btn-3d"
@@ -125,7 +148,7 @@
         </button>
       </form>
     </section>
-
+  </div>
 
   <footer>
     <small>&copy; 2025 William Swain. All rights reserved.</small>
