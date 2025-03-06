@@ -119,7 +119,7 @@
     </div>
 
     <form method="POST" action="{{ url_for('register') }}">
-      <input type="text" name="username" placeholder="Username" required>
+      <!-- Removed the Username field -->
       <input type="email" name="email" placeholder="Email Address" required>
       <input type="password" name="password" placeholder="Password" required>
 
@@ -149,10 +149,8 @@
         <input type="text" id="otherDiscipline" name="otherDiscipline" placeholder="Please specify your discipline" style="display:none;">
       </div>
 
-      <!-- Promo Code Field Removed -->
-
+      <!-- Subscription Pricing & Student Verification -->
       <div id="subscriptionPricing"></div>
-
       <div id="student-verification">
         <label>Student Verification Required:</label>
         <p>Please ensure your email ends with ".ac.uk" to receive the student rate.</p>
