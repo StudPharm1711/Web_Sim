@@ -3,7 +3,7 @@ import io
 import random
 import time
 import json  # for parsing JSON responses from the API
-import re  # for password complexity validation & optional post-processing
+import re   # for password complexity validation & optional post-processing
 import uuid  # for generating unique session tokens
 from datetime import datetime  # added for date conversion
 from flask import Flask, render_template, redirect, url_for, request, flash, session, send_file, jsonify, Blueprint
@@ -52,7 +52,6 @@ login_manager.login_view = 'login'
 # Initialise serializer for password reset tokens
 s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
-
 # --- Password Complexity Validator ---
 def validate_password(password):
     """
@@ -69,7 +68,6 @@ def validate_password(password):
         return False, "Password must contain at least one digit."
     return True, ""
 
-
 # --- User Model Definition ---
 class User(UserMixin, db.Model):
     __tablename__ = 'user'  # Explicit table name
@@ -82,13 +80,11 @@ class User(UserMixin, db.Model):
     subscription_id = db.Column(db.String(100))
     subscription_status = db.Column(db.String(50))
     is_admin = db.Column(db.Boolean, default=False)
-    current_session = db.Column(db.String(255), nullable=True)  # NEW: To track the current session token
-
+    current_session = db.Column(db.String(255), nullable=True)  # To track the current session token
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
-
 
 # --- Before Request: Ensure Single Session per User ---
 @app.before_request
@@ -99,7 +95,6 @@ def ensure_single_session():
             logout_user()
             flash("You have been logged out because your account was logged in from another location.", "warning")
             return redirect(url_for('login'))
-
 
 # --- Global Simulation Variables ---
 PATIENT_NAMES = [
@@ -154,7 +149,6 @@ PROMPT_INSTRUCTION = (
 # --- Account Blueprint ---
 account_bp = Blueprint('account', __name__, url_prefix='/account')
 
-
 @app.route('/account')
 @login_required
 def account():
@@ -162,8 +156,7 @@ def account():
     if current_user.subscription_id:
         try:
             subscription = stripe.Subscription.retrieve(current_user.subscription_id)
-            current_period_end = datetime.utcfromtimestamp(subscription.current_period_end).strftime(
-                "%Y-%m-%d %H:%M:%S")
+            current_period_end = datetime.utcfromtimestamp(subscription.current_period_end).strftime("%Y-%m-%d %H:%M:%S")
             subscription_info = {
                 "cancel_at_period_end": subscription.cancel_at_period_end,
                 "current_period_end": current_period_end,
@@ -173,22 +166,18 @@ def account():
             flash(f"Error retrieving subscription info: {str(e)}", "danger")
     return render_template('account.html', subscription_info=subscription_info)
 
-
 app.register_blueprint(account_bp)
-
 
 # --- New Route for Terms and Conditions ---
 @app.route('/terms.html')
 def terms():
     return render_template('terms.html')
 
-
 # --- New Route for Instructions ---
 @app.route('/instructions')
 @login_required
 def instructions():
     return render_template('instructions.html')
-
 
 # --- Subscription Cancellation Route ---
 @app.route('/cancel_subscription', methods=['POST'])
@@ -226,7 +215,6 @@ def cancel_subscription():
         flash(f"Error cancelling subscription: {str(e)}", "danger")
     return redirect(url_for('account'))
 
-
 # --- Reactivation Routes ---
 @app.route('/reactivate_subscription')
 @login_required
@@ -241,7 +229,6 @@ def reactivate_subscription():
         cancel_url=url_for('account', _external=True)
     )
     return redirect(checkout_session.url)
-
 
 @app.route('/reactivate_payment_success')
 @login_required
@@ -285,15 +272,12 @@ def reactivate_payment_success():
         flash(f"Error processing reactivation: {str(e)}", "danger")
     return redirect(url_for('account'))
 
-
 # --- Landing Page Route ---
 @app.route('/')
 def landing():
     return render_template('landing.html')
 
-
 ADMIN_LOGIN_PASSWORD = os.getenv("ADMIN_LOGIN_PASSWORD")
-
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -336,7 +320,6 @@ def login():
             else:
                 flash("Invalid email or password", "danger")
     return render_template('login.html')
-
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -384,7 +367,6 @@ def register():
         )
         return redirect(checkout_session.url)
     return render_template('register.html')
-
 
 @app.route('/payment_success')
 def payment_success():
@@ -445,12 +427,10 @@ def payment_success():
         return redirect(url_for('register'))
     return redirect(url_for('simulation'))
 
-
 @app.route('/payment_cancel')
 def payment_cancel():
     flash("Payment was cancelled. Please try again.", "warning")
     return redirect(url_for('register'))
-
 
 @app.route('/logout')
 @login_required
@@ -462,12 +442,10 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
-
 @app.route('/about')
 @login_required
 def about():
     return render_template('about.html')
-
 
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
@@ -501,7 +479,6 @@ def forgot_password():
         return redirect(url_for('login'))
     return render_template('forgot_password.html')
 
-
 @app.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
     try:
@@ -532,7 +509,6 @@ def reset_password(token):
             flash("User not found.", "danger")
             return redirect(url_for('forgot_password'))
     return render_template('reset_password.html', token=token)
-
 
 @app.route('/start_simulation', methods=['POST'])
 @login_required
@@ -596,7 +572,6 @@ def start_simulation():
     session.pop('hint', None)
     return redirect(url_for('simulation'))
 
-
 @app.route('/simulation', methods=['GET'])
 @login_required
 def simulation():
@@ -610,18 +585,25 @@ def simulation():
         hint=session.get('hint')
     )
 
-
 @app.route('/send_message', methods=['POST'])
 @login_required
 def send_message():
     conversation = session.get('conversation', [])
     msg = request.form.get('message')
+    # Server-side input validation to maintain simulation context.
+    generic_phrases = ["i need help", "help", "assist", "???", "??", "?"]
+    forced_context_phrases = ["i am the patient", "i'm the patient", "i am the clinician", "i'm the clinician"]
     if msg:
+        lower_msg = msg.strip().lower()
+        # Check if message is generic, gibberish (no vowels), or contains forced role assertions.
+        if (lower_msg in generic_phrases or
+            not re.search(r"[aeiou]", msg) or
+            any(phrase in lower_msg for phrase in forced_context_phrases)):
+            msg = "I have a complaint that needs further clarification."
         conversation.append({'role': 'user', 'content': msg})
         session['conversation'] = conversation
         return jsonify({"status": "ok"}), 200
     return jsonify({"status": "error", "message": "No message provided"}), 400
-
 
 @app.route('/get_reply', methods=['POST'])
 @login_required
@@ -641,7 +623,6 @@ def get_reply():
     conversation.append({'role': 'assistant', 'content': resp_text})
     session['conversation'] = conversation
     return jsonify({"reply": resp_text}), 200
-
 
 @app.route('/hint', methods=['POST'])
 @login_required
@@ -668,7 +649,6 @@ def hint():
     session['hint'] = hint_response
     return redirect(url_for('simulation'))
 
-
 @app.route('/feedback', methods=['POST'])
 @login_required
 def feedback():
@@ -684,36 +664,36 @@ def feedback():
 
     # The revised feedback prompt:
     feedback_prompt = (
-            "IMPORTANT: Output ONLY valid JSON with NO disclaimers. "
-            "Use double quotes for all keys and string values, do NOT use single quotes. "
-            "Evaluate the following consultation transcript using the Calgary–Cambridge model. "
-            "Score each category on a scale of 1 to 10, and provide a short comment for each:\n"
-            "1. Initiating the session\n"
-            "2. Gathering information (Consider whether presenting complaint, history of presenting complaint, past medical and surgical history, medication and allergy history including over the counter and herbal remedies, family history, social history have all been explored)\n"
-            "3. Physical examination (award points if the user obtains explicit consent and discusses the auto-generated exam findings)\n"
-            "4. Explanation & planning (Consider whether an appropriate management plan has been agreed with the patient by shared decision making rather than being too directive; the plan should consider further tests or investigations and potential treatment options)\n"
-            "5. Closing the session (Score points considering whether the user has established a sensible follow-up plan and safety-netted the patient)\n"
-            "6. Building a relationship\n"
-            "7. Providing structure\n\n"
-            "Then, calculate the overall score by summing these seven categories (max score 70). "
-            "Finally, provide a brief commentary (max 50 words) on the user's clinical reasoning. Specifically, note if they used "
-            "hypothetico-deductive reasoning effectively in the early stages, and assess their use of Bayesian reasoning "
-            "and dual-process theory throughout the interaction. Identify potential biases (confirmation, anchoring, etc.). "
-            "Include this commentary as a separate key called \"clinical_reasoning\".\n\n"
-            "Format your answer STRICTLY as JSON in the following format (no extra text, only double quotes):\n\n"
-            '{\n'
-            '  "initiating_session": {"score": X, "comment": "..."},\n'
-            '  "gathering_information": {"score": X, "comment": "..."},\n'
-            '  "physical_examination": {"score": X, "comment": "..."},\n'
-            '  "explanation_planning": {"score": X, "comment": "..."},\n'
-            '  "closing_session": {"score": X, "comment": "..."},\n'
-            '  "building_relationship": {"score": X, "comment": "..."},\n'
-            '  "providing_structure": {"score": X, "comment": "..."},\n'
-            '  "overall": Y,\n'
-            '  "clinical_reasoning": "..." \n'
-            '}\n\n'
-            "Do not include ANY additional text. The consultation transcript is:\n"
-            + user_conv_text
+        "IMPORTANT: Output ONLY valid JSON with NO disclaimers. "
+        "Use double quotes for all keys and string values, do NOT use single quotes. "
+        "Evaluate the following consultation transcript using the Calgary–Cambridge model. "
+        "Score each category on a scale of 1 to 10, and provide a short comment for each:\n"
+        "1. Initiating the session\n"
+        "2. Gathering information (Consider whether presenting complaint, history of presenting complaint, past medical and surgical history, medication and allergy history including over the counter and herbal remedies, family history, social history have all been explored)\n"
+        "3. Physical examination (award points if the user obtains explicit consent and discusses the auto-generated exam findings)\n"
+        "4. Explanation & planning (Consider whether an appropriate management plan has been agreed with the patient by shared decision making rather than being too directive; the plan should consider further tests or investigations and potential treatment options)\n"
+        "5. Closing the session (Score points considering whether the user has established a sensible follow-up plan and safety-netted the patient)\n"
+        "6. Building a relationship\n"
+        "7. Providing structure\n\n"
+        "Then, calculate the overall score by summing these seven categories (max score 70). "
+        "Finally, provide a brief commentary (max 50 words) on the user's clinical reasoning. Specifically, note if they used "
+        "hypothetico-deductive reasoning effectively in the early stages, and assess their use of Bayesian reasoning "
+        "and dual-process theory throughout the interaction. Identify potential biases (confirmation, anchoring, etc.). "
+        "Include this commentary as a separate key called \"clinical_reasoning\".\n\n"
+        "Format your answer STRICTLY as JSON in the following format (no extra text, only double quotes):\n\n"
+        '{\n'
+        '  "initiating_session": {"score": X, "comment": "..."},\n'
+        '  "gathering_information": {"score": X, "comment": "..."},\n'
+        '  "physical_examination": {"score": X, "comment": "..."},\n'
+        '  "explanation_planning": {"score": X, "comment": "..."},\n'
+        '  "closing_session": {"score": X, "comment": "..."},\n'
+        '  "building_relationship": {"score": X, "comment": "..."},\n'
+        '  "providing_structure": {"score": X, "comment": "..."},\n'
+        '  "overall": Y,\n'
+        '  "clinical_reasoning": "..." \n'
+        '}\n\n'
+        "Do not include ANY additional text. The consultation transcript is:\n"
+        + user_conv_text
     )
 
     feedback_conversation = [{'role': 'system', 'content': feedback_prompt}]
@@ -743,7 +723,6 @@ def feedback():
 
     return redirect(url_for('simulation'))
 
-
 @app.route('/download_feedback', methods=['GET'])
 @login_required
 def download_feedback():
@@ -764,7 +743,6 @@ def download_feedback():
         mimetype="application/pdf"
     )
 
-
 @app.route('/clear_simulation')
 @login_required
 def clear_simulation():
@@ -773,7 +751,6 @@ def clear_simulation():
     session.pop('feedback_json', None)
     session.pop('hint', None)
     return redirect(url_for('simulation'))
-
 
 @app.route('/generate_exam', methods=['POST'])
 @login_required
@@ -802,7 +779,7 @@ def generate_exam():
             "Then, focus exclusively on the cardiovascular examination: describe the heart rate in full words, heart rhythm, the presence or absence of murmurs, and the quality of peripheral pulses."
         ),
         "respiratory": (
-            "Then, focus exclusively on the respiratory examination: detail lung sounds in both lungs specifying which lobe, note any wheezes or crackles or other added sounds, state if air entry is diminished and any use of accessory muscles such as trapezius muscules, also comment on whether the patient is speaking in full sentences."
+            "Then, focus exclusively on the respiratory examination: detail lung sounds in both lungs specifying which lobe, note any wheezes or crackles or other added sounds, state if air entry is diminished and any use of accessory muscles such as trapezius muscles, also comment on whether the patient is speaking in full sentences."
         ),
         "gastrointestinal": (
             "Then, focus exclusively on the gastrointestinal examination: describe abdominal tenderness, the character of bowel sounds, any abdominal distension, and signs of guarding or rigidity."
@@ -832,11 +809,11 @@ def generate_exam():
 
     # Build the final exam prompt: always include vitals plus system-specific instructions.
     exam_prompt = (
-            f"Generate a concise set of physical examination findings for a patient presenting with '{complaint}'. "
-            + vitals_prompt +
-            extra_instructions +
-            " Ensure that the findings are specific to the likely cause of the complaint and written in full, plain language with no acronyms or abbreviations. "
-            "Do not include any introductory phrases or extra text; provide only the exam findings."
+        f"Generate a concise set of physical examination findings for a patient presenting with '{complaint}'. "
+        + vitals_prompt +
+        extra_instructions +
+        " Ensure that the findings are specific to the likely cause of the complaint and written in full, plain language with no acronyms or abbreviations. "
+        "Do not include any introductory phrases or extra text; provide only the exam findings."
     )
 
     try:
@@ -850,7 +827,6 @@ def generate_exam():
     except Exception as e:
         exam_results = f"Error generating exam results: {str(e)}"
     return jsonify({"results": exam_results}), 200
-
 
 if __name__ == '__main__':
     app.run(debug=True)
