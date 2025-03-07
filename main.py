@@ -3,7 +3,7 @@ import io
 import random
 import time
 import json  # for parsing JSON responses from the API
-import re  # for password complexity validation
+import re   # for password complexity validation & optional post-processing
 from datetime import datetime  # added for date conversion
 from flask import Flask, render_template, redirect, url_for, request, flash, session, send_file, jsonify, Blueprint
 from flask_sqlalchemy import SQLAlchemy
@@ -57,7 +57,7 @@ def validate_password(password):
     Validate that the password meets the following criteria:
       - At least 8 characters
       - Contains at least one letter
-      - Contains at least one digit
+      - Contains at least one digit.
     """
     if len(password) < 8:
         return False, "Password must be at least 8 characters long."
@@ -108,16 +108,18 @@ ADVANCED_COMPLAINTS = [
 ]
 
 FEEDBACK_INSTRUCTION = (
-    "You are an examiner, not a patient. Cease all patient role-playing immediately. Your task is to analyse the conversation history and provide detailed feedback "
-    "on the user's communication and history-taking skills using the Calgary–Cambridge model. Also evaluate their clinical reasoning using hypothetical-deductive reasoning, "
-    "dual-process theory, and Bayesian theory, noting any biases. Use specific examples from the dialogue provided. Keep feedback constructive, clear, and professional. "
+    "You are an examiner, not a patient. Cease all patient role-playing immediately. Your task is to analyse the conversation "
+    "history and provide detailed feedback on the user's communication and history-taking skills using the Calgary–Cambridge model. "
+    "Also evaluate their clinical reasoning using hypothetical-deductive reasoning, dual-process theory, and Bayesian theory, noting "
+    "any biases. Use specific examples from the dialogue provided. Keep feedback constructive, clear, and professional. "
     "Use British English spellings. End with: \"Thank you for the consultation. Goodbye.\" Here is the consultation transcript to review:"
 )
 
 PROMPT_INSTRUCTION = (
-    "You are a Calgary Cambridge communication expert. Based on the following consultation transcript, provide one single, concise suggested next question for the user to ask, "
-    "ensuring that essential patient details (e.g., demographics, personal history, key symptoms) are addressed. If the transcript does not include questions about the patient's name "
-    "or date of birth, include such a question. Provide a brief justification (1-2 sentences) for your suggestion. Format your answer as a single bullet point."
+    "You are a Calgary Cambridge communication expert. Based on the following consultation transcript, provide one single, concise "
+    "suggested next question for the user to ask, ensuring that essential patient details (e.g., demographics, personal history, key "
+    "symptoms) are addressed. If the transcript does not include questions about the patient's name or date of birth, include such a "
+    "question. Provide a brief justification (1-2 sentences) for your suggestion. Format your answer as a single bullet point."
 )
 
 # --- Account Blueprint ---
@@ -153,7 +155,7 @@ def terms():
 def instructions():
     return render_template('instructions.html')
 
-# --- Subscription Cancellation Route ---
+# Subscription Cancellation Route
 @app.route('/cancel_subscription', methods=['POST'])
 @login_required
 def cancel_subscription():
@@ -189,7 +191,7 @@ def cancel_subscription():
         flash(f"Error cancelling subscription: {str(e)}", "danger")
     return redirect(url_for('account'))
 
-# --- Reactivation Routes ---
+# Reactivation Routes
 @app.route('/reactivate_subscription')
 @login_required
 def reactivate_subscription():
@@ -246,7 +248,7 @@ def reactivate_payment_success():
         flash(f"Error processing reactivation: {str(e)}", "danger")
     return redirect(url_for('account'))
 
-# --- Landing Page Route ---
+# Landing Page
 @app.route('/')
 def landing():
     return render_template('landing.html')
@@ -598,7 +600,8 @@ def feedback():
 
     # The revised feedback prompt:
     feedback_prompt = (
-        "IMPORTANT: Output ONLY valid JSON with NO extra text or disclaimers. "
+        "IMPORTANT: Output ONLY valid JSON with NO disclaimers. "
+        "Use double quotes for all keys and string values, do NOT use single quotes. "
         "Evaluate the following consultation transcript using the Calgary–Cambridge model. "
         "Score each category on a scale of 1 to 10, and provide a short comment for each:\n"
         "1. Initiating the session\n"
@@ -613,7 +616,7 @@ def feedback():
         "hypothetico-deductive reasoning effectively in the early stages, and assess their use of Bayesian reasoning "
         "and dual-process theory throughout the interaction. Identify potential biases (confirmation, anchoring, etc.). "
         "Include this commentary as a separate key called 'clinical_reasoning'.\n\n"
-        "Format your answer STRICTLY as JSON in the following format (no extra text or disclaimers):\n\n"
+        "Format your answer STRICTLY as JSON in the following format (no disclaimers, no extra text, only double quotes):\n\n"
         '{\n'
         '  "initiating_session": {"score": X, "comment": "..."},\n'
         '  "gathering_information": {"score": X, "comment": "..."},\n'
@@ -632,7 +635,6 @@ def feedback():
     feedback_conversation = [{'role': 'system', 'content': feedback_prompt}]
 
     try:
-        # Use GPT-4-turbo for a more nuanced evaluation
         response = openai.ChatCompletion.create(
             model="gpt-4-turbo",
             messages=feedback_conversation,
@@ -643,15 +645,20 @@ def feedback():
     except Exception as e:
         fb = f"Error generating feedback: {str(e)}"
 
+    # Optional: Attempt to sanitize single quotes -> double quotes
+    # This is a rough approach and may cause issues with contractions, etc.
+    # If it causes more harm than good, remove or refine it.
+    sanitized_fb = re.sub(r"'", '"', fb)
+
     # Attempt to parse JSON
     try:
-        feedback_json = json.loads(fb)
+        feedback_json = json.loads(sanitized_fb)
         session['feedback_json'] = feedback_json
-        session['feedback'] = fb
+        session['feedback'] = sanitized_fb
     except Exception:
         # If it fails, store raw text
         session['feedback_json'] = None
-        session['feedback'] = fb
+        session['feedback'] = fb  # keep original
 
     return redirect(url_for('simulation'))
 
