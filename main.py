@@ -4,6 +4,7 @@ import random
 import time
 import json  # for parsing JSON responses from the API
 import re   # for password complexity validation & optional post-processing
+import uuid  # for generating unique session tokens
 from datetime import datetime  # added for date conversion
 from flask import Flask, render_template, redirect, url_for, request, flash, session, send_file, jsonify, Blueprint
 from flask_sqlalchemy import SQLAlchemy
@@ -79,10 +80,21 @@ class User(UserMixin, db.Model):
     subscription_id = db.Column(db.String(100))
     subscription_status = db.Column(db.String(50))
     is_admin = db.Column(db.Boolean, default=False)
+    current_session = db.Column(db.String(255), nullable=True)  # NEW: To track the current session token
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
+# --- Before Request: Ensure Single Session per User ---
+@app.before_request
+def ensure_single_session():
+    if current_user.is_authenticated:
+        token = session.get('session_token')
+        if token != current_user.current_session:
+            logout_user()
+            flash("You have been logged out because your account was logged in from another location.", "warning")
+            return redirect(url_for('login'))
 
 # --- Global Simulation Variables ---
 PATIENT_NAMES = [
@@ -155,7 +167,7 @@ def terms():
 def instructions():
     return render_template('instructions.html')
 
-# Subscription Cancellation Route
+# --- Subscription Cancellation Route ---
 @app.route('/cancel_subscription', methods=['POST'])
 @login_required
 def cancel_subscription():
@@ -191,7 +203,7 @@ def cancel_subscription():
         flash(f"Error cancelling subscription: {str(e)}", "danger")
     return redirect(url_for('account'))
 
-# Reactivation Routes
+# --- Reactivation Routes ---
 @app.route('/reactivate_subscription')
 @login_required
 def reactivate_subscription():
@@ -248,7 +260,7 @@ def reactivate_payment_success():
         flash(f"Error processing reactivation: {str(e)}", "danger")
     return redirect(url_for('account'))
 
-# Landing Page
+# --- Landing Page Route ---
 @app.route('/')
 def landing():
     return render_template('landing.html')
@@ -274,6 +286,10 @@ def login():
                 if not admin_user.is_admin:
                     admin_user.is_admin = True
                     db.session.commit()
+            # Generate and store a new session token for single-session enforcement
+            admin_user.current_session = str(uuid.uuid4())
+            db.session.commit()
+            session['session_token'] = admin_user.current_session
             login_user(admin_user)
             flash("Logged in as admin.", "success")
             return redirect(url_for('simulation'))
@@ -283,6 +299,10 @@ def login():
             user = User.query.filter_by(email=email).first()
             if user and check_password_hash(user.password, password):
                 session.pop('conversation', None)
+                # Generate and store a new session token
+                user.current_session = str(uuid.uuid4())
+                db.session.commit()
+                session['session_token'] = user.current_session
                 login_user(user)
                 return redirect(url_for('simulation'))
             else:
@@ -381,6 +401,11 @@ def payment_success():
             sg.send(confirmation_email)
         except Exception as e:
             flash(f"Error sending confirmation email: {str(e)}", "warning")
+
+        # Generate and store a new session token for the new user
+        new_user.current_session = str(uuid.uuid4())
+        db.session.commit()
+        session['session_token'] = new_user.current_session
 
         login_user(new_user)
         session.pop('pending_registration', None)
@@ -605,18 +630,18 @@ def feedback():
         "Evaluate the following consultation transcript using the Calgary–Cambridge model. "
         "Score each category on a scale of 1 to 10, and provide a short comment for each:\n"
         "1. Initiating the session\n"
-        "2. Gathering information\n"
+        "2. Gathering information (Consider whether presenting complaint, history of presenting complaint, past medical and surgical history, medication and allergy history including over the counter and herbal remedies, family history, social history have all been explored)\n"
         "3. Physical examination (award points if the user obtains explicit consent and discusses the auto-generated exam findings)\n"
-        "4. Explanation & planning\n"
-        "5. Closing the session\n"
+        "4. Explanation & planning (Consider whether an appropriate management plan has been agreed with the patient by shared decision making rather than being too directive; the plan should consider further tests or investigations and potential treatment options)\n"
+        "5. Closing the session (Score points considering whether the user has established a sensible follow-up plan and safety-netted the patient)\n"
         "6. Building a relationship\n"
         "7. Providing structure\n\n"
         "Then, calculate the overall score by summing these seven categories (max score 70). "
         "Finally, provide a brief commentary (max 50 words) on the user's clinical reasoning. Specifically, note if they used "
         "hypothetico-deductive reasoning effectively in the early stages, and assess their use of Bayesian reasoning "
         "and dual-process theory throughout the interaction. Identify potential biases (confirmation, anchoring, etc.). "
-        "Include this commentary as a separate key called 'clinical_reasoning'.\n\n"
-        "Format your answer STRICTLY as JSON in the following format (no disclaimers, no extra text, only double quotes):\n\n"
+        "Include this commentary as a separate key called \"clinical_reasoning\".\n\n"
+        "Format your answer STRICTLY as JSON in the following format (no extra text, only double quotes):\n\n"
         '{\n'
         '  "initiating_session": {"score": X, "comment": "..."},\n'
         '  "gathering_information": {"score": X, "comment": "..."},\n'
@@ -646,8 +671,6 @@ def feedback():
         fb = f"Error generating feedback: {str(e)}"
 
     # Optional: Attempt to sanitize single quotes -> double quotes
-    # This is a rough approach and may cause issues with contractions, etc.
-    # If it causes more harm than good, remove or refine it.
     sanitized_fb = re.sub(r"'", '"', fb)
 
     # Attempt to parse JSON
@@ -656,9 +679,8 @@ def feedback():
         session['feedback_json'] = feedback_json
         session['feedback'] = sanitized_fb
     except Exception:
-        # If it fails, store raw text
         session['feedback_json'] = None
-        session['feedback'] = fb  # keep original
+        session['feedback'] = fb
 
     return redirect(url_for('simulation'))
 
