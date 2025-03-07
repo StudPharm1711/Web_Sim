@@ -450,6 +450,9 @@
                             <li><strong>Building a relationship:</strong> Score: {{ feedback_json.building_relationship.score }}, Comment: {{ feedback_json.building_relationship.comment }}</li>
                             <li><strong>Providing structure:</strong> Score: {{ feedback_json.providing_structure.score }}, Comment: {{ feedback_json.providing_structure.comment }}</li>
                             <li><strong>Overall Score:</strong> {{ feedback_json.overall }}/70</li>
+                            {% if feedback_json.clinical_reasoning %}
+                                <li><strong>Clinical Reasoning & Bias Analysis:</strong> {{ feedback_json.clinical_reasoning }}</li>
+                            {% endif %}
                         </ul>
                         <button onclick="location.href='{{ url_for('download_feedback') }}'" class="btn-3d">
                             Download Feedback as PDF

@@ -17,7 +17,6 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 from flask_migrate import Migrate
-# from flask_mail import Mail, Message  # Removed since we're using SendGrid
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 
 # Import SendGrid libraries
@@ -73,7 +72,6 @@ def validate_password(password):
 class User(UserMixin, db.Model):
     __tablename__ = 'user'  # Explicit table name
     id = db.Column(db.Integer, primary_key=True)
-    # Removed username field completely
     email = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
     category = db.Column(db.String(50))
@@ -180,7 +178,7 @@ def cancel_subscription():
             sg.send(cancel_email)
         except Exception as e:
             flash(f"Error sending cancellation email: {str(e)}", "warning")
-        flash("Your subscription will be cancelled at the end of the current billing period.Please note: This is an automated email and replies to this address are not monitored.", "success")
+        flash("Your subscription will be cancelled at the end of the current billing period. Please note: This is an automated email and replies to this address are not monitored.", "success")
     except Exception as e:
         flash(f"Error cancelling subscription: {str(e)}", "danger")
     return redirect(url_for('account'))
@@ -397,6 +395,9 @@ def payment_cancel():
 @login_required
 def logout():
     session.pop('conversation', None)
+    session.pop('feedback', None)
+    session.pop('feedback_json', None)
+    session.pop('hint', None)
     logout_user()
     return redirect(url_for('login'))
 
@@ -603,36 +604,41 @@ def feedback():
     ])
 
     feedback_prompt = (
-            "Evaluate the following consultation transcript using the Calgary–Cambridge model. "
-            "Score each of these categories on a scale of 1 to 10, and provide a short comment for each:\n"
-            "1. Initiating the session\n"
-            "2. Gathering information\n"
-            "3. Physical examination: Award points if the user gains explicit consent for a physical examination and discusses the auto-generated exam results.\n"
-            "4. Explanation & planning\n"
-            "5. Closing the session\n"
-            "6. Building a relationship\n"
-            "7. Providing structure\n\n"
-            "Then, calculate the overall score by summing the scores for these seven categories (maximum score is 70), and include it in your JSON output. "
-            "Format your answer strictly as JSON in the following format:\n\n"
-            '{\n'
-            '  "initiating_session": {"score": X, "comment": "..."},\n'
-            '  "gathering_information": {"score": X, "comment": "..."},\n'
-            '  "physical_examination": {"score": X, "comment": "..."},\n'
-            '  "explanation_planning": {"score": X, "comment": "..."},\n'
-            '  "closing_session": {"score": X, "comment": "..."},\n'
-            '  "building_relationship": {"score": X, "comment": "..."},\n'
-            '  "providing_structure": {"score": X, "comment": "..."},\n'
-            '  "overall": Y\n'
-            '}\n\n'
-            "where Y is the sum of the scores from the seven sections.\n\n"
-            "Consultation Transcript:\n" + user_conv_text
+        "Evaluate the following consultation transcript using the Calgary–Cambridge model. "
+        "Score each of these categories on a scale of 1 to 10, and provide a short comment for each:\n"
+        "1. Initiating the session\n"
+        "2. Gathering information\n"
+        "3. Physical examination (award points if the user obtains explicit consent and discusses the auto-generated exam findings)\n"
+        "4. Explanation & planning\n"
+        "5. Closing the session\n"
+        "6. Building a relationship\n"
+        "7. Providing structure\n\n"
+        "Then, calculate the overall score by summing the scores for these seven categories (maximum score is 70). "
+        "Finally, provide a separate brief commentary (max 50 words) on the user's clinical reasoning. Specifically, note if they used "
+        "hypothetico-deductive reasoning effectively during the early stages of the consultation, and assess their use of Bayesian reasoning "
+        "and dual-process theory throughout the interaction. Identify any potential biases, such as confirmation or anchoring bias. "
+        "Include this commentary as a separate key called 'clinical_reasoning' in your JSON output.\n\n"
+        "Format your answer strictly as JSON in the following format:\n\n"
+        '{\n'
+        '  "initiating_session": {"score": X, "comment": "..."},\n'
+        '  "gathering_information": {"score": X, "comment": "..."},\n'
+        '  "physical_examination": {"score": X, "comment": "..."},\n'
+        '  "explanation_planning": {"score": X, "comment": "..."},\n'
+        '  "closing_session": {"score": X, "comment": "..."},\n'
+        '  "building_relationship": {"score": X, "comment": "..."},\n'
+        '  "providing_structure": {"score": X, "comment": "..."},\n'
+        '  "overall": Y,\n'
+        '  "clinical_reasoning": "..." \n'
+        '}\n\n'
+        "Consultation Transcript:\n" + user_conv_text
     )
 
     feedback_conversation = [{'role': 'system', 'content': feedback_prompt}]
 
     try:
+        # Use GPT-4-turbo for a more nuanced evaluation
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4-turbo",
             messages=feedback_conversation,
             temperature=0.8,
             max_tokens=300
