@@ -310,6 +310,7 @@
             }
             {% endif %}
         }
+        /* End of custom styling */
     </style>
 </head>
 <body>
@@ -341,41 +342,65 @@
         </div>
         <!-- Initial Simulation Setup -->
         <div class="chat-container">
-            <form method="POST" action="{{ url_for('start_simulation') }}" id="startSimForm" style="text-align: center;">
-                <div class="form-group">
-                    <label for="simulation_level">
-                        Level of Practice
-                        <i class="fa fa-info-circle tooltip-icon" title="Select the level of simulation. This determines the complexity of the patient's complaint and your challenges during the consultation."></i>
-                    </label>
-                    <select id="simulation_level" name="simulation_level" class="select2" required>
-                        <option value="">Select Level</option>
-                        <option value="Beginner" data-description="Simple Patient : Simple Problem">Beginner</option>
-                        <option value="Intermediate" data-description="Simple Patient : Complex Problem">Intermediate</option>
-                        <option value="Advanced" data-description="Complex Patient : Complex Problem">Advanced</option>
-                    </select>
+            <form method="POST" action="{{ url_for('start_simulation') }}" id="startSimForm" style="display: flex; flex-direction: column; align-items: center; gap: 20px;">
+                <div style="display: flex; gap: 20px; width: 100%;">
+                    <!-- Level of Practice -->
+                    <div class="form-group" style="flex: 1;">
+                        <label for="simulation_level">
+                            Level of Practice
+                            <i class="fa fa-info-circle tooltip-icon" title="Select the level of simulation. This determines the complexity of the patient's complaint and your challenges during the consultation."></i>
+                        </label>
+                        <select id="simulation_level" name="simulation_level" class="select2" required>
+                            <option value="">Select Level</option>
+                            <option value="Beginner" data-description="Simple Patient : Simple Problem">Beginner</option>
+                            <option value="Intermediate" data-description="Simple Patient : Complex Problem">Intermediate</option>
+                            <option value="Advanced" data-description="Complex Patient : Complex Problem">Advanced</option>
+                        </select>
+                    </div>
+                    <!-- Country -->
+                    <div class="form-group" style="flex: 1;">
+                        <label for="country_select">
+                            Country
+                            <i class="fa fa-info-circle tooltip-icon" title="Select your country to tailor the simulation's medication names and healthcare context."></i>
+                        </label>
+                        <select id="country_select" name="country" class="select2" required>
+                            <option value="">Select Country</option>
+                            <option value="United Kingdom">United Kingdom</option>
+                            <option value="USA">USA</option>
+                            <optgroup label="Other Countries">
+                                <option value="Canada">Canada</option>
+                                <option value="Australia">Australia</option>
+                                <option value="Germany">Germany</option>
+                                <option value="France">France</option>
+                                <option value="India">India</option>
+                                <option value="Japan">Japan</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <!-- Body System -->
+                    <div class="form-group" style="flex: 1;">
+                        <label for="system_select">
+                            Body System
+                            <i class="fa fa-info-circle tooltip-icon" title="Select a single system or choose Random."></i>
+                        </label>
+                        <select id="system_select" name="system" class="select2">
+                            <option value="random" selected>Random (Any System)</option>
+                            <option value="cardiovascular">Cardiovascular</option>
+                            <option value="respiratory">Respiratory</option>
+                            <option value="gastrointestinal">Gastrointestinal</option>
+                            <option value="neurological">Neurological</option>
+                            <option value="musculoskeletal">Musculoskeletal</option>
+                            <option value="genitourinary">Genitourinary</option>
+                            <option value="endocrine">Endocrine</option>
+                            <option value="dermatological">Dermatological</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="country_select">
-                        Country
-                        <i class="fa fa-info-circle tooltip-icon" title="Select your country to tailor the simulation's medication names and healthcare context."></i>
-                    </label>
-                    <select id="country_select" name="country" class="select2" required>
-                        <option value="">Select Country</option>
-                        <option value="United Kingdom">United Kingdom</option>
-                        <option value="USA">USA</option>
-                        <optgroup label="Other Countries">
-                            <option value="Canada">Canada</option>
-                            <option value="Australia">Australia</option>
-                            <option value="Germany">Germany</option>
-                            <option value="France">France</option>
-                            <option value="India">India</option>
-                            <option value="Japan">Japan</option>
-                        </optgroup>
-                    </select>
+                <!-- Buttons row -->
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button type="submit" class="btn-3d">Start Simulation</button>
+                    <a href="{{ url_for('instructions') }}" class="btn-3d" style="text-decoration: none;">Instructions</a>
                 </div>
-                <button type="submit" class="btn-3d">Start Simulation</button>
-                <!-- Instructions button styled identically -->
-                <a href="{{ url_for('instructions') }}" class="btn-3d" style="margin-left: 10px; text-decoration: none;">Instructions</a>
             </form>
         </div>
         {% else %}
@@ -498,6 +523,9 @@
                 templateSelection: simpleSelection
             });
             $('#country_select').select2({
+                theme: "classic"
+            });
+            $('#system_select').select2({
                 theme: "classic"
             });
 
