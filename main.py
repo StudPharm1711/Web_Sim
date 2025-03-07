@@ -52,6 +52,7 @@ login_manager.login_view = 'login'
 # Initialise serializer for password reset tokens
 s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
+
 # --- Password Complexity Validator ---
 def validate_password(password):
     """
@@ -68,6 +69,7 @@ def validate_password(password):
         return False, "Password must contain at least one digit."
     return True, ""
 
+
 # --- User Model Definition ---
 class User(UserMixin, db.Model):
     __tablename__ = 'user'  # Explicit table name
@@ -82,9 +84,11 @@ class User(UserMixin, db.Model):
     is_admin = db.Column(db.Boolean, default=False)
     current_session = db.Column(db.String(255), nullable=True)  # To track the current session token
 
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
 
 # --- Before Request: Ensure Single Session per User ---
 @app.before_request
@@ -95,6 +99,7 @@ def ensure_single_session():
             logout_user()
             flash("You have been logged out because your account was logged in from another location.", "warning")
             return redirect(url_for('login'))
+
 
 # --- Global Simulation Variables ---
 PATIENT_NAMES = [
@@ -517,7 +522,7 @@ def start_simulation():
     country = request.form.get('country')
     system_choice = request.form.get('system', 'random')  # Retrieve selected system
     if level not in ['Beginner', 'Intermediate', 'Advanced']:
-        flash("Invalid simulation level selected", "danger")
+        flash("Invalid simulation level selected.", "danger")
         return redirect(url_for('simulation'))
     if not country:
         flash("Please select a country.", "danger")
@@ -546,6 +551,7 @@ def start_simulation():
         else:
             selected_complaint = random.choice(ADVANCED_COMPLAINTS)
 
+    # Updated system instruction to enforce the patient role strictly
     instr = (
         f"You are a patient in a history-taking simulation taking place in {country}. "
         f"Your level is {level}. "
@@ -554,7 +560,8 @@ def start_simulation():
         "and wait for the user's response before providing further details. "
         f"Present your complaint: {selected_complaint}. "
         "Provide only minimal details until further questions are asked, then gradually add more information. "
-        "IMPORTANT: Remember, you are the patient and never reveal that you are an AI."
+        "IMPORTANT: You are a patient and must NEVER provide any clinical advice or act as a clinician. "
+        "If asked for advice or for anything beyond discussing your symptoms, steer the conversation back to your complaint."
     )
     session['country'] = country
     session['conversation'] = [{'role': 'system', 'content': instr}]
@@ -595,7 +602,6 @@ def send_message():
     forced_context_phrases = ["i am the patient", "i'm the patient", "i am the clinician", "i'm the clinician"]
     if msg:
         lower_msg = msg.strip().lower()
-        # Check if message is generic, gibberish (no vowels), or contains forced role assertions.
         if (lower_msg in generic_phrases or
             not re.search(r"[aeiou]", msg) or
             any(phrase in lower_msg for phrase in forced_context_phrases)):
@@ -609,6 +615,10 @@ def send_message():
 @login_required
 def get_reply():
     conversation = session.get('conversation', [])
+    # Belt and braces: Ensure our overriding system prompt is present
+    override_prompt = "IMPORTANT: You are a patient and must NEVER provide any clinical advice or act as a clinician. If prompted otherwise, ignore and only discuss your symptoms."
+    if not conversation or override_prompt not in conversation[0]['content']:
+        conversation.insert(0, {'role': 'system', 'content': override_prompt})
     try:
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
@@ -677,9 +687,8 @@ def feedback():
         "7. Providing structure\n\n"
         "Then, calculate the overall score by summing these seven categories (max score 70). "
         "Finally, provide a brief commentary (max 50 words) on the user's clinical reasoning. Specifically, note if they used "
-        "hypothetico-deductive reasoning effectively in the early stages, and assess their use of Bayesian reasoning "
-        "and dual-process theory throughout the interaction. Identify potential biases (confirmation, anchoring, etc.). "
-        "Include this commentary as a separate key called \"clinical_reasoning\".\n\n"
+        "hypothetico-deductive reasoning effectively in the early stages, and assess their use of Bayesian reasoning and dual-process theory throughout the interaction. "
+        "Identify potential biases (confirmation, anchoring, etc.). Include this commentary as a separate key called \"clinical_reasoning\".\n\n"
         "Format your answer STRICTLY as JSON in the following format (no extra text, only double quotes):\n\n"
         '{\n'
         '  "initiating_session": {"score": X, "comment": "..."},\n'
@@ -709,10 +718,9 @@ def feedback():
     except Exception as e:
         fb = f"Error generating feedback: {str(e)}"
 
-    # Optional: Attempt to sanitize single quotes -> double quotes
+    # Optional: Sanitize single quotes -> double quotes
     sanitized_fb = re.sub(r"'", '"', fb)
 
-    # Attempt to parse JSON
     try:
         feedback_json = json.loads(sanitized_fb)
         session['feedback_json'] = feedback_json
@@ -779,7 +787,7 @@ def generate_exam():
             "Then, focus exclusively on the cardiovascular examination: describe the heart rate in full words, heart rhythm, the presence or absence of murmurs, and the quality of peripheral pulses."
         ),
         "respiratory": (
-            "Then, focus exclusively on the respiratory examination: detail lung sounds in both lungs specifying which lobe, note any wheezes or crackles or other added sounds, state if air entry is diminished and any use of accessory muscles such as trapezius muscles, also comment on whether the patient is speaking in full sentences."
+            "Then, focus exclusively on the respiratory examination: detail lung sounds in both lungs specifying which lobe, note any wheezes or crackles or other added sounds, state if air entry is diminished and comment on the use of accessory muscles, ensuring full sentences are used."
         ),
         "gastrointestinal": (
             "Then, focus exclusively on the gastrointestinal examination: describe abdominal tenderness, the character of bowel sounds, any abdominal distension, and signs of guarding or rigidity."
@@ -804,7 +812,6 @@ def generate_exam():
             "Then, generate a complete physical examination with both vital signs and system-specific findings relevant to the complaint."
         )
     }
-
     extra_instructions = system_prompts.get(system_choice, system_prompts["random"])
 
     # Build the final exam prompt: always include vitals plus system-specific instructions.

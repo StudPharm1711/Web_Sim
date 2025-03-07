@@ -237,8 +237,8 @@
             color: #005f73;
             cursor: help;
         }
-        /* Specific style for Hint button icon to be white */
-        #hintBtn .tooltip-icon {
+        /* Ensure hint, feedback, and exam tooltip icons are white */
+        #hintBtn .tooltip-icon, #feedbackBtnForm .tooltip-icon, #examBtn .tooltip-icon {
             color: #ffffff;
         }
         /* Labeled form groups in a row */
@@ -294,6 +294,13 @@
             height: 40px;
             margin-right: 6px;
         }
+        /* Record button adjustments */
+        #recordBtn {
+            display: inline-block;
+            max-width: 200px;
+            margin-bottom: 10px;
+            transition: background 0.3s;
+        }
         /* Media Queries */
         @media (max-width: 600px) {
             .header-container {
@@ -326,10 +333,6 @@
                 font-size: 0.9rem;
             }
             {% endif %}
-        }
-        @keyframes scroll-left {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-100%); }
         }
     </style>
 </head>
@@ -462,7 +465,10 @@
                     </div>
 
                     <!-- Record button (hidden by default unless "Voice" is selected) -->
-                    <button id="recordBtn" class="btn-3d" style="display: none; margin-bottom: 10px;" title="Click once and speak into your microphone">Record</button>
+                    <button id="recordBtn" class="btn-3d" style="display: none; max-width: 200px;" title="Click once and speak into your microphone">
+                        <i class="fa fa-microphone tooltip-icon" title="Record your voice"></i>
+                        Record
+                    </button>
 
                     <!-- The message form for typed input -->
                     <form id="messageForm">
@@ -608,10 +614,18 @@
                 recognition.interimResults = false;
                 recognition.lang = 'en-US';
 
+                recognition.onstart = function() {
+                    $("#recordBtn").text("Recording");
+                    $("#recordBtn").css("background", "#ff4d4d");
+                };
+                recognition.onend = function() {
+                    $("#recordBtn").text("Record");
+                    $("#recordBtn").css("background", "linear-gradient(145deg, #005f73, #0a6c82)");
+                };
+
                 recognition.onresult = function(event) {
                     var transcript = event.results[0][0].transcript;
                     appendMessage("user", transcript);
-                    document.querySelector('textarea[name="message"]').value = "";
                     submitVoiceMessage(transcript);
                 };
                 recognition.onerror = function(event) {
