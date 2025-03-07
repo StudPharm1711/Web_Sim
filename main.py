@@ -50,7 +50,6 @@ login_manager.login_view = 'login'
 # Initialise serializer for password reset tokens
 s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
-
 # --- Password Complexity Validator ---
 def validate_password(password):
     """
@@ -67,7 +66,6 @@ def validate_password(password):
         return False, "Password must contain at least one digit."
     return True, ""
 
-
 # --- User Model Definition ---
 class User(UserMixin, db.Model):
     __tablename__ = 'user'  # Explicit table name
@@ -81,11 +79,9 @@ class User(UserMixin, db.Model):
     subscription_status = db.Column(db.String(50))
     is_admin = db.Column(db.Boolean, default=False)
 
-
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
-
 
 # --- Global Simulation Variables ---
 PATIENT_NAMES = [
@@ -126,7 +122,6 @@ PROMPT_INSTRUCTION = (
 # --- Account Blueprint ---
 account_bp = Blueprint('account', __name__, url_prefix='/account')
 
-
 @app.route('/account')
 @login_required
 def account():
@@ -134,8 +129,7 @@ def account():
     if current_user.subscription_id:
         try:
             subscription = stripe.Subscription.retrieve(current_user.subscription_id)
-            current_period_end = datetime.utcfromtimestamp(subscription.current_period_end).strftime(
-                "%Y-%m-%d %H:%M:%S")
+            current_period_end = datetime.utcfromtimestamp(subscription.current_period_end).strftime("%Y-%m-%d %H:%M:%S")
             subscription_info = {
                 "cancel_at_period_end": subscription.cancel_at_period_end,
                 "current_period_end": current_period_end,
@@ -145,15 +139,18 @@ def account():
             flash(f"Error retrieving subscription info: {str(e)}", "danger")
     return render_template('account.html', subscription_info=subscription_info)
 
-
 app.register_blueprint(account_bp)
-
 
 # --- New Route for Terms and Conditions ---
 @app.route('/terms.html')
 def terms():
     return render_template('terms.html')
 
+# --- New Route for Instructions ---
+@app.route('/instructions')
+@login_required
+def instructions():
+    return render_template('instructions.html')
 
 # --- Subscription Cancellation Route ---
 @app.route('/cancel_subscription', methods=['POST'])
@@ -183,12 +180,10 @@ def cancel_subscription():
         flash(f"Error cancelling subscription: {str(e)}", "danger")
     return redirect(url_for('account'))
 
-
 # --- Reactivation Routes ---
 @app.route('/reactivate_subscription')
 @login_required
 def reactivate_subscription():
-    # Create a new Stripe Checkout session for reactivation.
     price_id = STRIPE_STUDENT_PRICE_ID if current_user.category == 'health_student' else STRIPE_NONSTUDENT_PRICE_ID
     checkout_session = stripe.checkout.Session.create(
         payment_method_types=["card"],
@@ -199,7 +194,6 @@ def reactivate_subscription():
         cancel_url=url_for('account', _external=True)
     )
     return redirect(checkout_session.url)
-
 
 @app.route('/reactivate_payment_success')
 @login_required
@@ -217,7 +211,6 @@ def reactivate_payment_success():
         subscription = stripe.Subscription.retrieve(subscription_id)
         stripe_customer_id = checkout_session.customer
 
-        # Update the existing user's subscription details.
         current_user.stripe_customer_id = stripe_customer_id
         current_user.subscription_id = subscription_id
         current_user.subscription_status = subscription.status
@@ -240,15 +233,12 @@ def reactivate_payment_success():
         flash(f"Error processing reactivation: {str(e)}", "danger")
     return redirect(url_for('account'))
 
-
 # --- Landing Page Route ---
 @app.route('/')
 def landing():
     return render_template('landing.html')
 
-
 ADMIN_LOGIN_PASSWORD = os.getenv("ADMIN_LOGIN_PASSWORD")
-
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -283,7 +273,6 @@ def login():
             else:
                 flash("Invalid email or password", "danger")
     return render_template('login.html')
-
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -331,7 +320,6 @@ def register():
         )
         return redirect(checkout_session.url)
     return render_template('register.html')
-
 
 @app.route('/payment_success')
 def payment_success():
@@ -384,12 +372,10 @@ def payment_success():
         return redirect(url_for('register'))
     return redirect(url_for('simulation'))
 
-
 @app.route('/payment_cancel')
 def payment_cancel():
     flash("Payment was cancelled. Please try again.", "warning")
     return redirect(url_for('register'))
-
 
 @app.route('/logout')
 @login_required
@@ -401,12 +387,10 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
-
 @app.route('/about')
 @login_required
 def about():
     return render_template('about.html')
-
 
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
@@ -444,7 +428,6 @@ Your Support Team
         return redirect(url_for('login'))
     return render_template('forgot_password.html')
 
-
 @app.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
     try:
@@ -475,7 +458,6 @@ def reset_password(token):
             flash("User not found.", "danger")
             return redirect(url_for('forgot_password'))
     return render_template('reset_password.html', token=token)
-
 
 @app.route('/start_simulation', methods=['POST'])
 @login_required
@@ -520,7 +502,6 @@ def start_simulation():
     session.pop('hint', None)
     return redirect(url_for('simulation'))
 
-
 @app.route('/simulation', methods=['GET'])
 @login_required
 def simulation():
@@ -530,7 +511,6 @@ def simulation():
                            feedback_json=session.get('feedback_json'),
                            feedback_raw=session.get('feedback'),
                            hint=session.get('hint'))
-
 
 @app.route('/send_message', methods=['POST'])
 @login_required
@@ -542,7 +522,6 @@ def send_message():
         session['conversation'] = conversation
         return jsonify({"status": "ok"}), 200
     return jsonify({"status": "error", "message": "No message provided"}), 400
-
 
 @app.route('/get_reply', methods=['POST'])
 @login_required
@@ -562,7 +541,6 @@ def get_reply():
     conversation.append({'role': 'assistant', 'content': resp_text})
     session['conversation'] = conversation
     return jsonify({"reply": resp_text}), 200
-
 
 @app.route('/hint', methods=['POST'])
 @login_required
@@ -588,7 +566,6 @@ def hint():
         hint_response = f"Error with API: {str(e)}"
     session['hint'] = hint_response
     return redirect(url_for('simulation'))
-
 
 @app.route('/feedback', methods=['POST'])
 @login_required
@@ -657,7 +634,6 @@ def feedback():
 
     return redirect(url_for('simulation'))
 
-
 @app.route('/download_feedback', methods=['GET'])
 @login_required
 def download_feedback():
@@ -676,7 +652,6 @@ def download_feedback():
                      download_name="feedback.pdf",
                      mimetype="application/pdf")
 
-
 @app.route('/clear_simulation')
 @login_required
 def clear_simulation():
@@ -685,7 +660,6 @@ def clear_simulation():
     session.pop('feedback_json', None)
     session.pop('hint', None)
     return redirect(url_for('simulation'))
-
 
 @app.route('/generate_exam', methods=['POST'])
 @login_required
@@ -716,7 +690,6 @@ def generate_exam():
     except Exception as e:
         exam_results = f"Error generating exam results: {str(e)}"
     return jsonify({"results": exam_results}), 200
-
 
 if __name__ == '__main__':
     app.run(debug=True)

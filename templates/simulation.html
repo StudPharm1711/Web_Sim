@@ -338,45 +338,46 @@
         <div id="scroll-banner">
             <p>Select your level of practice, play the part of a healthcare professional holding a consultation, click for hints on what to ask next if you're just getting started... and don't forget to request feedback!</p>
         </div>
-        {% endif %}
-        {% if not conversation %}
-            <div class="chat-container">
-                <form method="POST" action="{{ url_for('start_simulation') }}" id="startSimForm" style="text-align: center;">
-                    <div class="form-group">
-                        <label for="simulation_level">
-                            Level of Practice
-                            <i class="fa fa-info-circle tooltip-icon" title="Select the level of simulation. This determines the complexity of the patient's complaint and your challenges during the consultation."></i>
-                        </label>
-                        <select id="simulation_level" name="simulation_level" class="select2" required>
-                            <option value="">Select Level</option>
-                            <option value="Beginner" data-description="Simple Patient : Simple Problem">Beginner</option>
-                            <option value="Intermediate" data-description="Simple Patient : Complex Problem">Intermediate</option>
-                            <option value="Advanced" data-description="Complex Patient : Complex Problem">Advanced</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="country_select">
-                            Country
-                            <i class="fa fa-info-circle tooltip-icon" title="Select your country to tailor the simulation's medication names and healthcare context."></i>
-                        </label>
-                        <select id="country_select" name="country" class="select2" required>
-                            <option value="">Select Country</option>
-                            <option value="United Kingdom">United Kingdom</option>
-                            <option value="USA">USA</option>
-                            <optgroup label="Other Countries">
-                                <option value="Canada">Canada</option>
-                                <option value="Australia">Australia</option>
-                                <option value="Germany">Germany</option>
-                                <option value="France">France</option>
-                                <option value="India">India</option>
-                                <option value="Japan">Japan</option>
-                            </optgroup>
-                        </select>
-                    </div>
-                    <button type="submit" class="btn-3d">Start Simulation</button>
-                </form>
-            </div>
+        <!-- Initial Simulation Setup -->
+        <div class="chat-container">
+            <form method="POST" action="{{ url_for('start_simulation') }}" id="startSimForm" style="text-align: center;">
+                <div class="form-group">
+                    <label for="simulation_level">
+                        Level of Practice
+                        <i class="fa fa-info-circle tooltip-icon" title="Select the level of simulation. This determines the complexity of the patient's complaint and your challenges during the consultation."></i>
+                    </label>
+                    <select id="simulation_level" name="simulation_level" class="select2" required>
+                        <option value="">Select Level</option>
+                        <option value="Beginner" data-description="Simple Patient : Simple Problem">Beginner</option>
+                        <option value="Intermediate" data-description="Simple Patient : Complex Problem">Intermediate</option>
+                        <option value="Advanced" data-description="Complex Patient : Complex Problem">Advanced</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="country_select">
+                        Country
+                        <i class="fa fa-info-circle tooltip-icon" title="Select your country to tailor the simulation's medication names and healthcare context."></i>
+                    </label>
+                    <select id="country_select" name="country" class="select2" required>
+                        <option value="">Select Country</option>
+                        <option value="United Kingdom">United Kingdom</option>
+                        <option value="USA">USA</option>
+                        <optgroup label="Other Countries">
+                            <option value="Canada">Canada</option>
+                            <option value="Australia">Australia</option>
+                            <option value="Germany">Germany</option>
+                            <option value="France">France</option>
+                            <option value="India">India</option>
+                            <option value="Japan">Japan</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <button type="submit" class="btn-3d">Start Simulation</button>
+                <a href="{{ url_for('instructions') }}" class="btn-3d" style="margin-left: 10px;">Instructions</a>
+            </form>
+        </div>
         {% else %}
+            <!-- Simulation Chat Interface -->
             <div class="chat-container">
                 <div class="chat-log" id="chatLog">
                     {% for msg in conversation %}
@@ -416,7 +417,6 @@
                         Request Feedback
                         <i class="fa fa-info-circle tooltip-icon" title="Feedback available after 5 interactions"></i>
                     </button>
-                    <!-- Physical Examination button starts as disabled and grey -->
                     <button id="examBtn" class="btn-3d" disabled title="This option becomes available once you have explored the symptoms">
                         Physical Examination Results
                         <i class="fa fa-info-circle tooltip-icon" title="This option becomes available once you have explored the symptoms"></i>
@@ -425,7 +425,6 @@
                         Clear Conversation
                     </button>
                 </div>
-                <!-- New spinner and exam results container -->
                 <div id="spinnerExam">Gathering abbreviated physical exam results, please wait...</div>
                 <div id="examResults" class="prompt-box" style="display: none; min-height: 150px;"></div>
                 <form id="feedbackForm" method="POST" action="{{ url_for('feedback') }}" class="hidden"></form>
@@ -437,7 +436,6 @@
                         <p>{{ hint }}</p>
                     </div>
                 {% endif %}
-                <!-- Structured Feedback Display -->
                 {% if feedback_json %}
                     <div class="feedback">
                         <h3>Consultation Performance</h3>
@@ -487,12 +485,10 @@
             var $state = $('<span><strong>' + state.text + '</strong><br><small>' + description + '</small></span>');
             return $state;
         }
-        // When a level is selected, only display the text (without the description)
         function simpleSelection(state) {
             return state.text;
         }
 
-        // Initialize Select2 and start typewriter effect on placeholder
         $(document).ready(function() {
             $('#simulation_level').select2({
                 theme: "classic",
@@ -503,7 +499,6 @@
                 theme: "classic"
             });
 
-            // Typewriter effect for the textarea placeholder
             const textarea = document.querySelector('textarea[name="message"]');
             const text = "Type your response here to begin practicing your history taking...";
             let index = 0;
@@ -517,7 +512,6 @@
             typeText();
         });
 
-        // Toggle dropdown on click for the account menu
         document.getElementById('dropbtn').addEventListener('click', function(event) {
             event.stopPropagation();
             var dropdownContent = document.getElementById('dropdown-content');
@@ -530,7 +524,6 @@
             }
         });
 
-        // Auto-scroll chat log to bottom
         function scrollChatToBottom() {
             const chatLog = document.getElementById('chatLog');
             if (chatLog) {
@@ -539,7 +532,6 @@
         }
         window.onload = scrollChatToBottom;
 
-        // Update exam button state based on number of user messages
         function updateExamButtonState() {
             const userMessages = document.querySelectorAll('.chat-message.user');
             const examBtn = document.getElementById('examBtn');
@@ -552,23 +544,16 @@
             }
         }
 
-        // Check if there are at least 5 user interactions (messages)
         function canShowFeedback() {
             const userMessages = document.querySelectorAll('.chat-message.user');
             return userMessages.length >= 5;
         }
 
-        // Update feedback button state
         function updateFeedbackButton() {
             const feedbackBtn = document.getElementById('feedbackBtnForm');
-            if (canShowFeedback()) {
-                feedbackBtn.disabled = false;
-            } else {
-                feedbackBtn.disabled = true;
-            }
+            feedbackBtn.disabled = !canShowFeedback();
         }
 
-        // Append new messages and update button states
         function appendMessage(role, message) {
             const chatLog = document.getElementById('chatLog');
             const messageDiv = document.createElement('div');
@@ -592,7 +577,6 @@
             scrollChatToBottom();
         }
 
-        // Intercept form submit event for sending messages
         const messageForm = document.getElementById('messageForm');
         messageForm.addEventListener('submit', function(e) {
             e.preventDefault();
@@ -630,13 +614,11 @@
             });
         }
 
-        // Hint button
         document.getElementById('hintForm')?.addEventListener('submit', function(e) {
             document.getElementById('hintBtn').disabled = true;
             document.getElementById('spinnerHint').style.display = 'block';
         });
 
-        // Feedback button
         document.getElementById('feedbackBtnForm')?.addEventListener('click', function(e) {
             document.getElementById('spinnerFeedback').style.display = 'block';
             this.disabled = true;
@@ -646,7 +628,6 @@
             document.getElementById('feedbackForm').submit();
         }
 
-        // Extract the presenting complaint from the patient’s earliest message
         function getPresentingComplaint() {
             const chatLog = document.getElementById('chatLog');
             if (chatLog) {
@@ -660,7 +641,6 @@
             return "";
         }
 
-        // Physical Exam button
         document.getElementById('examBtn').addEventListener('click', function() {
             const complaint = getPresentingComplaint();
             if (!complaint) {
@@ -689,7 +669,6 @@
             });
         });
 
-        // Clear conversation
         function confirmClear() {
             if (confirm("Are you sure?")) {
                 location.href = '{{ url_for("clear_simulation") }}';

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simulation Instructions</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Shared CSS file -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: "Open Sans", Arial, sans-serif;
+            background-color: #f7f7f7;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #005f73;
+        }
+        p {
+            line-height: 1.6;
+            color: #333;
+        }
+        .btn-3d {
+            background: linear-gradient(145deg, #005f73, #0a6c82);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 20px;
+            font-size: 1rem;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 20px;
+            box-shadow: 4px 4px 8px #cccccc, -4px -4px 8px #ffffff;
+            transition: background 0.3s, transform 0.1s;
+        }
+        .btn-3d:hover {
+            background: linear-gradient(145deg, #0a6c82, #005f73);
+        }
+        .btn-3d:active {
+            transform: translateY(2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Simulation Instructions</h1>
+        <p>
+            Welcome to Simul-AI-tor! This simulation is designed to help you practice clinical history taking.
+            <br><br>
+            <strong>How it works:</strong>
+            <br>
+            - Start the simulation by selecting your level of practice and country.
+            <br>
+            - Engage in a simulated consultation with a patient.
+            <br>
+            - Use the "Hint" button if you need guidance on which questions to ask next.
+            <br>
+            - Once you have interacted sufficiently (ideally having provided your differential(s) diagnosis, a management plan and closing the consultation with the patient, request detailed feedback.
+            <br><br>
+            <strong>Feedback and Scoring:</strong>
+            <br>
+            - The system scores your performance based on the Calgary–Cambridge model.
+            <br>
+            - It also provides additional commentary on your clinical reasoning, specifically evaluating the use of hypothetico-deductive reasoning, Bayesian reasoning, and dual-process theory, while identifying potential biases.
+            <br><br>
+            We hope this simulation will help you enhance your history taking and clinical decision-making skills.
+        </p>
+        <a href="{{ url_for('simulation') }}" class="btn-3d">Back</a>
+    </div>
+</body>
+</html>
