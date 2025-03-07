@@ -205,6 +205,7 @@
             cursor: pointer;
             box-shadow: 4px 4px 8px #cccccc, -4px -4px 8px #ffffff;
             transition: background 0.3s, transform 0.1s;
+            text-decoration: none;
         }
         .btn-3d:hover {
             background: linear-gradient(145deg, #0a6c82, #005f73);
@@ -373,7 +374,8 @@
                     </select>
                 </div>
                 <button type="submit" class="btn-3d">Start Simulation</button>
-                <a href="{{ url_for('instructions') }}" class="btn-3d" style="margin-left: 10px;">Instructions</a>
+                <!-- Instructions button styled identically -->
+                <a href="{{ url_for('instructions') }}" class="btn-3d" style="margin-left: 10px; text-decoration: none;">Instructions</a>
             </form>
         </div>
         {% else %}

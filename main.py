@@ -37,8 +37,9 @@ STRIPE_NONSTUDENT_PRICE_ID = os.getenv("STRIPE_NONSTUDENT_PRICE_ID")  # e.g., fo
 app = Flask(__name__)
 app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_TYPE'] = "filesystem"
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL",
-                                                  "postgresql://postgres:London22!!@localhost/project_db")
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
+    "DATABASE_URL", "postgresql://postgres:London22!!@localhost/project_db"
+)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", os.urandom(24).hex())
 
@@ -170,12 +171,20 @@ def cancel_subscription():
                 from_email=os.getenv('FROM_EMAIL', 'support@simul-ai-tor.com'),
                 to_emails=user.email,
                 subject="Subscription Cancellation Confirmation",
-                plain_text_content=f"Hello,\n\nYour subscription has been scheduled for cancellation at the end of your current billing period. You will retain access until that time.\n\nThank you. Please note: This is an automated email and replies to this address are not monitored."
+                plain_text_content=(
+                    "Hello,\n\nYour subscription has been scheduled for cancellation at the end of your current "
+                    "billing period. You will retain access until that time.\n\nThank you. "
+                    "Please note: This is an automated email and replies to this address are not monitored."
+                )
             )
             sg.send(cancel_email)
         except Exception as e:
             flash(f"Error sending cancellation email: {str(e)}", "warning")
-        flash("Your subscription will be cancelled at the end of the current billing period. Please note: This is an automated email and replies to this address are not monitored.", "success")
+        flash(
+            "Your subscription will be cancelled at the end of the current billing period. "
+            "Please note: This is an automated email and replies to this address are not monitored.",
+            "success"
+        )
     except Exception as e:
         flash(f"Error cancelling subscription: {str(e)}", "danger")
     return redirect(url_for('account'))
@@ -222,7 +231,11 @@ def reactivate_payment_success():
                 from_email=os.getenv('FROM_EMAIL', 'support@simul-ai-tor.com'),
                 to_emails=current_user.email,
                 subject="Subscription Reactivation Confirmation",
-                plain_text_content=f"Hello,\n\nYour subscription has been reactivated. Enjoy using Simul-AI-tor.\n\nBest regards,\nThe Support Team. Please note: This is an automated email and replies to this address are not monitored."
+                plain_text_content=(
+                    "Hello,\n\nYour subscription has been reactivated. Enjoy using Simul-AI-tor.\n\n"
+                    "Best regards,\nThe Support Team. Please note: This is an automated email and replies to this "
+                    "address are not monitored."
+                )
             )
             sg.send(confirmation_email)
         except Exception as e:
@@ -358,7 +371,10 @@ def payment_success():
                 from_email=os.getenv('FROM_EMAIL', 'support@simul-ai-tor.com'),
                 to_emails=new_user.email,
                 subject="Subscription Confirmation",
-                plain_text_content=f"Hello,\n\nThank you for subscribing! Your subscription is now active. Enjoy using Simul-AI-tor.\n\nBest regards,\nThe Support Team"
+                plain_text_content=(
+                    "Hello,\n\nThank you for subscribing! Your subscription is now active. "
+                    "Enjoy using Simul-AI-tor.\n\nBest regards,\nThe Support Team"
+                )
             )
             sg.send(confirmation_email)
         except Exception as e:
@@ -400,17 +416,13 @@ def forgot_password():
         if user:
             token = s.dumps(email, salt='password-reset-salt')
             reset_url = url_for('reset_password', token=token, _external=True)
-            email_content = f"""Dear User,
-
-We received a request to reset your password. To reset your password, click the link below (this link is valid for 1 hour):
-
-{reset_url}
-
-If you did not request a password reset, please ignore this email.
-
-Best regards,
-Your Support Team
-"""
+            email_content = (
+                f"Dear User,\n\nWe received a request to reset your password. "
+                f"To reset your password, click the link below (this link is valid for 1 hour):\n\n"
+                f"{reset_url}\n\n"
+                f"If you did not request a password reset, please ignore this email.\n\n"
+                f"Best regards,\nYour Support Team\n"
+            )
             try:
                 sg = SendGridAPIClient(os.getenv('SENDGRID_API_KEY'))
                 message = Mail(
@@ -481,7 +493,8 @@ def start_simulation():
         f"You are a patient in a history-taking simulation taking place in {country}. "
         f"Your level is {level}. "
         f"Your name is {patient['name']} and you are a {patient['gender']} patient. "
-        f"Begin every interaction by saying exactly: \"Can I speak with someone about my symptoms?\" and wait for the user's response before providing further details. "
+        "Begin every interaction by saying exactly: \"Can I speak with someone about my symptoms?\" "
+        "and wait for the user's response before providing further details. "
         f"Present your complaint: {selected_complaint}. "
         "Provide only minimal details until further questions are asked, then gradually add more information. "
         "IMPORTANT: Remember, you are the patient and never reveal that you are an AI."
@@ -507,10 +520,13 @@ def start_simulation():
 def simulation():
     conversation = session.get('conversation', [])
     display_conv = [m for m in conversation if m['role'] != 'system']
-    return render_template('simulation.html', conversation=display_conv,
-                           feedback_json=session.get('feedback_json'),
-                           feedback_raw=session.get('feedback'),
-                           hint=session.get('hint'))
+    return render_template(
+        'simulation.html',
+        conversation=display_conv,
+        feedback_json=session.get('feedback_json'),
+        feedback_raw=session.get('feedback'),
+        hint=session.get('hint')
+    )
 
 @app.route('/send_message', methods=['POST'])
 @login_required
@@ -580,9 +596,11 @@ def feedback():
         for m in conversation if m.get('role') == 'user'
     ])
 
+    # The revised feedback prompt:
     feedback_prompt = (
+        "IMPORTANT: Output ONLY valid JSON with NO extra text or disclaimers. "
         "Evaluate the following consultation transcript using the Calgary–Cambridge model. "
-        "Score each of these categories on a scale of 1 to 10, and provide a short comment for each:\n"
+        "Score each category on a scale of 1 to 10, and provide a short comment for each:\n"
         "1. Initiating the session\n"
         "2. Gathering information\n"
         "3. Physical examination (award points if the user obtains explicit consent and discusses the auto-generated exam findings)\n"
@@ -590,12 +608,12 @@ def feedback():
         "5. Closing the session\n"
         "6. Building a relationship\n"
         "7. Providing structure\n\n"
-        "Then, calculate the overall score by summing the scores for these seven categories (maximum score is 70). "
-        "Finally, provide a separate brief commentary (max 50 words) on the user's clinical reasoning. Specifically, note if they used "
-        "hypothetico-deductive reasoning effectively during the early stages of the consultation, and assess their use of Bayesian reasoning "
-        "and dual-process theory throughout the interaction. Identify any potential biases, such as confirmation or anchoring bias. "
-        "Include this commentary as a separate key called 'clinical_reasoning' in your JSON output.\n\n"
-        "Format your answer strictly as JSON in the following format:\n\n"
+        "Then, calculate the overall score by summing these seven categories (max score 70). "
+        "Finally, provide a brief commentary (max 50 words) on the user's clinical reasoning. Specifically, note if they used "
+        "hypothetico-deductive reasoning effectively in the early stages, and assess their use of Bayesian reasoning "
+        "and dual-process theory throughout the interaction. Identify potential biases (confirmation, anchoring, etc.). "
+        "Include this commentary as a separate key called 'clinical_reasoning'.\n\n"
+        "Format your answer STRICTLY as JSON in the following format (no extra text or disclaimers):\n\n"
         '{\n'
         '  "initiating_session": {"score": X, "comment": "..."},\n'
         '  "gathering_information": {"score": X, "comment": "..."},\n'
@@ -607,7 +625,8 @@ def feedback():
         '  "overall": Y,\n'
         '  "clinical_reasoning": "..." \n'
         '}\n\n'
-        "Consultation Transcript:\n" + user_conv_text
+        "Do not include ANY additional text. The consultation transcript is:\n"
+        + user_conv_text
     )
 
     feedback_conversation = [{'role': 'system', 'content': feedback_prompt}]
@@ -624,11 +643,13 @@ def feedback():
     except Exception as e:
         fb = f"Error generating feedback: {str(e)}"
 
+    # Attempt to parse JSON
     try:
         feedback_json = json.loads(fb)
         session['feedback_json'] = feedback_json
         session['feedback'] = fb
     except Exception:
+        # If it fails, store raw text
         session['feedback_json'] = None
         session['feedback'] = fb
 
@@ -647,10 +668,12 @@ def download_feedback():
     story = [Paragraph(fb.replace('\n', '<br/>'), styles['Normal'])]
     doc.build(story)
     pdf_buffer.seek(0)
-    return send_file(pdf_buffer,
-                     as_attachment=True,
-                     download_name="feedback.pdf",
-                     mimetype="application/pdf")
+    return send_file(
+        pdf_buffer,
+        as_attachment=True,
+        download_name="feedback.pdf",
+        mimetype="application/pdf"
+    )
 
 @app.route('/clear_simulation')
 @login_required
@@ -677,7 +700,8 @@ def generate_exam():
     exam_prompt = (
         f"Generate a complete and concise set of abbreviated physical examination findings for a patient presenting with '{complaint}'. "
         "Include abbreviated vital signs: HR (heart rate), BP (blood pressure), RR (respiratory rate), Temp (temperature), and O2 Sat (oxygen saturation). "
-        "Also include abbreviated findings for head, neck, chest, abdomen, and extremities. Do not include any introductory phrases or extra text; provide only the exam findings."
+        "Also include abbreviated findings for head, neck, chest, abdomen, and extremities. "
+        "Do not include any introductory phrases or extra text; provide only the exam findings."
     )
     try:
         response = openai.ChatCompletion.create(
