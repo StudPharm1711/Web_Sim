@@ -43,11 +43,50 @@
             margin: 20px auto;
             padding: 20px;
             font-size: 1.1rem;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         footer {
             text-align: center;
             margin-top: 20px;
             font-size: 0.9rem;
+        }
+        details {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            padding: 10px;
+            background-color: #fff;
+        }
+        summary {
+            font-weight: bold;
+            cursor: pointer;
+            list-style: none;
+        }
+        summary::-webkit-details-marker {
+            display: none;
+        }
+        /* Custom chevron icon */
+        summary:before {
+            content: "\25BC"; /* downward arrow */
+            display: inline-block;
+            margin-right: 10px;
+            transition: transform 0.3s;
+        }
+        details[open] summary:before {
+            transform: rotate(180deg);
+        }
+        h2 {
+            color: #005f73;
+            margin-top: 15px;
+        }
+        a {
+            color: #0a6c82;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
         }
         @media (max-width: 600px) {
             body {
@@ -70,11 +109,65 @@
     <header>
         <a href="{{ url_for('simulation') }}" class="back-button" title="Back to Simulation">Back</a>
         <h1>About Simul-AI-tor</h1>
-        <!-- Placeholder to balance the flex layout -->
         <div style="width: 100px;"></div>
     </header>
     <div class="container">
         <p>Simul-AI-tor is a clinical history-taking simulation tool designed to help healthcare professionals and trainees practice patient consultations. The simulated patient is powered by advanced AI and provides realistic responses. This tool is developed by William Swain for educational and training purposes.</p>
+
+        <details>
+            <summary>Terms and Conditions &amp; Privacy Policy</summary>
+            <p><em>Last Updated: March 2025</em></p>
+
+            <h2>1. Introduction</h2>
+            <p>Welcome to Simul-AI-tor. By accessing or using this web application, you agree to be bound by these Terms and Conditions and our Privacy Policy. If you do not agree with these terms, please do not use our app.</p>
+
+            <h2>2. Educational Purpose &amp; No Guarantee of Competence</h2>
+            <p>Our web app is designed solely as a tool to support learning and educational purposes. It does not guarantee, assess, or certify competence in any field, including clinical, medical, or healthcare practices. The content provided is for self-directed learning only and is not intended to replace professional training, certification, or practice supervision.</p>
+
+            <h2>3. No Medical Advice Disclaimer</h2>
+            <p>Whilst every attempt has been made to ensure that the AI powered patient remains in character, there is a small chance that it can switch roles or say unexpected things. In this event, any information provided by our web app is not intended as medical advice. Always consult with a qualified healthcare professional for any medical (or any other) concerns or decisions. We expressly disclaim any liability arising from reliance on the information provided.</p>
+
+            <h2>4. Payment Processing, Billing &amp; Refunds</h2>
+            <p><strong>a. Payment Processing</strong><br>
+               All payments for subscriptions are securely processed by Stripe. By making a payment through our app, you agree to have your payment processed by Stripe in accordance with their Payment Services Agreement and Privacy Policy. For more details, please refer to <a href="https://stripe.com/terms" target="_blank">Stripe's Terms of Service</a> and <a href="https://stripe.com/privacy" target="_blank">Stripe's Privacy Policy</a>.
+            </p>
+            <p><strong>b. Billing</strong><br>
+               Subscription fees are billed on a recurring basis on the date of your initial purchase. Your subscription will automatically renew at the current rate until canceled.
+            </p>
+            <p><strong>c. Refunds &amp; Cancellation</strong><br>
+               If you cancel your subscription, your account will remain active until the end of the current billing period. No prorated refunds will be issued for the remainder of that period. All subscription fees are final and non-refundable, except where required by applicable law or in cases where the service is materially defective. Refunds, if granted, will be determined on a case-by-case basis.
+            </p>
+            <p><strong>d. Stripe Disclosures</strong><br>
+               By using our payment system, you acknowledge that your payment details are handled by Stripe and are subject to their security measures.
+            </p>
+
+            <h2>5. Privacy Policy</h2>
+            <p><strong>Personal Data Collected:</strong> We collect only your email address during registration and for password resets. No additional personal data is collected.</p>
+            <p><strong>Data Security:</strong> Your email is stored securely and we take reasonable measures to protect it, including encryption for data in transit and at rest. However, absolute security cannot be guaranteed.</p>
+            <p><strong>Email Communications:</strong> Automated emails (subscription confirmations, cancellation notices, password resets) are sent from a no-reply address. Please do not reply to these emails. For assistance, contact us at <a href="mailto:simulaitor@outlook.com">simulaitor@outlook.com</a>.</p>
+            <p><strong>Usage and Sharing:</strong> We will not sell or share your email with third parties, except as required by law or necessary to provide our service (e.g., payment processing with Stripe).</p>
+
+            <h2>6. User Responsibilities</h2>
+            <p>You agree to use the app in compliance with all applicable laws. You are responsible for maintaining the confidentiality of your account and password.</p>
+
+            <h2>7. Intellectual Property</h2>
+            <p>All content and intellectual property rights in the app, including text, graphics, logos, and software, remain our property or that of our licensors. You are granted a limited, non-exclusive license to use the app for personal, non-commercial purposes only. Permission must be sought before using this app for teaching purposes.</p>
+
+            <h2>8. Limitation of Liability</h2>
+            <p>We, our affiliates, and licensors shall not be liable for any indirect, incidental, or consequential damages arising from your use of the app.</p>
+
+            <h2>9. Indemnification</h2>
+            <p>You agree to indemnify and hold harmless Simul-AI-tor and its affiliates from any claims arising out of your use of the app or violation of these Terms.</p>
+
+            <h2>10. Modifications to Terms</h2>
+            <p>We reserve the right to modify these Terms and Conditions at any time. Any changes will be posted on this page. Your continued use of the app constitutes your acceptance of the updated terms.</p>
+
+            <h2>11. Governing Law and Dispute Resolution</h2>
+            <p>These Terms shall be governed by and construed in accordance with the laws of the United Kingdom. Any disputes arising shall be resolved in the courts located in the United Kingdom.</p>
+
+            <h2>12. Contact Information</h2>
+            <p>If you have any questions or concerns about these Terms or our Privacy Policy, please contact us at <a href="mailto:simulaitor@outlook.com">simulaitor@outlook.com</a>.</p>
+        </details>
     </div>
     <footer>
         <small>&copy; 2025 William Swain. All rights reserved.</small>
