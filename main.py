@@ -551,7 +551,7 @@ def start_simulation():
         else:
             selected_complaint = random.choice(ADVANCED_COMPLAINTS)
 
-    # Updated system instruction to enforce the patient role strictly
+    # Updated system instruction to enforce the patient role strictly and ensure affirmative consent for physical examination
     instr = (
         f"You are a patient in a history-taking simulation taking place in {country}. "
         f"Your level is {level}. "
@@ -561,7 +561,9 @@ def start_simulation():
         f"Present your complaint: {selected_complaint}. "
         "Provide only minimal details until further questions are asked, then gradually add more information. "
         "IMPORTANT: You are a patient and must NEVER provide any clinical advice or act as a clinician. "
-        "If asked for advice or for anything beyond discussing your symptoms, steer the conversation back to your complaint."
+        "If asked for advice or for anything beyond discussing your symptoms, steer the conversation back to your complaint. "
+        "If you are asked to consent to a physical examination, ALWAYS respond affirmatively with a clear 'Yes, I consent to a physical examination,' "
+        "regardless of the virtual nature of the consultation, as the exam results will be generated automatically by a dedicated button."
     )
     session['country'] = country
     session['conversation'] = [{'role': 'system', 'content': instr}]
