@@ -577,10 +577,10 @@ def start_simulation():
             temperature=0.8
         )
         first_reply = response.choices[0].message["content"]
-        # Update GPT-4 usage: track prompt and completion tokens
+        # Update GPT-4 usage: track prompt and completion tokens, defaulting to 0 if None
         if response.usage and 'prompt_tokens' in response.usage and 'completion_tokens' in response.usage:
-            current_user.token_prompt_usage_gpt4 += response.usage['prompt_tokens']
-            current_user.token_completion_usage_gpt4 += response.usage['completion_tokens']
+            current_user.token_prompt_usage_gpt4 = (current_user.token_prompt_usage_gpt4 or 0) + response.usage['prompt_tokens']
+            current_user.token_completion_usage_gpt4 = (current_user.token_completion_usage_gpt4 or 0) + response.usage['completion_tokens']
             db.session.commit()
     except Exception as e:
         first_reply = f"Error with API: {str(e)}"
@@ -634,8 +634,8 @@ def get_reply():
         resp_text = response.choices[0].message["content"]
         # Update GPT-3.5 usage: track prompt and completion tokens
         if response.usage and 'prompt_tokens' in response.usage and 'completion_tokens' in response.usage:
-            current_user.token_prompt_usage_gpt35 += response.usage['prompt_tokens']
-            current_user.token_completion_usage_gpt35 += response.usage['completion_tokens']
+            current_user.token_prompt_usage_gpt35 = (current_user.token_prompt_usage_gpt35 or 0) + response.usage['prompt_tokens']
+            current_user.token_completion_usage_gpt35 = (current_user.token_completion_usage_gpt35 or 0) + response.usage['completion_tokens']
             db.session.commit()
     except openai.error.OpenAIError as e:
         resp_text = f"OpenAI API Error: {str(e)}"
@@ -664,8 +664,8 @@ def hint():
         hint_response = response.choices[0].message["content"]
         # Update GPT-3.5 usage for hint
         if response.usage and 'prompt_tokens' in response.usage and 'completion_tokens' in response.usage:
-            current_user.token_prompt_usage_gpt35 += response.usage['prompt_tokens']
-            current_user.token_completion_usage_gpt35 += response.usage['completion_tokens']
+            current_user.token_prompt_usage_gpt35 = (current_user.token_prompt_usage_gpt35 or 0) + response.usage['prompt_tokens']
+            current_user.token_completion_usage_gpt35 = (current_user.token_completion_usage_gpt35 or 0) + response.usage['completion_tokens']
             db.session.commit()
     except Exception as e:
         hint_response = f"Error with API: {str(e)}"
@@ -717,8 +717,8 @@ def feedback():
         fb = response.choices[0].message["content"]
         # Update GPT-4 usage for feedback
         if response.usage and 'prompt_tokens' in response.usage and 'completion_tokens' in response.usage:
-            current_user.token_prompt_usage_gpt4 += response.usage['prompt_tokens']
-            current_user.token_completion_usage_gpt4 += response.usage['completion_tokens']
+            current_user.token_prompt_usage_gpt4 = (current_user.token_prompt_usage_gpt4 or 0) + response.usage['prompt_tokens']
+            current_user.token_completion_usage_gpt4 = (current_user.token_completion_usage_gpt4 or 0) + response.usage['completion_tokens']
             db.session.commit()
     except Exception as e:
         fb = f"Error generating feedback: {str(e)}"
@@ -804,8 +804,8 @@ def generate_exam():
         exam_results = response.choices[0].message["content"].strip()
         # Update GPT-3.5 usage for exam generation
         if response.usage and 'prompt_tokens' in response.usage and 'completion_tokens' in response.usage:
-            current_user.token_prompt_usage_gpt35 += response.usage['prompt_tokens']
-            current_user.token_completion_usage_gpt35 += response.usage['completion_tokens']
+            current_user.token_prompt_usage_gpt35 = (current_user.token_prompt_usage_gpt35 or 0) + response.usage['prompt_tokens']
+            current_user.token_completion_usage_gpt35 = (current_user.token_completion_usage_gpt35 or 0) + response.usage['completion_tokens']
             db.session.commit()
     except Exception as e:
         exam_results = f"Error generating exam results: {str(e)}"
