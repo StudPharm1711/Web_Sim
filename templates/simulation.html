@@ -361,7 +361,7 @@
         {% if not conversation %}
         <!-- Scrolling Banner appears only when simulation hasn't started -->
         <div id="scroll-banner">
-            <p>Select your level of practice, play the part of a healthcare professional holding a consultation, click for hints on what to ask next if you're just getting started... and don't forget to request feedback!</p>
+            <p>Select your level of practice and system to tailor your presenting complaint – then practice your consultation, request hints and feedback!</p>
         </div>
         <!-- Initial Simulation Setup -->
         <div class="chat-container" style="text-align: center;">
@@ -389,7 +389,7 @@
                     <div class="form-group">
                         <label for="simulation_level">
                             Level of Practice
-                            <i class="fa fa-info-circle tooltip-icon" title="Select the level of simulation."></i>
+                            <i class="fa fa-info-circle tooltip-icon" title="Select the level of simulation to determine the complexity of the presenting complaint."></i>
                         </label>
                         <select id="simulation_level" name="simulation_level" class="select2" required>
                             <option value="">Select Level</option>
@@ -401,7 +401,7 @@
                     <div class="form-group">
                         <label for="system_select">
                             System
-                            <i class="fa fa-info-circle tooltip-icon" title="Select a specific body system or leave it random."></i>
+                            <i class="fa fa-info-circle tooltip-icon" title="Select a body system to receive a system-specific, level-tailored complaint."></i>
                         </label>
                         <select id="system_select" name="system" class="select2" required>
                             <option value="random">Random</option>
@@ -426,6 +426,13 @@
             </form>
         </div>
         {% else %}
+            <!-- Hidden fields to store the chosen complaint and system -->
+            {% if session.selected_complaint %}
+            <input type="hidden" id="stored_complaint" value="{{ session.selected_complaint }}">
+            {% endif %}
+            {% if session.system_choice %}
+            <input type="hidden" id="stored_system" value="{{ session.system_choice }}">
+            {% endif %}
             <!-- Simulation Chat Interface -->
             <div class="chat-container">
                 <div class="chat-log" id="chatLog">
@@ -818,25 +825,18 @@
             if (feedbackForm) feedbackForm.submit();
         }
 
-        function getPresentingComplaint() {
-            const chatLog = document.getElementById('chatLog');
-            if (chatLog) {
-                const messages = chatLog.getElementsByClassName('chat-message');
-                for (let msg of messages) {
-                    if (msg.classList.contains('patient')) {
-                        return msg.innerText.replace("Patient", "").trim();
-                    }
-                }
-            }
-            return "";
+        // Use the stored complaint rather than inferring from the chat log.
+        function getStoredComplaint() {
+            const stored = document.getElementById('stored_complaint');
+            return stored ? stored.value : "";
         }
 
         const examBtn = document.getElementById('examBtn');
         if (examBtn) {
             examBtn.addEventListener('click', function() {
-                const complaint = getPresentingComplaint();
+                const complaint = getStoredComplaint();
                 if (!complaint) {
-                    alert("Presenting complaint not found. Please ensure the patient has provided a complaint.");
+                    alert("Presenting complaint not found. Please ensure the simulation has been started.");
                     return;
                 }
                 const spinnerExam = document.getElementById('spinnerExam');
@@ -847,6 +847,7 @@
                     examResultsDiv.style.display = 'none';
                     examResultsDiv.innerHTML = "";
                 }
+                // Send the stored complaint to the backend for exam generation.
                 fetch("{{ url_for('generate_exam') }}", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
