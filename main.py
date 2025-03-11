@@ -489,8 +489,7 @@ def account():
     if current_user.subscription_id:
         try:
             subscription = stripe.Subscription.retrieve(current_user.subscription_id)
-            current_period_end = datetime.utcfromtimestamp(subscription.current_period_end).strftime(
-                "%Y-%m-%d %H:%M:%S")
+            current_period_end = datetime.utcfromtimestamp(subscription.current_period_end).strftime("%Y-%m-%d %H:%M:%S")
             subscription_info = {
                 "cancel_at_period_end": subscription.cancel_at_period_end,
                 "current_period_end": current_period_end,
@@ -1026,30 +1025,30 @@ def feedback():
         return redirect(url_for('simulation'))
     user_conv_text = "\n".join([f"User: {m['content']}" for m in conversation if m.get('role') == 'user'])
     feedback_prompt = (
-            "IMPORTANT: Output ONLY valid JSON with NO disclaimers. Use double quotes for all keys and string values, do NOT use single quotes. "
-            "Evaluate the following consultation transcript using the Calgary–Cambridge model. Score each category on a scale of 1 to 10, "
-            "and provide a short comment for each:\n"
-            "1. Initiating the session\n"
-            "2. Gathering information\n"
-            "3. Physical examination\n"
-            "4. Explanation & planning\n"
-            "5. Closing the session\n"
-            "6. Building a relationship\n"
-            "7. Providing structure\n\n"
-            "Then, calculate the overall score (max 70) and provide a brief commentary on the user's clinical reasoning in a key called \"clinical_reasoning\".\n\n"
-            "Format your answer strictly as JSON:\n"
-            '{\n'
-            '  "initiating_session": {"score": X, "comment": "..."},\n'
-            '  "gathering_information": {"score": X, "comment": "..."},\n'
-            '  "physical_examination": {"score": X, "comment": "..."},\n'
-            '  "explanation_planning": {"score": X, "comment": "..."},\n'
-            '  "closing_session": {"score": X, "comment": "..."},\n'
-            '  "building_relationship": {"score": X, "comment": "..."},\n'
-            '  "providing_structure": {"score": X, "comment": "..."},\n'
-            '  "overall": Y,\n'
-            '  "clinical_reasoning": "..." \n'
-            '}\n\n'
-            "The consultation transcript is:\n" + user_conv_text
+        "IMPORTANT: Output ONLY valid JSON with NO disclaimers. Use double quotes for all keys and string values, do NOT use single quotes. "
+        "Evaluate the following consultation transcript using the Calgary–Cambridge model. Score each category on a scale of 1 to 10, "
+        "and provide a short comment for each:\n"
+        "1. Initiating the session\n"
+        "2. Gathering information\n"
+        "3. Physical examination\n"
+        "4. Explanation & planning\n"
+        "5. Closing the session\n"
+        "6. Building a relationship\n"
+        "7. Providing structure\n\n"
+        "Then, calculate the overall score (max 70) and provide a brief commentary on the user's clinical reasoning in a key called \"clinical_reasoning\".\n\n"
+        "Format your answer strictly as JSON:\n"
+        '{\n'
+        '  "initiating_session": {"score": X, "comment": "..."},\n'
+        '  "gathering_information": {"score": X, "comment": "..."},\n'
+        '  "physical_examination": {"score": X, "comment": "..."},\n'
+        '  "explanation_planning": {"score": X, "comment": "..."},\n'
+        '  "closing_session": {"score": X, "comment": "..."},\n'
+        '  "building_relationship": {"score": X, "comment": "..."},\n'
+        '  "providing_structure": {"score": X, "comment": "..."},\n'
+        '  "overall": Y,\n'
+        '  "clinical_reasoning": "..." \n'
+        '}\n\n'
+        "The consultation transcript is:\n" + user_conv_text
     )
     feedback_conversation = [{'role': 'system', 'content': feedback_prompt}]
     try:
@@ -1067,13 +1066,14 @@ def feedback():
             db.session.commit()
     except Exception as e:
         fb = f"Error generating feedback: {str(e)}"
-    sanitized_fb = re.sub(r"'", '"', fb)
     try:
-        feedback_json = json.loads(sanitized_fb)
+        # Attempt to parse fb as JSON and pretty-print it
+        feedback_json = json.loads(fb)
         pretty_feedback = json.dumps(feedback_json, indent=2)
         session['feedback_json'] = feedback_json
         session['feedback'] = pretty_feedback
-    except Exception:
+    except Exception as e:
+        print("JSON parsing error:", e)  # Log the error for debugging
         session['feedback_json'] = None
         session['feedback'] = fb
     return redirect(url_for('simulation'))
@@ -1156,11 +1156,11 @@ def generate_exam():
           "Then, generate a complete physical examination with both vital signs and system-specific findings relevant to the complaint."
           )
     exam_prompt = (
-            f"Generate a concise set of physical examination findings for a patient presenting with '{complaint}'. "
-            + vitals_prompt +
-            extra_instructions +
-            " Ensure that the findings are specific to the likely cause of the complaint and written in full, plain language with no acronyms or abbreviations. "
-            "Do not include any introductory phrases or extra text; provide only the exam findings."
+        f"Generate a concise set of physical examination findings for a patient presenting with '{complaint}'. "
+        + vitals_prompt +
+        extra_instructions +
+        " Ensure that the findings are specific to the likely cause of the complaint and written in full, plain language with no acronyms or abbreviations. "
+        "Do not include any introductory phrases or extra text; provide only the exam findings."
     )
     try:
         response = openai.ChatCompletion.create(
@@ -1184,7 +1184,7 @@ def generate_exam():
 def send_daily_update():
     try:
         active_students = User.query.filter(User.subscription_status == 'active',
-                                            User.category == 'health_student').count()
+                                              User.category == 'health_student').count()
         active_non_students = User.query.filter(User.subscription_status == 'active',
                                                 User.category != 'health_student').count()
         active_users = User.query.filter(User.subscription_status == 'active').all()
@@ -1192,9 +1192,9 @@ def send_daily_update():
         total_cost = 0.0
         for user in active_users:
             cost_gpt35 = (user.token_prompt_usage_gpt35 / 1_000_000 * GPT35_INPUT_COST_PER_1M) + (
-                        user.token_completion_usage_gpt35 / 1_000_000 * GPT35_OUTPUT_COST_PER_1M)
+                user.token_completion_usage_gpt35 / 1_000_000 * GPT35_OUTPUT_COST_PER_1M)
             cost_gpt4 = (user.token_prompt_usage_gpt4 / 1_000_000 * GPT4_INPUT_COST_PER_1M) + (
-                        user.token_completion_usage_gpt4 / 1_000_000 * GPT4_OUTPUT_COST_PER_1M)
+                user.token_completion_usage_gpt4 / 1_000_000 * GPT4_OUTPUT_COST_PER_1M)
             user_cost = cost_gpt35 + cost_gpt4
             weighted_costs.append(user_cost)
             total_cost += user_cost
