@@ -1087,9 +1087,19 @@ def download_feedback():
         flash("No feedback available to download", "warning")
         return redirect(url_for('simulation'))
     pdf_buffer = io.BytesIO()
+    # Create a simple document with letter pagesize
     doc = SimpleDocTemplate(pdf_buffer, pagesize=letter)
-    styles = getSampleStyleSheet()
-    story = [Paragraph(fb.replace('\n', '<br/>'), styles['Normal'])]
+
+    # Define a custom style for preformatted text (monospaced)
+    code_style = ParagraphStyle(
+        name='Code',
+        fontName='Courier',
+        fontSize=10,
+        leading=12
+    )
+
+    # Use a Preformatted flowable to preserve line breaks and spacing
+    story = [Preformatted(fb, code_style)]
     doc.build(story)
     pdf_buffer.seek(0)
     return send_file(
