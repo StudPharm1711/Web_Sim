@@ -558,6 +558,26 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
     <script>
+        // Global flag to ensure exam results are only requested once.
+        let examRequested = false;
+
+        // On page load, reload stored exam results if available.
+        window.addEventListener('load', function() {
+            const examResultsDiv = document.getElementById('examResults');
+            const storedExam = localStorage.getItem('examResults');
+            if (storedExam) {
+                examResultsDiv.style.display = 'block';
+                examResultsDiv.innerHTML = "<h3>Exam Results:</h3><p>" + storedExam + "</p>";
+                // Disable the exam button permanently.
+                const examBtn = document.getElementById('examBtn');
+                if (examBtn) {
+                    examBtn.disabled = true;
+                    examBtn.title = "Physical examination results have been generated.";
+                    examRequested = true;
+                }
+            }
+        });
+
         document.addEventListener('DOMContentLoaded', function() {
             // Cogwheel dropdown functionality
             const dropbtn = document.getElementById('dropbtn');
@@ -613,10 +633,10 @@
 
             scrollChatToBottom();
 
-            // Voice recognition integration using Web Speech API
-            var recognition;
-            if ('webkitSpeechRecognition' in window) {
-                recognition = new webkitSpeechRecognition();
+            // Updated Voice recognition integration using API detection
+            var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (SpeechRecognition) {
+                recognition = new SpeechRecognition();
                 recognition.continuous = false;
                 recognition.interimResults = false;
                 recognition.lang = 'en-US';
@@ -639,7 +659,7 @@
                     console.error("Speech recognition error", event.error);
                 };
             } else {
-                console.log("Speech recognition not supported in this browser.");
+                console.error("Speech recognition not supported in this browser.");
             }
 
             // Radio button toggles for input mode
@@ -686,10 +706,15 @@
             }
         }
 
+        // Modified updateExamButtonState now respects examRequested flag.
         function updateExamButtonState() {
-            const userMessages = document.querySelectorAll('.chat-message.user');
             const examBtn = document.getElementById('examBtn');
-            if (examBtn) {
+            if (!examBtn) return;
+            if (examRequested) {
+                examBtn.disabled = true;
+                examBtn.title = "Physical examination results have been generated.";
+            } else {
+                const userMessages = document.querySelectorAll('.chat-message.user');
                 if (userMessages.length >= 2) {
                     examBtn.disabled = false;
                     examBtn.title = "";
@@ -847,6 +872,10 @@
                     examResultsDiv.style.display = 'none';
                     examResultsDiv.innerHTML = "";
                 }
+                // Disable the exam button immediately so it can't be pressed repeatedly.
+                examBtn.disabled = true;
+                examBtn.title = "Physical examination results have been generated.";
+                examRequested = true;
                 // Send the stored complaint to the backend for exam generation.
                 fetch("{{ url_for('generate_exam') }}", {
                     method: "POST",
@@ -859,6 +888,8 @@
                     if (examResultsDiv) {
                         examResultsDiv.style.display = 'block';
                         examResultsDiv.innerHTML = "<h3>Exam Results:</h3><p>" + data.results + "</p>";
+                        // Store exam results in localStorage so that they persist after a hint is requested.
+                        localStorage.setItem('examResults', data.results);
                     }
                 })
                 .catch(error => {
@@ -871,6 +902,8 @@
 
         function confirmClear() {
             if (confirm("Are you sure?")) {
+                // Clear stored exam results too.
+                localStorage.removeItem('examResults');
                 location.href = '{{ url_for("clear_simulation") }}';
             }
         }
