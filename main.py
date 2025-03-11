@@ -242,8 +242,8 @@ SYSTEM_LEVEL_COMPLAINTS = {
         "Beginner": [
             "mild abdominal discomfort",
             "occasional indigestion",
-            "light bloating",
-            "minor nausea",
+            "a bit of bloating",
+            "nausea thats on and off",
             "occasional heartburn",
             "mild stomach cramping",
             "slight constipation",
@@ -281,7 +281,7 @@ SYSTEM_LEVEL_COMPLAINTS = {
             "mild headache",
             "occasional dizziness",
             "slight tension headache",
-            "brief episodes of lightheadedness",
+            "brief episodes of light headedness",
             "minor scalp tenderness",
             "occasional blurred vision",
             "light difficulty concentrating",
@@ -322,9 +322,9 @@ SYSTEM_LEVEL_COMPLAINTS = {
             "light shoulder discomfort",
             "minor knee pain",
             "slight neck stiffness",
-            "occasional muscle soreness",
-            "minor wrist discomfort",
-            "light generalised body ache",
+            "occasional muscle soreness in arms and legs",
+            "pain in my right wrist",
+            "my body aches all over",
             "mild ankle pain"
         ],
         "Intermediate": [
@@ -355,14 +355,14 @@ SYSTEM_LEVEL_COMPLAINTS = {
     "genitourinary": {
         "Beginner": [
             "mild bladder discomfort",
-            "occasional urinary frequency",
-            "minor lower abdominal discomfort",
+            "I feel like I need to go pee constantly",
+            "a bit of tummy discomfort",
             "slight dysuria (painful urination)",
-            "occasional cloudy urine",
+            "cloudy urine",
             "mild urgency",
             "minor pressure during urination",
             "slight increase in frequency",
-            "intermittent burning sensation",
+            "intermittent burning sensation when I pee",
             "mild discomfort during urination"
         ],
         "Intermediate": [
@@ -393,15 +393,15 @@ SYSTEM_LEVEL_COMPLAINTS = {
     "endocrine": {
         "Beginner": [
             "mild fatigue",
-            "occasional weight changes",
-            "minor appetite fluctuations",
-            "slight thirst increase",
+            "I've put on weight recently",
+            "my appetite seems up and down",
+            "I'm constantly thirsty",
             "mild hair thinning",
             "occasional dry skin",
-            "mild muscle weakness",
-            "intermittent mood changes",
+            "some muscle weakness",
+            "mood is up and down",
             "minor sleep disturbances",
-            "slight intolerance to cold"
+            "feel cold all the time"
         ],
         "Intermediate": [
             "I feel constantly tired and sometimes lose a little weight",
