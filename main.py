@@ -116,15 +116,32 @@ def ensure_single_session():
 
 # --- Global Simulation Variables ---
 PATIENT_NAMES = [
-    {"name": "Aisha Patel", "ethnicity": "South Asian (Indian)", "gender": "female"},
-    {"name": "John Smith", "ethnicity": "British (White)", "gender": "male"},
-    {"name": "Li Wei", "ethnicity": "East Asian (Chinese)", "gender": "male"},
-    {"name": "Fatima Ali", "ethnicity": "Middle Eastern (Arabic)", "gender": "female"},
-    {"name": "Carlos Rivera", "ethnicity": "Hispanic (Mexican)", "gender": "male"},
-    {"name": "Nia Okoye", "ethnicity": "African (Nigerian)", "gender": "female"},
-    {"name": "Sofia Nguyen", "ethnicity": "Southeast Asian (Vietnamese)", "gender": "female"},
-    {"name": "Mohamed Hassan", "ethnicity": "African (Somali)", "gender": "male"},
+    {"name": "Aisha Patel", "ethnicity": "South Asian (Indian)", "gender": "female", "age": 55},
+    {"name": "John Smith", "ethnicity": "British (White)", "gender": "male", "age": 65},
+    {"name": "Li Wei", "ethnicity": "East Asian (Chinese)", "gender": "male", "age": 42},
+    {"name": "Fatima Ali", "ethnicity": "Middle Eastern (Arabic)", "gender": "female", "age": 68},
+    {"name": "Carlos Rivera", "ethnicity": "Hispanic (Mexican)", "gender": "male", "age": 50},
+    {"name": "Nia Okoye", "ethnicity": "African (Nigerian)", "gender": "female", "age": 59},
+    {"name": "Sofia Nguyen", "ethnicity": "Southeast Asian (Vietnamese)", "gender": "female", "age": 34},
+    {"name": "Mohamed Hassan", "ethnicity": "African (Somali)", "gender": "male", "age": 72},
+    {"name": "Emily Johnson", "ethnicity": "American (White)", "gender": "female", "age": 37},
+    {"name": "Marcus Brown", "ethnicity": "African American", "gender": "male", "age": 61},
+    {"name": "Isabella Garcia", "ethnicity": "Hispanic (Latina)", "gender": "female", "age": 29},
+    {"name": "Liam O'Connor", "ethnicity": "Irish (White)", "gender": "male", "age": 47},
+    {"name": "Chloe Martin", "ethnicity": "French (White)", "gender": "female", "age": 33},
+    {"name": "Noah Kim", "ethnicity": "Korean", "gender": "male", "age": 25},
+    {"name": "Zara Ahmed", "ethnicity": "South Asian (Pakistani)", "gender": "female", "age": 62},
+    {"name": "Ethan Davis", "ethnicity": "American (White)", "gender": "male", "age": 40},
+    {"name": "Grace Lee", "ethnicity": "East Asian (Korean)", "gender": "female", "age": 28},
+    {"name": "Alexander Müller", "ethnicity": "German (White)", "gender": "male", "age": 66},
+    {"name": "Sophia Rossi", "ethnicity": "Italian", "gender": "female", "age": 31},
+    {"name": "David Wilson", "ethnicity": "British (White)", "gender": "male", "age": 54},
+    {"name": "Layla Hassan", "ethnicity": "Middle Eastern (Arabic)", "gender": "female", "age": 58},
+    {"name": "Oliver Chen", "ethnicity": "East Asian (Chinese)", "gender": "male", "age": 36},
+    {"name": "Amelia Patel", "ethnicity": "South Asian (Indian)", "gender": "female", "age": 45},
+    {"name": "Benjamin Carter", "ethnicity": "American (White)", "gender": "male", "age": 52}
 ]
+
 
 # Original generic complaints as fallback
 FOUNDATION_COMPLAINTS = [
@@ -143,56 +160,44 @@ LEVEL_COMPLAINTS = {
     "Advanced": ADVANCED_COMPLAINTS
 }
 
-# Existing simple system complaints (retained for reference)
-SYSTEM_COMPLAINTS = {
-    "cardiovascular": ["chest pain", "palpitations"],
-    "respiratory": ["persistent cough", "shortness of breath"],
-    "gastrointestinal": ["abdominal pain", "chronic diarrhoea"],
-    "neurological": ["headache"],
-    "musculoskeletal": ["lower back pain", "joint pain"],
-    "genitourinary": ["bladder discomfort", "urinary issues"],
-    "endocrine": ["persistent fatigue", "weight changes"],
-    "dermatological": ["skin rash", "itching"]
-}
-
 # New nested dictionary for system-level complaints (10 per level)
 SYSTEM_LEVEL_COMPLAINTS = {
     "cardiovascular": {
         "Beginner": [
-            "mild chest discomfort",
-            "occasional palpitations",
-            "light pressure in chest",
-            "brief dizziness on exertion",
-            "mild shortness of breath on exertion",
-            "temporary fatigue",
-            "slight heart fluttering",
-            "intermittent light chest pain",
-            "mild ankle swelling",
-            "minor irregular heartbeat"
+            "I sometimes feel a mild discomfort in my chest.",
+            "My heart skips a beat every now and then.",
+            "There’s a light pressure in my chest now and then.",
+            "I get dizzy when I stand up quickly.",
+            "I get a little out of breath when I go up the stairs.",
+            "Sometimes I feel more tired than usual.",
+            "My heart flutters a little, but it goes away fast.",
+            "I notice a slight ache in my chest from time to time.",
+            "My ankles get a little swollen after a long day.",
+            "Occasionally, my heartbeat feels a bit uneven."
         ],
         "Intermediate": [
-            "chest pain on exertion",
-            "palpitations with occasional discomfort",
-            "persistent chest tightness",
-            "shortness of breath during mild activity",
-            "episodes of dizziness with exertion",
-            "moderate chest pressure",
-            "frequent heart fluttering",
-            "exercise-induced chest discomfort",
-            "occasional arm pain accompanying chest pain",
-            "more noticeable irregular heartbeat"
+            "I get chest pain when I walk or do light activity.",
+            "Sometimes, my heart feels like it’s racing or skipping beats.",
+            "There’s this tight feeling in my chest that won’t go away.",
+            "I feel out of breath doing things I used to do easily.",
+            "I get dizzy if I move too fast or bend down.",
+            "I feel a heavy weight on my chest at times.",
+            "My heart beats strangely more often than it used to.",
+            "Exercise makes my chest feel weird, so I stop.",
+            "Sometimes, my arm aches along with the chest pain.",
+            "My heartbeat has become more noticeable lately."
         ],
         "Advanced": [
-            "exertional chest pain with radiation",
-            "unstable angina symptoms",
-            "severe palpitations with syncope",
-            "intense chest pressure unrelieved by rest",
-            "sustained shortness of breath at minimal activity",
-            "severe heart fluttering and irregular heartbeat",
-            "crushing chest pain with diaphoresis",
-            "severe exercise-induced angina",
-            "persistent arrhythmia with dizziness",
-            "acute coronary syndrome presentation"
+            "My chest hurts a lot when I do things, and it spreads to my arm or jaw.",
+            "I know something is seriously wrong with my heart, I can feel it.",
+            "I sometimes get so dizzy and weak that I nearly pass out.",
+            "It feels like something is pressing really hard on my chest all the time.",
+            "Even just getting out of bed makes me feel breathless.",
+            "My heart keeps beating in a strange way, and it makes me nervous.",
+            "I feel like an elephant is sitting on my chest, and I start sweating a lot.",
+            "When I exercise, the pain gets unbearable, so I have to stop immediately.",
+            "My heartbeat feels completely out of sync, and it makes my head spin.",
+            "Something isn't right. I suddenly feel like I'm having a major heart problem."
         ]
     },
     "respiratory": {
@@ -209,29 +214,29 @@ SYSTEM_LEVEL_COMPLAINTS = {
             "minor episodes of mild cough"
         ],
         "Intermediate": [
-            "persistent cough with mucus",
-            "frequent wheezing episodes",
-            "shortness of breath during activities",
-            "chest tightness with exertion",
-            "mild difficulty breathing on exertion",
-            "moderate breathlessness at rest",
-            "increased sputum production",
-            "occasional wheezing and breathlessness",
-            "persistent mild dyspnea",
-            "intermittent respiratory discomfort"
+            "I have a cough that keeps coming back with some mucus",
+            "I often hear a wheezing sound when I breathe",
+            "I get short of breath during everyday activities",
+            "My chest feels tight when I’m active",
+            "I sometimes have a little trouble catching my breath when moving",
+            "I feel noticeably short of breath even when resting",
+            "I produce more mucus than usual",
+            "Sometimes I feel wheezy and a bit out of breath",
+            "I have a constant mild difficulty breathing",
+            "There are times when I feel some discomfort when breathing"
         ],
         "Advanced": [
-            "acute shortness of breath with accessory muscle use",
-            "severe wheezing with laboured breathing",
-            "persistent, severe cough with haemoptysis",
-            "stridor and severe respiratory distress",
-            "intense chest tightness with minimal activity",
-            "severe dyspnea at rest",
-            "rapid shallow breathing and fatigue",
-            "extreme shortness of breath with gasping",
-            "severe exacerbation of underlying respiratory condition",
-            "acute respiratory failure signs"
-        ]
+                "I suddenly can’t seem to get enough air, and my chest feels tight.",
+                "I sound really wheezy, like I’m breathing through a straw.",
+                "I can’t stop coughing, and sometimes I see a little blood.",
+                "When I breathe, it makes a strange noise, like a whistle.",
+                "Even when I’m resting, I feel like I’m running out of breath.",
+                "My breathing is so fast and shallow that I feel exhausted.",
+                "I wake up gasping for air, and it’s really scary.",
+                "I have to sit up to breathe properly, lying down makes it worse.",
+                "My chest feels locked up, like no air is getting in.",
+                "It’s like I have to fight for every breath."
+            ]
     },
     "gastrointestinal": {
         "Beginner": [
@@ -247,28 +252,28 @@ SYSTEM_LEVEL_COMPLAINTS = {
             "minor stomach upset"
         ],
         "Intermediate": [
-            "persistent abdominal pain",
-            "frequent indigestion and bloating",
-            "moderate heartburn with regurgitation",
-            "occasional vomiting after meals",
-            "chronic cramping and discomfort",
-            "persistent nausea with occasional vomiting",
-            "more pronounced diarrhoea episodes",
-            "intermittent sharp abdominal pain",
-            "moderate constipation with discomfort",
-            "persistent bloating with mild pain"
+            "I have ongoing stomach pain",
+            "I often feel bloated and experience indigestion",
+            "I get regular heartburn that sometimes makes me bring food back up",
+            "I occasionally throw up after meals",
+            "I suffer from constant stomach cramps and discomfort",
+            "I often feel nauseous, and sometimes it leads to vomiting",
+            "I have more frequent bouts of loose stools",
+            "I sometimes experience sharp stomach pain",
+            "I get moderate constipation that is quite uncomfortable",
+            "I constantly feel bloated with some pain"
         ],
         "Advanced": [
-            "severe abdominal pain with guarding",
-            "intense cramping and vomiting",
-            "acute onset of severe diarrhoea with dehydration",
-            "excruciating pain in the lower abdomen",
-            "severe heartburn with weight loss",
-            "intense upper abdominal pain suggestive of pancreatitis",
-            "severe, persistent nausea with vomiting",
-            "acute abdomen with rebound tenderness",
-            "intense gastrointestinal bleeding symptoms",
-            "severe pain with signs of perforation"
+            "My stomach hurts so badly that I have to curl up.",
+            "I’ve been throwing up, and nothing stays down.",
+            "I can’t stop running to the toilet, and I feel really weak.",
+            "The pain in my belly is so sharp it takes my breath away.",
+            "I keep getting heartburn, and I’m losing weight without trying.",
+            "My upper stomach feels like it’s on fire.",
+            "I feel sick all the time, and I keep throwing up.",
+            "My belly hurts if I touch it, like something is really wrong inside.",
+            "I noticed blood in the toilet, and I’m freaking out.",
+            "The pain is unbearable, I think something inside me is torn."
         ]
     },
     "neurological": {
@@ -285,28 +290,28 @@ SYSTEM_LEVEL_COMPLAINTS = {
             "occasional slight disorientation"
         ],
         "Intermediate": [
-            "persistent headache with mild nausea",
-            "moderate dizziness with occasional imbalance",
-            "frequent tension headaches",
-            "intermittent visual disturbances",
-            "moderate episodes of vertigo",
-            "persistent mild numbness in limbs",
-            "occasional memory lapses",
-            "recurrent mild migraine episodes",
-            "persistent blurred vision and headache",
-            "moderate sensory changes in extremities"
+            "I have a constant headache that sometimes makes me feel a little nauseous",
+            "I often feel dizzy and occasionally lose my balance",
+            "I get regular tension headaches",
+            "There are times when my vision gets a bit blurry",
+            "Sometimes I feel as if the room is spinning",
+            "I often feel a mild numbness in my arms or legs",
+            "I occasionally forget things",
+            "I have mild migraine episodes that keep coming back",
+            "My headache sometimes comes with blurred vision",
+            "I notice some changes in how I feel sensations in my arms or legs"
         ],
         "Advanced": [
-            "severe migraine with aura and vomiting",
-            "intense headache with neurological deficits",
-            "severe vertigo with balance impairment",
-            "persistent, debilitating headache",
-            "acute onset of severe confusion",
-            "severe focal neurological deficits",
-            "intense, unremitting headache with visual loss",
-            "severe transient ischaemic attack symptoms",
-            "exacerbated headache with speech difficulties",
-            "severe loss of coordination and sensation"
+            "I have the worst headache of my life, and my vision gets blurry.",
+            "Sometimes, I forget what I was saying mid-sentence.",
+            "I feel dizzy all the time, like I might fall over.",
+            "I get these splitting headaches that make me want to hide in a dark room.",
+            "I woke up feeling confused, and I couldn’t remember where I was.",
+            "Half my face feels numb, and I don’t know why.",
+            "I keep tripping over things, like my legs aren’t working properly.",
+            "I tried to say something, but my words came out all wrong.",
+            "I keep getting these weird, brief spells where I feel out of it.",
+            "It feels like I have no control over my body sometimes."
         ]
     },
     "musculoskeletal": {
@@ -323,28 +328,28 @@ SYSTEM_LEVEL_COMPLAINTS = {
             "mild ankle pain"
         ],
         "Intermediate": [
-            "persistent lower back pain with stiffness",
-            "moderate joint pain during movement",
-            "frequent muscle aches and cramps",
-            "occasional sharp shoulder pain",
-            "persistent knee discomfort during activity",
-            "moderate neck pain with limited movement",
-            "recurrent wrist pain with strain",
-            "moderate elbow pain on movement",
-            "persistent hip pain during ambulation",
-            "consistent muscle soreness and stiffness"
+            "I experience ongoing lower back pain that feels stiff",
+            "I notice joint pain when I move",
+            "I have frequent muscle aches and occasional cramps",
+            "Sometimes I feel a sharp pain in my shoulder",
+            "I have constant discomfort in my knee when I'm active",
+            "My neck pain limits my movement sometimes",
+            "I often get recurring wrist pain when I use my hand",
+            "I feel moderate pain in my elbow when moving it",
+            "I have persistent hip pain when I walk",
+            "My muscles often feel sore and stiff"
         ],
-        "Advanced": [
-            "severe lower back pain with radiculopathy",
-            "intense joint pain with swelling",
-            "severe muscle cramps and spasms",
-            "acute shoulder pain with restricted movement",
-            "intense knee pain with locking episodes",
-            "severe neck pain with neurological signs",
-            "excruciating wrist pain with loss of function",
-            "severe hip pain with limping",
-            "intense pain from a suspected fracture",
-            "severe generalized myalgia with weakness"
+         "Advanced": [
+            "My back pain is so bad that I can’t stand up straight.",
+            "My joints are swollen and hurt so much that I don’t want to move.",
+            "I keep getting these horrible muscle spasms that make me jolt.",
+            "I can’t lift my arm because my shoulder hurts so much.",
+            "My knee locks up randomly, and I feel like I’m going to fall.",
+            "My neck pain is making my arms feel weird and tingly.",
+            "My wrist is so painful that I can’t even hold a cup.",
+            "I have this deep, stabbing pain in my hip when I walk.",
+            "I think I broke something, the pain is unbearable.",
+            "My whole body aches, and I feel weak all over."
         ]
     },
     "genitourinary": {
@@ -361,28 +366,28 @@ SYSTEM_LEVEL_COMPLAINTS = {
             "mild discomfort during urination"
         ],
         "Intermediate": [
-            "persistent dysuria with burning",
-            "moderate urinary frequency with urgency",
-            "occasional pelvic discomfort",
-            "persistent lower abdominal pain during urination",
-            "moderate bladder pressure",
-            "frequent urge to urinate with discomfort",
-            "moderate pain on urination",
-            "intermittent haematuria",
-            "persistent urgency with discomfort",
-            "moderate discomfort in the pelvic area"
+            "I feel a constant burning sensation when I pee",
+            "I feel like I need to pee very often and urgently",
+            "Sometimes my lower belly feels uncomfortable",
+            "I have persistent pain in my lower abdomen when I pee",
+            "I feel a moderate pressure in my bladder",
+            "I often get uncomfortable urges to pee",
+            "I experience moderate pain when I urinate",
+            "Sometimes I notice a little blood in my urine",
+            "I feel constantly urgent when I need to pee",
+            "I experience moderate discomfort in my pelvic area"
         ],
         "Advanced": [
-            "severe dysuria with intense burning",
-            "persistent, excruciating pelvic pain",
-            "severe urinary retention with pain",
-            "acute onset of haematuria with clots",
-            "severe lower abdominal pain during urination",
-            "intense burning with frequent voiding",
-            "severe pain suggestive of a urinary tract obstruction",
-            "acute renal colic with flank pain",
-            "severe pelvic discomfort with systemic symptoms",
-            "intense bladder pain with possible infection"
+            "It burns so bad when I pee that I’m afraid to go.",
+            "I have unbearable pain in my lower stomach that won’t go away.",
+            "I feel like I can’t empty my bladder, and it really hurts.",
+            "I saw blood in my pee, and now I’m really worried.",
+            "My lower stomach pain is so bad that I feel sick.",
+            "I need to pee all the time, and it stings like crazy.",
+            "It feels like there’s something blocking my urine from coming out.",
+            "I have this horrible pain in my side, like a knife stabbing me.",
+            "My bladder feels like it’s on fire.",
+            "I feel like I have a really bad infection that’s getting worse."
         ]
     },
     "endocrine": {
@@ -399,28 +404,28 @@ SYSTEM_LEVEL_COMPLAINTS = {
             "slight intolerance to cold"
         ],
         "Intermediate": [
-            "persistent fatigue with weight loss",
-            "moderate appetite loss with weight changes",
-            "occasional heat intolerance with fatigue",
-            "persistent dry skin and hair loss",
-            "moderate muscle weakness with joint discomfort",
-            "recurrent mood swings and sleep issues",
-            "persistent thirst and increased urination",
-            "moderate cold intolerance with fatigue",
-            "intermittent paleness with fatigue",
-            "persistent lethargy with weight fluctuation"
+            "I feel constantly tired and sometimes lose a little weight",
+            "I notice I don’t feel as hungry, which sometimes affects my weight",
+            "There are times I feel too hot and very tired",
+            "My skin is dry and I’m losing some hair",
+            "I feel moderately weak and my joints sometimes ache",
+            "I experience frequent mood swings and have trouble sleeping",
+            "I’m always very thirsty and end up needing to pee more often",
+            "Sometimes I feel very cold and tired",
+            "I notice I look paler when I’m tired",
+            "I often feel sluggish and my weight keeps changing"
         ],
         "Advanced": [
-            "severe fatigue with rapid weight loss",
-            "intense appetite loss with significant weight change",
-            "marked heat intolerance with profound fatigue",
-            "severe muscle weakness with joint pain",
-            "pronounced hair loss with skin changes",
-            "extreme thirst with frequent urination",
-            "severe cold intolerance with systemic symptoms",
-            "acute onset of endocrine crisis symptoms",
-            "severe mood disturbances with cognitive impairment",
-            "advanced metabolic disturbance with multi-system involvement"
+            "I feel completely drained all the time, and I keep losing weight.",
+            "I barely eat, but I’m still losing a lot of weight fast.",
+            "I can’t handle heat at all, it makes me feel weak and shaky.",
+            "My muscles feel so weak that even standing is hard.",
+            "I’ve lost so much hair, and my skin is dry and flaky.",
+            "I drink so much water, but I’m always thirsty.",
+            "I feel freezing cold even when the heating is on.",
+            "Something isn’t right. My body just feels off in every way.",
+            "I have such bad mood swings that I feel like a different person.",
+            "I think my whole system is out of balance."
         ]
     },
     "dermatological": {
@@ -437,31 +442,32 @@ SYSTEM_LEVEL_COMPLAINTS = {
             "light skin irritation"
         ],
         "Intermediate": [
-            "persistent rash with moderate itching",
-            "widespread redness with occasional bumps",
-            "moderate eczema flare-up with dryness",
-            "persistent skin irritation with scaling",
-            "multiple patches of itchy skin",
-            "moderate dermatitis with redness",
-            "persistent hives with discomfort",
-            "moderate rash with areas of blistering",
-            "persistent skin redness with irritation",
-            "intermediate psoriasis-like symptoms"
+            "I have a rash that keeps coming back with a moderate itch",
+            "My skin is red and sometimes has small bumps",
+            "I often experience eczema flare-ups with dry skin",
+            "My skin feels irritated and a bit flaky",
+            "I have several areas on my skin that are very itchy",
+            "I get moderate inflammation on my skin that turns red",
+            "I sometimes develop hives that are uncomfortable",
+            "I have a rash that sometimes even forms small blisters",
+            "My skin stays red and irritated for long periods",
+            "I experience symptoms similar to mild psoriasis"
         ],
         "Advanced": [
-            "severe, widespread rash with intense itching",
-            "acute dermatitis with blistering and pain",
-            "severe eczema with oozing and crusting",
-            "extensive psoriasis with severe scaling",
-            "acute skin infection with severe redness",
-            "intense skin inflammation with ulceration",
-            "severe allergic reaction with widespread hives",
-            "exacerbated eczema with significant discomfort",
-            "severe skin irritation with systemic symptoms",
-            "extensive rash with signs of secondary infection"
+            "I feel completely drained all the time, and I keep losing weight.",
+            "I barely eat, but I’m still losing a lot of weight fast.",
+            "I can’t handle heat at all, it makes me feel weak and shaky.",
+            "My muscles feel so weak that even standing is hard.",
+            "I’ve lost so much hair, and my skin is dry and flaky.",
+            "I drink so much water, but I’m always thirsty.",
+            "I feel freezing cold even when the heating is on.",
+            "Something isn’t right. My body just feels off in every way.",
+            "I have such bad mood swings that I feel like a different person.",
+            "I think my whole system is out of balance."
         ]
     }
 }
+
 
 FEEDBACK_INSTRUCTION = (
     "You are an examiner, not a patient. Cease all patient role-playing immediately. Your task is to analyse the conversation "
@@ -875,6 +881,7 @@ def start_simulation():
     if not country:
         flash("Please select a country.", "danger")
         return redirect(url_for('simulation'))
+
     patient = random.choice(PATIENT_NAMES)
 
     # If "random" is selected, choose a system at random.
@@ -893,32 +900,44 @@ def start_simulation():
     session['system_choice'] = system_choice
     session['selected_complaint'] = selected_complaint
 
+    # For Advanced level, add a tone based on patient's age.
+    tone = ""
+    if level == "Advanced":
+        if patient["age"] > 60:
+            tone = "Sometimes I forget details and may seem confused."
+        else:
+            tone = "I tend to get a bit short-tempered and will almost certainly respond abrasively."
+
     instr = (
-        f"You are a patient in a history-taking simulation taking place in {country}. "
-        f"Your level is {level}. "
-        f"Your name is {patient['name']} and you are a {patient['gender']} patient. "
-        "Begin every interaction by saying exactly: \"Can I speak with someone about my symptoms?\" "
-        "and wait for the user's response before providing further details. "
-        f"Present your complaint: {selected_complaint}. "
-        "Provide only minimal details until further questions are asked, then gradually add more information. "
-        "IMPORTANT: You are a patient and must NEVER provide any clinical advice or act as a clinician. "
-        "If asked for advice or for anything beyond discussing your symptoms, steer the conversation back to your complaint. "
-        "If you are asked to consent to a physical examination, ALWAYS respond affirmatively with a clear 'Yes, I consent to a physical examination,' "
-        "regardless of the virtual nature of the consultation, as the exam results will be generated automatically by a dedicated button."
+            f"You are a patient in a history-taking simulation taking place in {country}. "
+            f"Your level is {level}. "
+            f"Your name is {patient['name']} (age {patient['age']}) and you are a {patient['gender']} patient. "
+            "Begin every interaction by saying exactly: \"Can I speak with someone about my symptoms?\" "
+            "and wait for the user's response before providing further details. "
+            f"Present your complaint: {selected_complaint}. "
+            "Provide only minimal details until further questions are asked, then gradually add more information. "
+            "IMPORTANT: You are a patient and must NEVER provide any clinical advice or act as a clinician. "
+            "If asked for advice or for anything beyond discussing your symptoms, steer the conversation back to your complaint. "
+            "If you are asked to consent to a physical examination, ALWAYS respond affirmatively with a clear 'Yes, I consent to a physical examination,' "
+            "regardless of the virtual nature of the consultation, as the exam results will be generated automatically by a dedicated button. "
+            + (f" Additionally, {tone}" if tone else "")
     )
+
     session['country'] = country
     session['conversation'] = [{'role': 'system', 'content': instr}]
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-4-turbo",
+            model="gpt-3.5-turbo",
             messages=session['conversation'],
             temperature=0.8
         )
         first_reply = response.choices[0].message["content"]
         # Update GPT-4 usage: track prompt and completion tokens
         if response.usage and 'prompt_tokens' in response.usage and 'completion_tokens' in response.usage:
-            current_user.token_prompt_usage_gpt4 = (current_user.token_prompt_usage_gpt4 or 0) + response.usage['prompt_tokens']
-            current_user.token_completion_usage_gpt4 = (current_user.token_completion_usage_gpt4 or 0) + response.usage['completion_tokens']
+            current_user.token_prompt_usage_gpt4 = (current_user.token_prompt_usage_gpt4 or 0) + response.usage[
+                'prompt_tokens']
+            current_user.token_completion_usage_gpt4 = (current_user.token_completion_usage_gpt4 or 0) + response.usage[
+                'completion_tokens']
             db.session.commit()
     except Exception as e:
         first_reply = f"Error with API: {str(e)}"
