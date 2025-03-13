@@ -65,7 +65,7 @@
             display: none;
             position: absolute;
             right: 0;
-            background-color: #ffffff;
+            background-color: #ffffff !important; /* Force white background */
             min-width: 150px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.15);
             border: 1px solid #ddd;
@@ -73,7 +73,7 @@
             z-index: 1;
         }
         .dropdown-content a {
-            color: #005f73;
+            color: #005f73 !important;  /* Force teal text */
             padding: 8px 12px;
             text-decoration: none;
             display: block;
@@ -81,8 +81,8 @@
             transition: background 0.3s;
         }
         .dropdown-content a:hover {
-            background-color: #005f73;
-            color: #ffffff;
+            background-color: #005f73 !important;  /* Force teal hover background */
+            color: #ffffff !important;             /* Force white text on hover */
         }
         /* Overall header wrapper */
         header {
@@ -93,12 +93,12 @@
             margin: 20px auto;
             padding: 20px;
         }
-        /* Scrolling Banner */
+        /* Scrolling Banner (thicker, not full width) */
         {% if not conversation %}
         #scroll-banner {
             background-color: #e0fbfc;
             color: #005f73;
-            padding: 0;
+            padding: 10px; /* Thicker vertical padding */
             white-space: nowrap;
             overflow: hidden;
             margin-bottom: 20px;
@@ -334,6 +334,29 @@
             }
             {% endif %}
         }
+        /* Additional feedback styling overrides */
+        .feedback ul {
+            list-style-position: inside;
+            margin: 0;
+            padding-left: 20px;
+        }
+        .feedback li {
+            margin-bottom: 6px;
+        }
+        /* Thicker scrollbar in chat-log */
+        .chat-log::-webkit-scrollbar {
+            width: 12px;
+        }
+        .chat-log::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .chat-log::-webkit-scrollbar-thumb {
+            background-color: #cccccc;
+            border-radius: 6px;
+        }
+        .chat-log::-webkit-scrollbar-thumb:hover {
+            background-color: #999999;
+        }
     </style>
 </head>
 <body>
@@ -359,9 +382,9 @@
 
     <div class="container">
         {% if not conversation %}
-        <!-- Scrolling Banner appears only when simulation hasn't started -->
+        <!-- Thicker, not-full-width Scrolling Banner -->
         <div id="scroll-banner">
-            <p>Alert: There is a known issue with Microsoft Edge so please use another web browser if you are planning to use voice functionality</p>
+            <p>Alert: Our 48-hour free trial is strictly limited to one per person.</p>
         </div>
         <!-- Initial Simulation Setup -->
         <div class="chat-container" style="text-align: center;">
@@ -550,7 +573,7 @@
     </div>
 
     <footer>
-        <small>&copy; 2025 William Swain. All rights reserved.</small>
+        <small>&copy; 2025 Simul-Ai-Tor Ltd All rights reserved.</small>
     </footer>
 
     <!-- Include jQuery and Select2 JS -->

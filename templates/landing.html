@@ -4,143 +4,10 @@
   <meta charset="UTF-8">
   <title>Welcome to Simul-AI-tor</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Link to any shared CSS -->
+  <!-- Link to external stylesheet -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
   <!-- Font Awesome (if needed) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-  <style>
-    /* Global Reset & Base Styles */
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    body {
-      font-family: "Open Sans", Arial, sans-serif;
-      background-color: #ffffff;
-      color: #333;
-    }
-    /* Header */
-    .header-container {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 20px 40px;
-      background-color: #ffffff;
-      box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
-    }
-    .logo-group {
-      display: flex;
-      align-items: center;
-    }
-    .logo-group img {
-      height: 80px; /* Larger logo */
-      margin-right: 15px;
-    }
-    .logo-group h1 {
-      font-size: 2rem;
-      color: #005f73;
-    }
-    .header-right {
-      display: flex;
-      gap: 15px;
-    }
-    .header-right a {
-      padding: 10px 20px;
-      background: linear-gradient(145deg, #005f73, #0a6c82);
-      color: white;
-      text-decoration: none;
-      border-radius: 6px;
-      font-size: 1.1rem;
-      transition: background 0.3s;
-    }
-    .header-right a:hover {
-      background: linear-gradient(145deg, #0a6c82, #005f73);
-    }
-    /* Introductory Text */
-    .intro-text {
-      max-width: 800px;
-      margin: 20px auto;
-      padding: 0 20px;
-      font-size: 1.2rem;
-      text-align: center;
-    }
-    /* Quotes Heading */
-    .quotes-heading {
-      text-align: center;
-      margin: 40px auto 10px auto;
-      font-size: 1.5rem;
-      color: #005f73;
-    }
-    /* Typed Text Container */
-    .typed-container {
-      max-width: 800px;
-      margin: 0 auto 30px auto;
-      text-align: center;
-      font-size: 1.1rem;
-      color: #005f73;
-      min-height: 1.5em; /* reserve space for text to avoid layout shift */
-    }
-    #typedText {
-      display: inline-block;
-      border-right: 2px solid #005f73;
-      white-space: nowrap;
-      overflow: hidden;
-    }
-    /* Video Section */
-    .video-container {
-      max-width: 800px;
-      margin: 20px auto 40px auto;
-      text-align: center;
-    }
-    .video-container video {
-      width: 100%;
-      max-width: 800px;
-      border-radius: 10px;
-      box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
-    }
-    /* Footer */
-    footer {
-      text-align: center;
-      padding: 20px;
-      background-color: #ffffff;
-      font-size: 0.9rem;
-      color: #333;
-      border-top: 1px solid #ddd;
-    }
-    /* Responsive Adjustments */
-    @media (max-width: 600px) {
-      .header-container {
-        flex-direction: column;
-        padding: 15px 20px;
-      }
-      .logo-group img {
-        height: 60px; /* slightly smaller on mobile */
-        margin-right: 10px;
-      }
-      .logo-group h1 {
-        font-size: 1.5rem;
-      }
-      .header-right {
-        margin-top: 10px;
-        width: 100%;
-        justify-content: center;
-      }
-      .intro-text {
-        font-size: 1rem;
-      }
-      .quotes-heading {
-        font-size: 1.2rem;
-      }
-      .typed-container {
-        font-size: 1rem;
-      }
-      .header-right a {
-        font-size: 1rem;
-        padding: 8px 16px;
-      }
-    }
-  </style>
 </head>
 <body>
   <!-- Header with Logo and Buttons -->
@@ -157,78 +24,150 @@
     </div>
   </header>
 
-  <!-- Introductory Text -->
-  <div class="intro-text">
-    <p>Welcome to Simul-AI-tor – a cutting-edge clinical history-taking simulation tool designed for every healthcare professional. Whether you're a GP, nurse, pharmacist, or specialist, our platform supports all disciplines and skill levels, from foundation through advanced.</p>
-  </div>
+  <!-- Sticky Primary CTA -->
+  <a href="{{ url_for('register') }}" class="sticky-cta">Claim your spot now</a>
 
-  <!-- Quotes Heading -->
-  <div class="quotes-heading">What do users think?</div>
-
-  <!-- Typed Effect Container -->
-  <div class="typed-container">
-    <span id="typedText"></span>
-  </div>
-
-  <!-- Video Section -->
-  <div class="video-container">
-    <video controls autoplay muted loop>
-      <source src="{{ url_for('static', filename='demo.mp4') }}" type="video/mp4">
+  <!-- Hero Section with Video and Piano-Key Text -->
+  <section class="hero-section" id="hero">
+    <video class="hero-video" autoplay muted loop>
+      <source src="{{ url_for('static', filename='explainer.mp4') }}" type="video/mp4">
       Your browser does not support the video tag.
     </video>
-  </div>
+    <div class="hero-overlay">
+      <h2 class="piano-text">
+        <span class="word"><span class="letter">M</span><span class="letter">a</span><span class="letter">s</span><span class="letter">t</span><span class="letter">e</span><span class="letter">r</span></span>
+        <span class="word"><span class="letter">C</span><span class="letter">l</span><span class="letter">i</span><span class="letter">n</span><span class="letter">i</span><span class="letter">c</span><span class="letter">a</span><span class="letter">l</span></span>
+        <span class="word"><span class="letter">H</span><span class="letter">i</span><span class="letter">s</span><span class="letter">t</span><span class="letter">o</span><span class="letter">r</span><span class="letter">y</span></span>
+        <span class="word"><span class="letter">T</span><span class="letter">a</span><span class="letter">k</span><span class="letter">i</span><span class="letter">n</span><span class="letter">g</span></span>
+        <span class="word"><span class="letter">w</span><span class="letter">i</span><span class="letter">t</span><span class="letter">h</span></span>
+        <span class="word"><span class="letter">R</span><span class="letter">e</span><span class="letter">a</span><span class="letter">l</span><span class="letter">i</span><span class="letter">s</span><span class="letter">t</span><span class="letter">i</span><span class="letter">c</span></span>
+        <span class="word"><span class="letter">A</span><span class="letter">I</span></span>
+        <span class="word"><span class="letter">S</span><span class="letter">i</span><span class="letter">m</span><span class="letter">u</span><span class="letter">l</span><span class="letter">a</span><span class="letter">t</span><span class="letter">i</span><span class="letter">o</span><span class="letter">n</span><span class="letter">s</span></span>
+      </h2>
+      <p>Improve your clinical assessment skills quickly and effectively in a safe and confidential environment.</p>
+      <a href="{{ url_for('register') }}" class="primary-cta">Claim your spot now</a>
+      <p class="risk-reversal">Enjoy a 48‑hour free trial – no obligation, cancel anytime.</p>
+    </div>
+  </section>
+
+  <!-- New Intro Video Section: video2 -->
+  <section class="intro-video-section" id="intro-video">
+    <div class="video-wrapper">
+      <video class="intro-video" autoplay muted loop>
+        <source src="{{ url_for('static', filename='video2.mp4') }}" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+    </div>
+  </section>
+
+  <!-- How It Works Section with Piano-Key Heading -->
+  <section id="howitworks">
+    <h2 class="section-title piano-text">
+      <span class="word"><span class="letter">H</span><span class="letter">o</span><span class="letter">w</span></span>
+      <span class="word"><span class="letter">I</span><span class="letter">t</span></span>
+      <span class="word"><span class="letter">W</span><span class="letter">o</span><span class="letter">r</span><span class="letter">k</span><span class="letter">s</span></span>
+    </h2>
+    <div class="carousel-container">
+      <div class="carousel-slide" id="carouselSlide">
+        <div class="carousel-item">
+          <h3>1. Choose a Scenario</h3>
+          <p>Select a presenting complaint tailored to your area of interest such as cardiovascular or gastrointestinal cases.</p>
+          <img src="{{ url_for('static', filename='Carousel1.png') }}" alt="Choose a Scenario">
+        </div>
+        <div class="carousel-item">
+          <h3>2. Interact with AI Patients</h3>
+          <p>Engage in dynamic dialogues that simulate real patient interactions including real time examination reviews.</p>
+          <video autoplay muted loop style="max-width:100%; border-radius:8px;">
+            <source src="{{ url_for('static', filename='demo.mp4') }}" type="video/mp4">
+            Your browser does not support the video tag.
+          </video>
+        </div>
+        <div class="carousel-item">
+          <h3>3. Receive Instant Feedback</h3>
+          <p>Get actionable insights to refine your clinical history taking skills.</p>
+        </div>
+      </div>
+      <!-- Carousel Controls -->
+      <div class="carousel-controls">
+        <button onclick="prevSlide()">Prev</button>
+        <button onclick="nextSlide()">Next</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials Section with Piano-Key Heading -->
+  <section id="testimonials">
+    <h2 class="section-title piano-text">
+      <span class="word"><span class="letter">W</span><span class="letter">h</span><span class="letter">a</span><span class="letter">t</span></span>
+      <span class="word"><span class="letter">O</span><span class="letter">u</span><span class="letter">r</span></span>
+      <span class="word"><span class="letter">U</span><span class="letter">s</span><span class="letter">e</span><span class="letter">r</span><span class="letter">s</span></span>
+      <span class="word"><span class="letter">S</span><span class="letter">a</span><span class="letter">y</span></span>
+    </h2>
+    <div class="testimonials">
+      <p class="quote">“This is the future of simulation right here.” – GP</p>
+      <p class="quote">“An indispensable tool for developing clinical assessment skills.” – Pharmacist</p>
+      <p class="quote">“I wish I had this when I was studying.” – Nurse</p>
+    </div>
+  </section>
 
   <!-- Footer -->
   <footer>
-    <small>&copy; 2025 William Swain. All rights reserved.</small>
+    <small>&copy; 2025 Simul-Ai-to Ltd. All rights reserved.</small>
   </footer>
 
-  <!-- Typed Effect JavaScript -->
+  <!-- JavaScript for Smooth Scrolling, Carousel, and Piano-Key Effect -->
   <script>
-    // Quotes array
-    const quotes = [
-      "“This is the future of simulation right here.” – GP",
-      "“An indispensable tool for modern pharmacy education.” – Pharmacist",
-      "“It helped me prepare for my prescribing OSCE.” – Nurse"
-    ];
-
-    const typedText = document.getElementById("typedText");
-    let quoteIndex = 0;
-    let charIndex = 0;
-    let currentQuote = quotes[quoteIndex];
-    let typingSpeed = 50;     // speed of typing in ms
-    let pauseBetweenQuotes = 2000; // pause in ms after a quote finishes
-    let deletingSpeed = 25;   // speed of deleting in ms
-
-    // Type the current quote
-    function type() {
-      if (charIndex < currentQuote.length) {
-        typedText.textContent += currentQuote.charAt(charIndex);
-        charIndex++;
-        setTimeout(type, typingSpeed);
-      } else {
-        // pause, then start erase
-        setTimeout(erase, pauseBetweenQuotes);
-      }
+    // Smooth scroll to section helper
+    function scrollToSection(id) {
+      document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
     }
 
-    // Erase the current quote
-    function erase() {
-      if (charIndex > 0) {
-        typedText.textContent = currentQuote.substring(0, charIndex - 1);
-        charIndex--;
-        setTimeout(erase, deletingSpeed);
-      } else {
-        // move to next quote
-        quoteIndex = (quoteIndex + 1) % quotes.length;
-        currentQuote = quotes[quoteIndex];
-        setTimeout(type, 500);
-      }
-    }
+    // Animate sections when scrolled into view
+    const sections = document.querySelectorAll("section");
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.2 });
+    sections.forEach(section => observer.observe(section));
 
-    // Start the typing effect on page load
-    document.addEventListener("DOMContentLoaded", function() {
-      type();
+    // Carousel functionality and dynamic repositioning of controls
+    let currentSlide = 0;
+    const slideContainer = document.getElementById("carouselSlide");
+    const totalSlides = slideContainer.children.length;
+    const controls = document.querySelector('.carousel-controls');
+
+    function updateCarousel() {
+      slideContainer.style.transform = 'translateX(' + (-currentSlide * 100) + '%)';
+      let currentItem = slideContainer.children[currentSlide];
+      controls.style.top = (currentItem.offsetHeight - 40) + 'px';
+    }
+    function nextSlide() {
+      currentSlide = (currentSlide + 1) % totalSlides;
+      updateCarousel();
+    }
+    function prevSlide() {
+      currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
+      updateCarousel();
+    }
+    window.addEventListener('load', updateCarousel);
+
+    // Piano-Key Effect on Letters
+    document.addEventListener('DOMContentLoaded', function() {
+      const letters = document.querySelectorAll('.letter');
+      letters.forEach((letter, index) => {
+        letter.addEventListener('mouseenter', function() {
+          letters.forEach(l => l.classList.remove('hover-center', 'hover-left', 'hover-right'));
+          letter.classList.add('hover-center');
+          if (index > 0) letters[index - 1].classList.add('hover-left');
+          if (index < letters.length - 1) letters[index + 1].classList.add('hover-right');
+        });
+        letter.addEventListener('mouseleave', function() {
+          letters.forEach(l => l.classList.remove('hover-center', 'hover-left', 'hover-right'));
+        });
+      });
     });
   </script>
 </body>

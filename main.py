@@ -16,8 +16,8 @@ from dotenv import load_dotenv
 import openai
 import stripe
 from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph
-from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Preformatted
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from flask_migrate import Migrate
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -142,7 +142,6 @@ PATIENT_NAMES = [
     {"name": "Benjamin Carter", "ethnicity": "American (White)", "gender": "male", "age": 52}
 ]
 
-
 # Original generic complaints as fallback
 FOUNDATION_COMPLAINTS = [
     "fever", "persistent cough", "mild chest pain", "headache", "lower back pain"
@@ -226,17 +225,17 @@ SYSTEM_LEVEL_COMPLAINTS = {
             "There are times when I feel some discomfort when breathing"
         ],
         "Advanced": [
-                "I suddenly can’t seem to get enough air, and my chest feels tight.",
-                "I sound really wheezy, like I’m breathing through a straw.",
-                "I can’t stop coughing, and sometimes I see a little blood.",
-                "When I breathe, it makes a strange noise, like a whistle.",
-                "Even when I’m resting, I feel like I’m running out of breath.",
-                "My breathing is so fast and shallow that I feel exhausted.",
-                "I wake up gasping for air, and it’s really scary.",
-                "I have to sit up to breathe properly, lying down makes it worse.",
-                "My chest feels locked up, like no air is getting in.",
-                "It’s like I have to fight for every breath."
-            ]
+            "I suddenly can’t seem to get enough air, and my chest feels tight.",
+            "I sound really wheezy, like I’m breathing through a straw.",
+            "I can’t stop coughing, and sometimes I see a little blood.",
+            "When I breathe, it makes a strange noise, like a whistle.",
+            "Even when I’m resting, I feel like I’m running out of breath.",
+            "My breathing is so fast and shallow that I feel exhausted.",
+            "I wake up gasping for air, and it’s really scary.",
+            "I have to sit up to breathe properly, lying down makes it worse.",
+            "My chest feels locked up, like no air is getting in.",
+            "It’s like I have to fight for every breath."
+        ]
     },
     "gastrointestinal": {
         "Beginner": [
@@ -1042,11 +1041,16 @@ def feedback():
     if not conversation:
         flash("No conversation available for feedback", "warning")
         return redirect(url_for('simulation'))
+
+    # Gather only user messages for the transcript
     user_conv_text = "\n".join([f"User: {m['content']}" for m in conversation if m.get('role') == 'user'])
+
+    # Strict prompt instructing GPT-4 to return JSON only
     feedback_prompt = (
-        "IMPORTANT: Output ONLY valid JSON with NO disclaimers. Use double quotes for all keys and string values, do NOT use single quotes. "
-        "Evaluate the following consultation transcript using the Calgary–Cambridge model. Score each category on a scale of 1 to 10, "
-        "and provide a short comment for each:\n"
+        "IMPORTANT: Output ONLY valid JSON with NO disclaimers or additional commentary. "
+        "Your answer MUST start with '{' and end with '}'. Use double quotes for all keys and string values, "
+        "and do NOT use single quotes. Evaluate the following consultation transcript using the Calgary–Cambridge model. "
+        "Score each category on a scale of 1 to 10, and provide a short comment for each:\n"
         "1. Initiating the session\n"
         "2. Gathering information\n"
         "3. Physical examination\n"
@@ -1054,9 +1058,10 @@ def feedback():
         "5. Closing the session\n"
         "6. Building a relationship\n"
         "7. Providing structure\n\n"
-        "Then, calculate the overall score (max 70) and provide a brief commentary on the user's clinical reasoning in a key called \"clinical_reasoning\".\n\n"
-        "Format your answer strictly as JSON:\n"
-        '{\n'
+        "Then, calculate the overall score (max 70) and provide a brief commentary on the user's clinical reasoning "
+        'in a key called "clinical_reasoning".\n\n'
+        "Format your answer strictly as a single JSON object (do not include any extra text):\n"
+        "{\n"
         '  "initiating_session": {"score": X, "comment": "..."},\n'
         '  "gathering_information": {"score": X, "comment": "..."},\n'
         '  "physical_examination": {"score": X, "comment": "..."},\n'
@@ -1069,7 +1074,9 @@ def feedback():
         '}\n\n'
         "The consultation transcript is:\n" + user_conv_text
     )
+
     feedback_conversation = [{'role': 'system', 'content': feedback_prompt}]
+
     try:
         response = openai.ChatCompletion.create(
             model="gpt-4-turbo",
@@ -1078,56 +1085,202 @@ def feedback():
             max_tokens=300
         )
         fb = response.choices[0].message["content"]
-        # Update GPT-4 usage for feedback
+        # Track GPT-4 usage if needed
         if response.usage and 'prompt_tokens' in response.usage and 'completion_tokens' in response.usage:
             current_user.token_prompt_usage_gpt4 = (current_user.token_prompt_usage_gpt4 or 0) + response.usage['prompt_tokens']
             current_user.token_completion_usage_gpt4 = (current_user.token_completion_usage_gpt4 or 0) + response.usage['completion_tokens']
             db.session.commit()
     except Exception as e:
         fb = f"Error generating feedback: {str(e)}"
+
+    # Attempt to parse out the JSON with regex, then parse it as a Python dict
     try:
-        # Attempt to parse fb as JSON and pretty-print it
+        import re
+        json_match = re.search(r'\{.*\}', fb, re.DOTALL)
+        if json_match:
+            fb = json_match.group()  # extract just the JSON portion
         feedback_json = json.loads(fb)
         pretty_feedback = json.dumps(feedback_json, indent=2)
         session['feedback_json'] = feedback_json
         session['feedback'] = pretty_feedback
     except Exception as e:
-        print("JSON parsing error:", e)  # Log the error for debugging
+        print("JSON parsing error:", e)
         session['feedback_json'] = None
         session['feedback'] = fb
+
     return redirect(url_for('simulation'))
 
 
 @app.route('/download_feedback', methods=['GET'])
 @login_required
 def download_feedback():
-    fb = session.get('feedback')
-    if not fb:
+    """Download the consultation feedback as a PDF with bullet points similar to the HTML container."""
+    # 1) Try to get the parsed JSON from the session.
+    feedback_dict = session.get('feedback_json')
+    # 2) Also get the raw fallback text in case JSON doesn't exist.
+    raw_feedback = session.get('feedback')
+
+    if not feedback_dict and not raw_feedback:
         flash("No feedback available to download", "warning")
         return redirect(url_for('simulation'))
+
+    import io
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, ListFlowable, ListItem
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.enums import TA_LEFT
+    from reportlab.lib import colors
+
     pdf_buffer = io.BytesIO()
-    # Create a simple document with letter pagesize
     doc = SimpleDocTemplate(pdf_buffer, pagesize=letter)
 
-    # Define a custom style for preformatted text (monospaced)
-    code_style = ParagraphStyle(
-        name='Code',
-        fontName='Courier',
-        fontSize=10,
-        leading=12
+    # Define some paragraph styles
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        name='Title',
+        parent=styles['Title'],
+        fontName='Helvetica-Bold',
+        fontSize=14,
+        alignment=TA_LEFT,
+        textColor=colors.black,
+        spaceAfter=12
+    )
+    bullet_style = ParagraphStyle(
+        name='Bullet',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=11,
+        leading=14,
+        leftIndent=20,
+        spaceBefore=4,
+        spaceAfter=4
     )
 
-    # Use a Preformatted flowable to preserve line breaks and spacing
-    story = [Preformatted(fb, code_style)]
+    story = []
+
+    # Title
+    story.append(Paragraph("Consultation Feedback", title_style))
+    story.append(Spacer(1, 8))
+
+    if feedback_dict:
+        # We have parsed JSON; let's replicate your HTML bullet list
+
+        bullet_items = []
+
+        # Initiating the session
+        is_score = feedback_dict["initiating_session"]["score"]
+        is_comment = feedback_dict["initiating_session"]["comment"]
+        bullet_items.append(
+            ListItem(
+                Paragraph(f"<b>Initiating the session:</b> Score: {is_score}, Comment: {is_comment}", bullet_style),
+                bulletSymbol="•"
+            )
+        )
+
+        # Gathering information
+        gi_score = feedback_dict["gathering_information"]["score"]
+        gi_comment = feedback_dict["gathering_information"]["comment"]
+        bullet_items.append(
+            ListItem(
+                Paragraph(f"<b>Gathering information:</b> Score: {gi_score}, Comment: {gi_comment}", bullet_style),
+                bulletSymbol="•"
+            )
+        )
+
+        # Physical examination
+        pe_score = feedback_dict["physical_examination"]["score"]
+        pe_comment = feedback_dict["physical_examination"]["comment"]
+        bullet_items.append(
+            ListItem(
+                Paragraph(f"<b>Physical examination:</b> Score: {pe_score}, Comment: {pe_comment}", bullet_style),
+                bulletSymbol="•"
+            )
+        )
+
+        # Explanation & planning
+        ep_score = feedback_dict["explanation_planning"]["score"]
+        ep_comment = feedback_dict["explanation_planning"]["comment"]
+        bullet_items.append(
+            ListItem(
+                Paragraph(f"<b>Explanation &amp; planning:</b> Score: {ep_score}, Comment: {ep_comment}", bullet_style),
+                bulletSymbol="•"
+            )
+        )
+
+        # Closing the session
+        cs_score = feedback_dict["closing_session"]["score"]
+        cs_comment = feedback_dict["closing_session"]["comment"]
+        bullet_items.append(
+            ListItem(
+                Paragraph(f"<b>Closing the session:</b> Score: {cs_score}, Comment: {cs_comment}", bullet_style),
+                bulletSymbol="•"
+            )
+        )
+
+        # Building a relationship
+        br_score = feedback_dict["building_relationship"]["score"]
+        br_comment = feedback_dict["building_relationship"]["comment"]
+        bullet_items.append(
+            ListItem(
+                Paragraph(f"<b>Building a relationship:</b> Score: {br_score}, Comment: {br_comment}", bullet_style),
+                bulletSymbol="•"
+            )
+        )
+
+        # Providing structure
+        ps_score = feedback_dict["providing_structure"]["score"]
+        ps_comment = feedback_dict["providing_structure"]["comment"]
+        bullet_items.append(
+            ListItem(
+                Paragraph(f"<b>Providing structure:</b> Score: {ps_score}, Comment: {ps_comment}", bullet_style),
+                bulletSymbol="•"
+            )
+        )
+
+        # Overall Score
+        overall_score = feedback_dict["overall"]
+        bullet_items.append(
+            ListItem(
+                Paragraph(f"<b>Overall Score:</b> {overall_score}/70", bullet_style),
+                bulletSymbol="•"
+            )
+        )
+
+        # Clinical Reasoning (if present)
+        if "clinical_reasoning" in feedback_dict:
+            cr_text = feedback_dict["clinical_reasoning"]
+            bullet_items.append(
+                ListItem(
+                    Paragraph(f"<b>Clinical Reasoning &amp; Bias Analysis:</b> {cr_text}", bullet_style),
+                    bulletSymbol="•"
+                )
+            )
+
+        # Add them as a bullet list flowable
+        feedback_list = ListFlowable(bullet_items, bulletType='bullet', start=None)
+        story.append(feedback_list)
+
+    else:
+        # If no JSON, fallback to raw text
+        fallback_style = ParagraphStyle(
+            name='Fallback',
+            parent=styles['Normal'],
+            fontName='Courier',
+            fontSize=10,
+            leading=12
+        )
+        story.append(Paragraph("Raw Feedback:", title_style))
+        story.append(Paragraph(raw_feedback, fallback_style))
+
     doc.build(story)
     pdf_buffer.seek(0)
+
     return send_file(
         pdf_buffer,
         as_attachment=True,
         download_name="feedback.pdf",
         mimetype="application/pdf"
     )
-
 
 @app.route('/clear_simulation')
 @login_required
