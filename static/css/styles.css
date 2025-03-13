@@ -96,7 +96,7 @@ section.visible {
   position: relative;
   text-align: center;
   background-color: #ffffff;
-  padding-top: 20px;  /* small gap between header and hero */
+  padding-top: 30px;  /* small gap between header and hero */
   margin-bottom: 0;
 }
 .hero-video {
