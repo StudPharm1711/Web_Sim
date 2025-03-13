@@ -96,8 +96,8 @@ section.visible {
   position: relative;
   text-align: center;
   background-color: #ffffff;
-  padding-top: 20px; /* small gap between header and hero */
-  margin-bottom: 0;  /* remove extra gap below hero */
+  padding-top: 20px;  /* small gap between header and hero */
+  margin-bottom: 0;
 }
 .hero-video {
   width: 100%;
@@ -192,7 +192,7 @@ section.visible {
 /* Piano Key Classes */
 .hover-center {
   transform: scale(1.4);
-  color: #ffdce0;
+  color: #ffdce0; /* Subtle pastel pink */
   text-shadow: 0 0 6px rgba(255,220,224,0.6);
 }
 .hover-left,
@@ -200,7 +200,7 @@ section.visible {
   transform: scale(1.2);
 }
 
-/* Carousel */
+/* How It Works Carousel */
 .carousel-container {
   position: relative;
   overflow: hidden;
@@ -281,6 +281,10 @@ footer {
   .hero-video,
   .intro-video {
     max-height: 400px;
+  }
+  /* Add extra top margin for mobile if header is fixed */
+  .hero-section {
+    margin-top: 80px;
   }
 }
 @media (max-width: 600px) {
