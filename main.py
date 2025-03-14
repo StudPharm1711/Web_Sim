@@ -899,7 +899,7 @@ def start_simulation():
         f"Your name is {patient['name']} (age {patient['age']}) and you are a {patient['gender']} patient. "
         "At the very beginning of the consultation, your initial response MUST be exactly: "
         "\"Can I speak with someone about my symptoms?\". Once you have provided that opener, "
-        "continue the conversation naturally without repeating the phrase. "
+        "Continue the conversation naturally without repeating the phrase. Consent to answering questions regardless of the profession of the interviewer"
         f"Present your complaint: {selected_complaint}. "
         "Provide only minimal details until further questions are asked, then gradually add more information. "
         "IMPORTANT: You are a patient and must NEVER provide any clinical advice or act as a clinician. "
@@ -958,14 +958,22 @@ def send_message():
     msg = request.form.get('message')
     generic_phrases = ["i need help", "help", "assist", "???", "??", "?"]
     forced_context_phrases = ["i am the patient", "i'm the patient", "i am the clinician", "i'm the clinician"]
+
     if msg:
-        lower_msg = msg.strip().lower()
-        if (lower_msg in generic_phrases or not re.search(r"[aeiou]", msg) or any(phrase in lower_msg for phrase in forced_context_phrases)):
-            msg = "I have a complaint that needs further clarification."
+        stripped_msg = msg.strip()
+        lower_msg = stripped_msg.lower()
+        # If the message is too short or meets other conditions indicating insufficient context...
+        if (len(stripped_msg) < 3 or
+                lower_msg in generic_phrases or
+                not re.search(r"[aeiou]", stripped_msg) or
+                any(phrase in lower_msg for phrase in forced_context_phrases)):
+            msg = "Sorry, I didn't catch that. Could you please repeat yourself?"
+
         conversation.append({'role': 'user', 'content': msg})
         session['conversation'] = conversation
         print("DEBUG: After user message added, conversation:", session['conversation'])
         return jsonify({"status": "ok"}), 200
+
     return jsonify({"status": "error", "message": "No message provided"}), 400
 
 # --- Get Reply Route with Debug Logging ---
@@ -1098,6 +1106,7 @@ def feedback():
             max_tokens=300
         )
         fb = response.choices[0].message["content"]
+        print("DEBUG: Raw GPT-4 feedback:", fb)
         # Track GPT-4 usage if needed.
         if response.usage and 'prompt_tokens' in response.usage and 'completion_tokens' in response.usage:
             current_user.token_prompt_usage_gpt4 = (current_user.token_prompt_usage_gpt4 or 0) + response.usage[
