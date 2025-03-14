@@ -467,7 +467,6 @@ SYSTEM_LEVEL_COMPLAINTS = {
     }
 }
 
-
 FEEDBACK_INSTRUCTION = (
     "You are an examiner, not a patient. Cease all patient role-playing immediately. Your task is to analyse the conversation "
     "history and provide detailed feedback on the user's communication and history-taking skills using the Calgary–Cambridge model. "
@@ -486,7 +485,6 @@ PROMPT_INSTRUCTION = (
 # --- Account Blueprint ---
 account_bp = Blueprint('account', __name__, url_prefix='/account')
 
-
 @app.route('/account')
 @login_required
 def account():
@@ -504,22 +502,18 @@ def account():
             flash(f"Error retrieving subscription info: {str(e)}", "danger")
     return render_template('account.html', subscription_info=subscription_info)
 
-
 app.register_blueprint(account_bp)
-
 
 # --- New Route for Terms and Conditions ---
 @app.route('/terms.html')
 def terms():
     return render_template('terms.html')
 
-
 # --- New Route for Instructions ---
 @app.route('/instructions')
 @login_required
 def instructions():
     return render_template('instructions.html')
-
 
 # --- Subscription Cancellation Route ---
 @app.route('/cancel_subscription', methods=['POST'])
@@ -557,7 +551,6 @@ def cancel_subscription():
         flash(f"Error cancelling subscription: {str(e)}", "danger")
     return redirect(url_for('account'))
 
-
 # --- Reactivation Routes ---
 @app.route('/reactivate_subscription')
 @login_required
@@ -572,7 +565,6 @@ def reactivate_subscription():
         cancel_url=url_for('account', _external=True)
     )
     return redirect(checkout_session.url)
-
 
 @app.route('/reactivate_payment_success')
 @login_required
@@ -616,15 +608,12 @@ def reactivate_payment_success():
         flash(f"Error processing reactivation: {str(e)}", "danger")
     return redirect(url_for('account'))
 
-
 # --- Landing Page Route ---
 @app.route('/')
 def landing():
     return render_template('landing.html')
 
-
 ADMIN_LOGIN_PASSWORD = os.getenv("ADMIN_LOGIN_PASSWORD")
-
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -665,7 +654,6 @@ def login():
             else:
                 flash("Invalid email or password", "danger")
     return render_template('login.html')
-
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -713,7 +701,6 @@ def register():
         )
         return redirect(checkout_session.url)
     return render_template('register.html')
-
 
 @app.route('/payment_success')
 def payment_success():
@@ -779,12 +766,10 @@ def payment_success():
         return redirect(url_for('register'))
     return redirect(url_for('simulation'))
 
-
 @app.route('/payment_cancel')
 def payment_cancel():
     flash("Payment was cancelled. Please try again.", "warning")
     return redirect(url_for('register'))
-
 
 @app.route('/logout')
 @login_required
@@ -796,12 +781,10 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
-
 @app.route('/about')
 @login_required
 def about():
     return render_template('about.html')
-
 
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
@@ -835,7 +818,6 @@ def forgot_password():
         return redirect(url_for('login'))
     return render_template('forgot_password.html')
 
-
 @app.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
     try:
@@ -867,7 +849,7 @@ def reset_password(token):
             return redirect(url_for('forgot_password'))
     return render_template('reset_password.html', token=token)
 
-
+# --- Start Simulation Route with Debug Logging ---
 @app.route('/start_simulation', methods=['POST'])
 @login_required
 def start_simulation():
@@ -882,24 +864,22 @@ def start_simulation():
         return redirect(url_for('simulation'))
 
     patient = random.choice(PATIENT_NAMES)
+    session['patient'] = patient  # store patient for later use
+    print("DEBUG: Patient stored in session:", patient)
 
-    # If "random" is selected, choose a system at random.
     if system_choice == 'random':
         system_choice = random.choice(list(SYSTEM_LEVEL_COMPLAINTS.keys()))
-
-    # Try to get system-level complaints for the chosen system and level.
     complaints = SYSTEM_LEVEL_COMPLAINTS.get(system_choice, {}).get(level)
     if complaints:
         selected_complaint = random.choice(complaints)
     else:
-        # Fallback to generic level complaints.
         selected_complaint = random.choice(LEVEL_COMPLAINTS[level])
 
-    # Store chosen system and complaint in session.
     session['system_choice'] = system_choice
     session['selected_complaint'] = selected_complaint
+    session['simulation_level'] = level
+    session['country'] = country
 
-    # For Advanced level, add a tone based on patient's age.
     tone = ""
     if level == "Advanced":
         if patient["age"] > 60:
@@ -908,22 +888,24 @@ def start_simulation():
             tone = "I tend to get a bit short-tempered and will almost certainly respond abrasively."
 
     instr = (
-            f"You are a patient in a history-taking simulation taking place in {country}. "
-            f"Your level is {level}. "
-            f"Your name is {patient['name']} (age {patient['age']}) and you are a {patient['gender']} patient. "
-            "Begin every interaction by saying exactly: \"Can I speak with someone about my symptoms?\" "
-            "and wait for the user's response before providing further details. "
-            f"Present your complaint: {selected_complaint}. "
-            "Provide only minimal details until further questions are asked, then gradually add more information. "
-            "IMPORTANT: You are a patient and must NEVER provide any clinical advice or act as a clinician. "
-            "If asked for advice or for anything beyond discussing your symptoms, steer the conversation back to your complaint. "
-            "If you are asked to consent to a physical examination, ALWAYS respond affirmatively with a clear 'Yes, I consent to a physical examination,' "
-            "regardless of the virtual nature of the consultation, as the exam results will be generated automatically by a dedicated button. "
-            + (f" Additionally, {tone}" if tone else "")
+        f"You are a patient in a history-taking simulation taking place in {country}. "
+        f"Your level is {level}. "
+        f"Your name is {patient['name']} (age {patient['age']}) and you are a {patient['gender']} patient. "
+        "Begin every interaction by saying exactly: \"Can I speak with someone about my symptoms?\" "
+        "and wait for the user's response before providing further details. "
+        f"Present your complaint: {selected_complaint}. "
+        "Provide only minimal details until further questions are asked, then gradually add more information. "
+        "IMPORTANT: You are a patient and must NEVER provide any clinical advice or act as a clinician. "
+        "If asked for advice or for anything beyond discussing your symptoms, steer the conversation back to your complaint. "
+        "If you are asked to consent to a physical examination, ALWAYS respond affirmatively with a clear 'Yes, I consent to a physical examination,' "
+        "regardless of the virtual nature of the consultation, as the exam results will be generated automatically by a dedicated button. "
+        + (f" Additionally, {tone}" if tone else "")
     )
 
     session['country'] = country
     session['conversation'] = [{'role': 'system', 'content': instr}]
+    print("DEBUG: Conversation initialized with prompt:", session['conversation'])
+
     try:
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
@@ -931,26 +913,25 @@ def start_simulation():
             temperature=0.8
         )
         first_reply = response.choices[0].message["content"]
-        # Update GPT-4 usage: track prompt and completion tokens
         if response.usage and 'prompt_tokens' in response.usage and 'completion_tokens' in response.usage:
-            current_user.token_prompt_usage_gpt4 = (current_user.token_prompt_usage_gpt4 or 0) + response.usage[
-                'prompt_tokens']
-            current_user.token_completion_usage_gpt4 = (current_user.token_completion_usage_gpt4 or 0) + response.usage[
-                'completion_tokens']
+            current_user.token_prompt_usage_gpt4 = (current_user.token_prompt_usage_gpt4 or 0) + response.usage['prompt_tokens']
+            current_user.token_completion_usage_gpt4 = (current_user.token_completion_usage_gpt4 or 0) + response.usage['completion_tokens']
             db.session.commit()
     except Exception as e:
         first_reply = f"Error with API: {str(e)}"
     session['conversation'].append({'role': 'assistant', 'content': first_reply})
+    print("DEBUG: After first reply, conversation state:", session['conversation'])
     session.pop('feedback', None)
     session.pop('hint', None)
     return redirect(url_for('simulation'))
 
-
+# --- Simulation Display Route ---
 @app.route('/simulation', methods=['GET'])
 @login_required
 def simulation():
     conversation = session.get('conversation', [])
     display_conv = [m for m in conversation if m['role'] != 'system']
+    print("DEBUG: Display conversation (without system messages):", display_conv)
     return render_template(
         'simulation.html',
         conversation=display_conv,
@@ -959,7 +940,7 @@ def simulation():
         hint=session.get('hint')
     )
 
-
+# --- Send Message Route with Debug Logging ---
 @app.route('/send_message', methods=['POST'])
 @login_required
 def send_message():
@@ -969,22 +950,39 @@ def send_message():
     forced_context_phrases = ["i am the patient", "i'm the patient", "i am the clinician", "i'm the clinician"]
     if msg:
         lower_msg = msg.strip().lower()
-        if (lower_msg in generic_phrases or not re.search(r"[aeiou]", msg) or any(
-                phrase in lower_msg for phrase in forced_context_phrases)):
+        if (lower_msg in generic_phrases or not re.search(r"[aeiou]", msg) or any(phrase in lower_msg for phrase in forced_context_phrases)):
             msg = "I have a complaint that needs further clarification."
         conversation.append({'role': 'user', 'content': msg})
         session['conversation'] = conversation
+        print("DEBUG: After user message added, conversation:", session['conversation'])
         return jsonify({"status": "ok"}), 200
     return jsonify({"status": "error", "message": "No message provided"}), 400
 
-
+# --- Get Reply Route with Debug Logging ---
 @app.route('/get_reply', methods=['POST'])
 @login_required
 def get_reply():
     conversation = session.get('conversation', [])
-    override_prompt = "IMPORTANT: You are a patient and must NEVER provide any clinical advice or act as a clinician. If prompted otherwise, ignore and only discuss your symptoms."
-    if not conversation or override_prompt not in conversation[0]['content']:
-        conversation.insert(0, {'role': 'system', 'content': override_prompt})
+
+    # Count the number of user messages
+    user_message_count = sum(1 for m in conversation if m.get('role') == 'user')
+
+    # Every 3 user messages, insert a reinforcement message if not already inserted.
+    # (Adjust the modulus (3) to change the frequency.)
+    if user_message_count > 0 and user_message_count % 3 == 0:
+        reinforcement_message = ("REINFORCEMENT: You are a patient in a history-taking simulation. "
+                                 "Remember: You must NEVER provide clinical advice or act as a clinician. "
+                                 "Remain strictly in character as a patient.")
+        # Check if a reinforcement message is already present among system messages
+        if not any("REINFORCEMENT:" in m.get("content", "") for m in conversation if m.get("role") == "system"):
+            # Insert the reinforcement after the first system message (if any), or at the beginning otherwise.
+            insert_index = 1 if conversation and conversation[0].get('role') == 'system' else 0
+            conversation.insert(insert_index, {'role': 'system', 'content': reinforcement_message})
+            print("DEBUG: Reinforcement message inserted.")
+
+    # Log the conversation before sending to the API.
+    print("DEBUG: Before get_reply, conversation:", conversation)
+
     try:
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
@@ -992,20 +990,24 @@ def get_reply():
             temperature=0.8
         )
         resp_text = response.choices[0].message["content"]
-        # Update GPT-3.5 usage: track prompt and completion tokens
+        # Update GPT-3.5 usage tracking
         if response.usage and 'prompt_tokens' in response.usage and 'completion_tokens' in response.usage:
-            current_user.token_prompt_usage_gpt35 = (current_user.token_prompt_usage_gpt35 or 0) + response.usage['prompt_tokens']
-            current_user.token_completion_usage_gpt35 = (current_user.token_completion_usage_gpt35 or 0) + response.usage['completion_tokens']
+            current_user.token_prompt_usage_gpt35 = (current_user.token_prompt_usage_gpt35 or 0) + response.usage[
+                'prompt_tokens']
+            current_user.token_completion_usage_gpt35 = (current_user.token_completion_usage_gpt35 or 0) + \
+                                                        response.usage['completion_tokens']
             db.session.commit()
     except openai.error.OpenAIError as e:
         resp_text = f"OpenAI API Error: {str(e)}"
     except Exception as e:
         resp_text = f"Unexpected Error: {str(e)}"
+
     conversation.append({'role': 'assistant', 'content': resp_text})
     session['conversation'] = conversation
+    print("DEBUG: After get_reply, conversation:", conversation)
     return jsonify({"reply": resp_text}), 200
 
-
+# --- Hint Route with Debug Logging ---
 @app.route('/hint', methods=['POST'])
 @login_required
 def hint():
@@ -1016,6 +1018,7 @@ def hint():
     conv_text = "\n".join([f"{'User' if m['role'] == 'user' else 'Patient'}: {m['content']}" for m in conversation if m['role'] != 'system'])
     hint_text = PROMPT_INSTRUCTION + "\n" + conv_text
     hint_conversation = [{'role': 'system', 'content': hint_text}]
+    print("DEBUG: Hint prompt constructed:", hint_text)
     try:
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
@@ -1023,7 +1026,6 @@ def hint():
             temperature=0.8
         )
         hint_response = response.choices[0].message["content"]
-        # Update GPT-3.5 usage for hint
         if response.usage and 'prompt_tokens' in response.usage and 'completion_tokens' in response.usage:
             current_user.token_prompt_usage_gpt35 = (current_user.token_prompt_usage_gpt35 or 0) + response.usage['prompt_tokens']
             current_user.token_completion_usage_gpt35 = (current_user.token_completion_usage_gpt35 or 0) + response.usage['completion_tokens']
@@ -1031,9 +1033,10 @@ def hint():
     except Exception as e:
         hint_response = f"Error with API: {str(e)}"
     session['hint'] = hint_response
+    print("DEBUG: Hint response received:", hint_response)
     return redirect(url_for('simulation'))
 
-
+# --- Feedback Route with Debug Logging ---
 @app.route('/feedback', methods=['POST'])
 @login_required
 def feedback():
@@ -1042,10 +1045,7 @@ def feedback():
         flash("No conversation available for feedback", "warning")
         return redirect(url_for('simulation'))
 
-    # Gather only user messages for the transcript
     user_conv_text = "\n".join([f"User: {m['content']}" for m in conversation if m.get('role') == 'user'])
-
-    # Strict prompt instructing GPT-4 to return JSON only
     feedback_prompt = (
         "IMPORTANT: Output ONLY valid JSON with NO disclaimers or additional commentary. "
         "Your answer MUST start with '{' and end with '}'. Use double quotes for all keys and string values, "
@@ -1074,9 +1074,8 @@ def feedback():
         '}\n\n'
         "The consultation transcript is:\n" + user_conv_text
     )
-
     feedback_conversation = [{'role': 'system', 'content': feedback_prompt}]
-
+    print("DEBUG: Feedback prompt constructed:", feedback_prompt)
     try:
         response = openai.ChatCompletion.create(
             model="gpt-4-turbo",
@@ -1085,56 +1084,46 @@ def feedback():
             max_tokens=300
         )
         fb = response.choices[0].message["content"]
-        # Track GPT-4 usage if needed
         if response.usage and 'prompt_tokens' in response.usage and 'completion_tokens' in response.usage:
             current_user.token_prompt_usage_gpt4 = (current_user.token_prompt_usage_gpt4 or 0) + response.usage['prompt_tokens']
             current_user.token_completion_usage_gpt4 = (current_user.token_completion_usage_gpt4 or 0) + response.usage['completion_tokens']
             db.session.commit()
     except Exception as e:
         fb = f"Error generating feedback: {str(e)}"
-
-    # Attempt to parse out the JSON with regex, then parse it as a Python dict
     try:
-        import re
-        json_match = re.search(r'\{.*\}', fb, re.DOTALL)
+        # Use non-greedy regex to extract JSON.
+        json_match = re.search(r'\{.*?\}', fb, re.DOTALL)
         if json_match:
-            fb = json_match.group()  # extract just the JSON portion
+            fb = json_match.group()
         feedback_json = json.loads(fb)
         pretty_feedback = json.dumps(feedback_json, indent=2)
         session['feedback_json'] = feedback_json
         session['feedback'] = pretty_feedback
+        print("DEBUG: Feedback JSON parsed successfully:", pretty_feedback)
     except Exception as e:
-        print("JSON parsing error:", e)
+        print("DEBUG: JSON parsing error in feedback:", e)
         session['feedback_json'] = None
         session['feedback'] = fb
-
     return redirect(url_for('simulation'))
 
-
+# --- Download Feedback Route ---
 @app.route('/download_feedback', methods=['GET'])
 @login_required
 def download_feedback():
     """Download the consultation feedback as a PDF with bullet points similar to the HTML container."""
-    # 1) Try to get the parsed JSON from the session.
     feedback_dict = session.get('feedback_json')
-    # 2) Also get the raw fallback text in case JSON doesn't exist.
     raw_feedback = session.get('feedback')
-
     if not feedback_dict and not raw_feedback:
         flash("No feedback available to download", "warning")
         return redirect(url_for('simulation'))
-
     import io
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, ListFlowable, ListItem
     from reportlab.lib.pagesizes import letter
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.enums import TA_LEFT
     from reportlab.lib import colors
-
     pdf_buffer = io.BytesIO()
     doc = SimpleDocTemplate(pdf_buffer, pagesize=letter)
-
-    # Define some paragraph styles
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle(
         name='Title',
@@ -1155,19 +1144,11 @@ def download_feedback():
         spaceBefore=4,
         spaceAfter=4
     )
-
     story = []
-
-    # Title
     story.append(Paragraph("Consultation Feedback", title_style))
     story.append(Spacer(1, 8))
-
     if feedback_dict:
-        # We have parsed JSON; let's replicate your HTML bullet list
-
         bullet_items = []
-
-        # Initiating the session
         is_score = feedback_dict["initiating_session"]["score"]
         is_comment = feedback_dict["initiating_session"]["comment"]
         bullet_items.append(
@@ -1176,8 +1157,6 @@ def download_feedback():
                 bulletSymbol="•"
             )
         )
-
-        # Gathering information
         gi_score = feedback_dict["gathering_information"]["score"]
         gi_comment = feedback_dict["gathering_information"]["comment"]
         bullet_items.append(
@@ -1186,8 +1165,6 @@ def download_feedback():
                 bulletSymbol="•"
             )
         )
-
-        # Physical examination
         pe_score = feedback_dict["physical_examination"]["score"]
         pe_comment = feedback_dict["physical_examination"]["comment"]
         bullet_items.append(
@@ -1196,8 +1173,6 @@ def download_feedback():
                 bulletSymbol="•"
             )
         )
-
-        # Explanation & planning
         ep_score = feedback_dict["explanation_planning"]["score"]
         ep_comment = feedback_dict["explanation_planning"]["comment"]
         bullet_items.append(
@@ -1206,8 +1181,6 @@ def download_feedback():
                 bulletSymbol="•"
             )
         )
-
-        # Closing the session
         cs_score = feedback_dict["closing_session"]["score"]
         cs_comment = feedback_dict["closing_session"]["comment"]
         bullet_items.append(
@@ -1216,8 +1189,6 @@ def download_feedback():
                 bulletSymbol="•"
             )
         )
-
-        # Building a relationship
         br_score = feedback_dict["building_relationship"]["score"]
         br_comment = feedback_dict["building_relationship"]["comment"]
         bullet_items.append(
@@ -1226,8 +1197,6 @@ def download_feedback():
                 bulletSymbol="•"
             )
         )
-
-        # Providing structure
         ps_score = feedback_dict["providing_structure"]["score"]
         ps_comment = feedback_dict["providing_structure"]["comment"]
         bullet_items.append(
@@ -1236,8 +1205,6 @@ def download_feedback():
                 bulletSymbol="•"
             )
         )
-
-        # Overall Score
         overall_score = feedback_dict["overall"]
         bullet_items.append(
             ListItem(
@@ -1245,8 +1212,6 @@ def download_feedback():
                 bulletSymbol="•"
             )
         )
-
-        # Clinical Reasoning (if present)
         if "clinical_reasoning" in feedback_dict:
             cr_text = feedback_dict["clinical_reasoning"]
             bullet_items.append(
@@ -1255,13 +1220,9 @@ def download_feedback():
                     bulletSymbol="•"
                 )
             )
-
-        # Add them as a bullet list flowable
         feedback_list = ListFlowable(bullet_items, bulletType='bullet', start=None)
         story.append(feedback_list)
-
     else:
-        # If no JSON, fallback to raw text
         fallback_style = ParagraphStyle(
             name='Fallback',
             parent=styles['Normal'],
@@ -1271,10 +1232,8 @@ def download_feedback():
         )
         story.append(Paragraph("Raw Feedback:", title_style))
         story.append(Paragraph(raw_feedback, fallback_style))
-
     doc.build(story)
     pdf_buffer.seek(0)
-
     return send_file(
         pdf_buffer,
         as_attachment=True,
@@ -1285,23 +1244,43 @@ def download_feedback():
 @app.route('/clear_simulation')
 @login_required
 def clear_simulation():
-    session.pop('conversation', None)
+    # Debug log before clearing
+    print("DEBUG: Clearing simulation; previous conversation:", session.get('conversation'))
     session.pop('feedback', None)
     session.pop('feedback_json', None)
     session.pop('hint', None)
+    level = session.get('simulation_level', 'Beginner')
+    country = session.get('country', 'Unknown')
+    import random
+    patient = session.get('patient')
+    if not patient:
+        patient = random.choice(PATIENT_NAMES)
+        session['patient'] = patient
+    instr = (
+        f"You are a patient in a history-taking simulation taking place in {country}. "
+        f"Your level is {level}. "
+        f"Your name is {patient['name']} (age {patient['age']}) and you are a {patient['gender']} patient. "
+        "Begin every interaction by saying exactly: \"Can I speak with someone about my symptoms?\" "
+        "and wait for the user's response before providing further details. "
+        "Present your complaint: <your complaint here>. "
+        "Provide only minimal details until further questions are asked, then gradually add more information. "
+        "IMPORTANT: You are a patient and must NEVER provide any clinical advice or act as a clinician. "
+        "If asked for advice or for anything beyond discussing your symptoms, steer the conversation back to your complaint. "
+        "If you are asked to consent to a physical examination, ALWAYS respond affirmatively with a clear 'Yes, I consent to a physical examination,' "
+        "regardless of the virtual nature of the consultation."
+    )
+    session['conversation'] = [{'role': 'system', 'content': instr}]
+    print("DEBUG: Simulation reinitialized with prompt:", session['conversation'])
     return redirect(url_for('simulation'))
-
 
 @app.route('/generate_exam', methods=['POST'])
 @login_required
 def generate_exam():
-    # Ensure there have been at least 2 user messages.
     conversation = session.get('conversation', [])
     user_messages = [msg for msg in conversation if msg.get('role') == 'user']
     if len(user_messages) < 2:
         return jsonify({"error": "Please ask at least two questions before accessing exam results."}), 403
     data = request.get_json()
-    # Use the stored complaint
     complaint = data.get('complaint')
     if not complaint:
         return jsonify({"error": "No complaint provided"}), 400
@@ -1344,6 +1323,7 @@ def generate_exam():
         " Ensure that the findings are specific to the likely cause of the complaint and written in full, plain language with no acronyms or abbreviations. "
         "Do not include any introductory phrases or extra text; provide only the exam findings."
     )
+    print("DEBUG: Exam prompt:", exam_prompt)
     try:
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
@@ -1352,15 +1332,14 @@ def generate_exam():
             max_tokens=250
         )
         exam_results = response.choices[0].message["content"].strip()
-        # Update GPT-3.5 usage for exam generation.
         if response.usage and 'prompt_tokens' in response.usage and 'completion_tokens' in response.usage:
             current_user.token_prompt_usage_gpt35 = (current_user.token_prompt_usage_gpt35 or 0) + response.usage['prompt_tokens']
             current_user.token_completion_usage_gpt35 = (current_user.token_completion_usage_gpt35 or 0) + response.usage['completion_tokens']
             db.session.commit()
     except Exception as e:
         exam_results = f"Error generating exam results: {str(e)}"
+    print("DEBUG: Exam results generated:", exam_results)
     return jsonify({"results": exam_results}), 200
-
 
 # --- Daily Update Scheduler ---
 def send_daily_update():
@@ -1406,7 +1385,6 @@ def send_daily_update():
         sg.send(update_email)
     except Exception as e:
         print(f"Error sending daily update: {str(e)}")
-
 
 scheduler = BackgroundScheduler()
 scheduler.add_job(send_daily_update, 'interval', days=1)

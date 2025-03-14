@@ -8,6 +8,17 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
   <!-- Font Awesome (if needed) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    /* Pulsate animation for sticky CTA */
+    @keyframes pulsate {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.05); opacity: 0.8; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .sticky-cta {
+      animation: pulsate 1.5s ease-in-out infinite;
+    }
+  </style>
 </head>
 <body>
   <!-- Header with Logo and Buttons -->
@@ -24,78 +35,74 @@
     </div>
   </header>
 
-  <!-- Sticky Primary CTA -->
+  <!-- Sticky Primary CTA with pulsate effect -->
   <a href="{{ url_for('register') }}" class="sticky-cta">Claim your spot now</a>
 
-  <!-- Hero Section with Video and Piano-Key Text -->
+  <!-- Hero Section (Video Removed) -->
   <section class="hero-section" id="hero">
-    <video class="hero-video" autoplay muted loop>
-      <source src="{{ url_for('static', filename='explainer.mp4') }}" type="video/mp4">
-      Your browser does not support the video tag.
-    </video>
     <div class="hero-overlay">
       <h2 class="piano-text">
-        <span class="word"><span class="letter">M</span><span class="letter">a</span><span class="letter">s</span><span class="letter">t</span><span class="letter">e</span><span class="letter">r</span></span>
+        <span class="word"><span class="letter">D</span><span class="letter">e</span><span class="letter">v</span><span class="letter">e</span><span class="letter">l</span><span class="letter">o</span><span class="letter">p</span></span>
+        <span class="word"><span class="letter">Y</span><span class="letter">o</span><span class="letter">u</span><span class="letter">r</span></span>
         <span class="word"><span class="letter">C</span><span class="letter">l</span><span class="letter">i</span><span class="letter">n</span><span class="letter">i</span><span class="letter">c</span><span class="letter">a</span><span class="letter">l</span></span>
         <span class="word"><span class="letter">H</span><span class="letter">i</span><span class="letter">s</span><span class="letter">t</span><span class="letter">o</span><span class="letter">r</span><span class="letter">y</span></span>
         <span class="word"><span class="letter">T</span><span class="letter">a</span><span class="letter">k</span><span class="letter">i</span><span class="letter">n</span><span class="letter">g</span></span>
+        <span class="word"><span class="letter">S</span><span class="letter">k</span><span class="letter">i</span><span class="letter">l</span><span class="letter">l</span><span class="letter">s</span></span>
         <span class="word"><span class="letter">w</span><span class="letter">i</span><span class="letter">t</span><span class="letter">h</span></span>
         <span class="word"><span class="letter">R</span><span class="letter">e</span><span class="letter">a</span><span class="letter">l</span><span class="letter">i</span><span class="letter">s</span><span class="letter">t</span><span class="letter">i</span><span class="letter">c</span></span>
+        <span class="word"><span class="letter">P</span><span class="letter">a</span><span class="letter">t</span><span class="letter">i</span><span class="letter">e</span><span class="letter">n</span><span class="letter">t</span><span class="letter">s</span></span>
+        <span class="word"><span class="letter">S</span><span class="letter">i</span><span class="letter">m</span><span class="letter">u</span><span class="letter">l</span><span class="letter">a</span><span class="letter">t</span><span class="letter">e</span><span class="letter">d</span></span>
+        <span class="word"><span class="letter">U</span><span class="letter">s</span><span class="letter">i</span><span class="letter">n</span><span class="letter">g</span></span>
         <span class="word"><span class="letter">A</span><span class="letter">I</span></span>
-        <span class="word"><span class="letter">S</span><span class="letter">i</span><span class="letter">m</span><span class="letter">u</span><span class="letter">l</span><span class="letter">a</span><span class="letter">t</span><span class="letter">i</span><span class="letter">o</span><span class="letter">n</span><span class="letter">s</span></span>
       </h2>
-      <p>Improve your clinical assessment skills quickly and effectively in a safe and confidential environment.</p>
-      <a href="{{ url_for('register') }}" class="primary-cta">Claim your spot now</a>
+      <p>Interact using your keyboard or your own voice!</p>
+      <!-- Duplicate button removed -->
       <p class="risk-reversal">Enjoy a 48‑hour free trial – no obligation, cancel anytime.</p>
     </div>
   </section>
 
-  <!-- New Intro Video Section: video2 -->
-  <section class="intro-video-section" id="intro-video">
-    <div class="video-wrapper">
-      <video class="intro-video" autoplay muted loop>
-        <source src="{{ url_for('static', filename='Video2.mp4') }}" type="video/mp4">
-        Your browser does not support the video tag.
-      </video>
-    </div>
-  </section>
-
-  <!-- How It Works Section with Piano-Key Heading -->
+  <!-- "How It Works" Section -->
   <section id="howitworks">
-    <h2 class="section-title piano-text">
-      <span class="word"><span class="letter">H</span><span class="letter">o</span><span class="letter">w</span></span>
-      <span class="word"><span class="letter">I</span><span class="letter">t</span></span>
-      <span class="word"><span class="letter">W</span><span class="letter">o</span><span class="letter">r</span><span class="letter">k</span><span class="letter">s</span></span>
-    </h2>
-    <div class="carousel-container">
-      <div class="carousel-slide" id="carouselSlide">
+  <h2 class="section-title piano-text">How It Works</h2>
+  <div class="carousel-controls">
+    <button onclick="prevSlide()">Prev</button>
+    <button onclick="nextSlide()">Next</button>
+  </div>
+  <div class="carousel-container">
+    <div class="carousel-slide" id="carouselSlide">
+        <!-- Slide 1: Remains the same -->
         <div class="carousel-item">
           <h3>1. Choose a Scenario</h3>
           <p>Select a presenting complaint tailored to your area of interest such as cardiovascular or gastrointestinal cases.</p>
           <img src="{{ url_for('static', filename='Carousel1.PNG') }}" alt="Choose a Scenario">
         </div>
+        <!-- Slide 2: Remains the same -->
         <div class="carousel-item">
           <h3>2. Interact with AI Patients</h3>
-          <p>Engage in dynamic dialogues that simulate real patient interactions including real time examination reviews.</p>
+          <p>Engage in dynamic dialogues using a keyboard or live chat using your voice, that simulate real patient interactions.</p>
           <video autoplay muted loop style="max-width:100%; border-radius:8px;">
             <source src="{{ url_for('static', filename='demo.mp4') }}" type="video/mp4">
             Your browser does not support the video tag.
           </video>
         </div>
+        <!-- Slide 3: Updated -->
         <div class="carousel-item">
-          <h3>3. Receive Instant Feedback</h3>
-          <p>Get actionable insights to refine your clinical history taking skills.</p>
+          <h3>3. Request Physical Examination Results</h3>
+          <p>Submit your request and receive comprehensive physical examination results to support your diagnosis.</p>
+          <!-- Replace with an appropriate image or video -->
+          <img src="{{ url_for('static', filename='Carousel3.PNG') }}" alt="Request Physical Examination Results">
+        </div>
+        <!-- Slide 4: Updated -->
+        <div class="carousel-item">
+          <h3>4. Receive instant feedback on your performance based on the Calgary-Cambridge model</h3>
+          <p>Gain immediate insights and detailed performance reviews structured around the Calgary-Cambridge model to enhance your skills.</p>
+          <!-- Replace with an appropriate image or video -->
+          <img src="{{ url_for('static', filename='Carousel4.PNG') }}" alt="Instant Feedback">
         </div>
       </div>
-      <!-- Carousel Controls -->
-      <div class="carousel-controls">
-        <button onclick="prevSlide()">Prev</button>
-        <button onclick="nextSlide()">Next</button>
-      </div>
-    </div>
-  </section>
 
-  <!-- Testimonials Section with Piano-Key Heading -->
+
+  <!-- Testimonials Section -->
   <section id="testimonials">
     <h2 class="section-title piano-text">
       <span class="word"><span class="letter">W</span><span class="letter">h</span><span class="letter">a</span><span class="letter">t</span></span>
