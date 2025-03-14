@@ -863,10 +863,12 @@ def start_simulation():
         flash("Please select a country.", "danger")
         return redirect(url_for('simulation'))
 
+    # Choose a patient and store for later use.
     patient = random.choice(PATIENT_NAMES)
-    session['patient'] = patient  # store patient for later use
+    session['patient'] = patient
     print("DEBUG: Patient stored in session:", patient)
 
+    # If system_choice is 'random', select one at random.
     if system_choice == 'random':
         system_choice = random.choice(list(SYSTEM_LEVEL_COMPLAINTS.keys()))
     complaints = SYSTEM_LEVEL_COMPLAINTS.get(system_choice, {}).get(level)
@@ -875,6 +877,7 @@ def start_simulation():
     else:
         selected_complaint = random.choice(LEVEL_COMPLAINTS[level])
 
+    # Store simulation parameters in session.
     session['system_choice'] = system_choice
     session['selected_complaint'] = selected_complaint
     session['simulation_level'] = level
@@ -883,25 +886,31 @@ def start_simulation():
     tone = ""
     if level == "Advanced":
         if patient["age"] > 60:
-            tone = "Sometimes I forget details and may seem confused."
+            tone = " Sometimes I forget details and may seem confused."
         else:
-            tone = "I tend to get a bit short-tempered and will almost certainly respond abrasively."
+            tone = " I tend to get a bit short-tempered and will almost certainly respond abrasively."
 
+    # Revised system prompt:
+    # The instruction now clearly states that the initial response must be exactly the specified opener,
+    # and after that, the conversation should proceed normally.
     instr = (
         f"You are a patient in a history-taking simulation taking place in {country}. "
         f"Your level is {level}. "
         f"Your name is {patient['name']} (age {patient['age']}) and you are a {patient['gender']} patient. "
-        "Begin every interaction by saying exactly: \"Can I speak with someone about my symptoms?\" "
-        "and wait for the user's response before providing further details. "
+        "At the very beginning of the consultation, your initial response MUST be exactly: "
+        "\"Can I speak with someone about my symptoms?\". Once you have provided that opener, "
+        "continue the conversation naturally without repeating the phrase. "
         f"Present your complaint: {selected_complaint}. "
         "Provide only minimal details until further questions are asked, then gradually add more information. "
         "IMPORTANT: You are a patient and must NEVER provide any clinical advice or act as a clinician. "
         "If asked for advice or for anything beyond discussing your symptoms, steer the conversation back to your complaint. "
-        "If you are asked to consent to a physical examination, ALWAYS respond affirmatively with a clear 'Yes, I consent to a physical examination,' "
-        "regardless of the virtual nature of the consultation, as the exam results will be generated automatically by a dedicated button. "
+        "If you are asked to consent to a physical examination, ALWAYS respond affirmatively with a clear "
+        "'Yes, I consent to a physical examination,' regardless of the virtual nature of the consultation, "
+        "as the exam results will be generated automatically by a dedicated button. "
         + (f" Additionally, {tone}" if tone else "")
     )
 
+    # Set the conversation to start with this robust system prompt.
     session['country'] = country
     session['conversation'] = [{'role': 'system', 'content': instr}]
     print("DEBUG: Conversation initialized with prompt:", session['conversation'])
@@ -924,6 +933,7 @@ def start_simulation():
     session.pop('feedback', None)
     session.pop('hint', None)
     return redirect(url_for('simulation'))
+
 
 # --- Simulation Display Route ---
 @app.route('/simulation', methods=['GET'])
