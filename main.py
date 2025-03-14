@@ -908,7 +908,7 @@ def start_simulation():
 
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4-turbo",
             messages=session['conversation'],
             temperature=0.8
         )
@@ -1045,35 +1045,39 @@ def feedback():
         flash("No conversation available for feedback", "warning")
         return redirect(url_for('simulation'))
 
+    # Gather only user messages for the transcript.
     user_conv_text = "\n".join([f"User: {m['content']}" for m in conversation if m.get('role') == 'user'])
+
+    # Old, explicit prompt wording:
     feedback_prompt = (
-        "IMPORTANT: Output ONLY valid JSON with NO disclaimers or additional commentary. "
-        "Your answer MUST start with '{' and end with '}'. Use double quotes for all keys and string values, "
-        "and do NOT use single quotes. Evaluate the following consultation transcript using the Calgary–Cambridge model. "
-        "Score each category on a scale of 1 to 10, and provide a short comment for each:\n"
-        "1. Initiating the session\n"
-        "2. Gathering information\n"
-        "3. Physical examination\n"
-        "4. Explanation & planning\n"
-        "5. Closing the session\n"
-        "6. Building a relationship\n"
-        "7. Providing structure\n\n"
-        "Then, calculate the overall score (max 70) and provide a brief commentary on the user's clinical reasoning "
-        'in a key called "clinical_reasoning".\n\n'
-        "Format your answer strictly as a single JSON object (do not include any extra text):\n"
-        "{\n"
-        '  "initiating_session": {"score": X, "comment": "..."},\n'
-        '  "gathering_information": {"score": X, "comment": "..."},\n'
-        '  "physical_examination": {"score": X, "comment": "..."},\n'
-        '  "explanation_planning": {"score": X, "comment": "..."},\n'
-        '  "closing_session": {"score": X, "comment": "..."},\n'
-        '  "building_relationship": {"score": X, "comment": "..."},\n'
-        '  "providing_structure": {"score": X, "comment": "..."},\n'
-        '  "overall": Y,\n'
-        '  "clinical_reasoning": "..." \n'
-        '}\n\n'
-        "The consultation transcript is:\n" + user_conv_text
+            "IMPORTANT: Output ONLY valid JSON with NO disclaimers or additional commentary. "
+            "Your answer MUST start with '{' and end with '}'. Use double quotes for all keys and string values, "
+            "and do NOT use single quotes. Evaluate the following consultation transcript using the Calgary–Cambridge model. "
+            "Score each category on a scale of 1 to 10, and provide a short comment for each:\n"
+            "1. Initiating the session\n"
+            "2. Gathering information\n"
+            "3. Physical examination\n"
+            "4. Explanation & planning\n"
+            "5. Closing the session\n"
+            "6. Building a relationship\n"
+            "7. Providing structure\n\n"
+            "Then, calculate the overall score (max 70) and provide a brief commentary on the user's clinical reasoning "
+            'in a key called "clinical_reasoning".\n\n'
+            "Format your answer strictly as a single JSON object (do not include any extra text):\n"
+            "{\n"
+            '  "initiating_session": {"score": X, "comment": "..."},\n'
+            '  "gathering_information": {"score": X, "comment": "..."},\n'
+            '  "physical_examination": {"score": X, "comment": "..."},\n'
+            '  "explanation_planning": {"score": X, "comment": "..."},\n'
+            '  "closing_session": {"score": X, "comment": "..."},\n'
+            '  "building_relationship": {"score": X, "comment": "..."},\n'
+            '  "providing_structure": {"score": X, "comment": "..."},\n'
+            '  "overall": Y,\n'
+            '  "clinical_reasoning": "..." \n'
+            '}\n\n'
+            "The consultation transcript is:\n" + user_conv_text
     )
+
     feedback_conversation = [{'role': 'system', 'content': feedback_prompt}]
     print("DEBUG: Feedback prompt constructed:", feedback_prompt)
     try:
@@ -1084,17 +1088,17 @@ def feedback():
             max_tokens=300
         )
         fb = response.choices[0].message["content"]
+        # Track GPT-4 usage if needed.
         if response.usage and 'prompt_tokens' in response.usage and 'completion_tokens' in response.usage:
-            current_user.token_prompt_usage_gpt4 = (current_user.token_prompt_usage_gpt4 or 0) + response.usage['prompt_tokens']
-            current_user.token_completion_usage_gpt4 = (current_user.token_completion_usage_gpt4 or 0) + response.usage['completion_tokens']
+            current_user.token_prompt_usage_gpt4 = (current_user.token_prompt_usage_gpt4 or 0) + response.usage[
+                'prompt_tokens']
+            current_user.token_completion_usage_gpt4 = (current_user.token_completion_usage_gpt4 or 0) + response.usage[
+                'completion_tokens']
             db.session.commit()
     except Exception as e:
         fb = f"Error generating feedback: {str(e)}"
     try:
-        # Use non-greedy regex to extract JSON.
-        json_match = re.search(r'\{.*?\}', fb, re.DOTALL)
-        if json_match:
-            fb = json_match.group()
+        # Attempt to parse fb as JSON and pretty-print it.
         feedback_json = json.loads(fb)
         pretty_feedback = json.dumps(feedback_json, indent=2)
         session['feedback_json'] = feedback_json
