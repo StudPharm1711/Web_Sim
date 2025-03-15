@@ -4,89 +4,11 @@
   <meta charset="UTF-8">
   <title>Welcome to Simul-AI-tor</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <!-- Link to external stylesheet -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-  <!-- Font Awesome for Icons -->
+  <!-- Font Awesome for Icons (Carousel Arrows, etc.) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
-  <style>
-    /* Pulsate animation for sticky CTA */
-    @keyframes pulsate {
-      0% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.05); opacity: 0.8; }
-      100% { transform: scale(1); opacity: 1; }
-    }
-    .sticky-cta {
-      animation: pulsate 1.5s ease-in-out infinite;
-    }
-
-    /* Piano-Key Lettering */
-    .piano-text .letter {
-      display: inline-block;
-      transition: transform 0.2s, color 0.2s, text-shadow 0.2s;
-      color: #34495e;
-      margin: 0 0.05em; /* Adjust letter spacing if needed */
-    }
-    .piano-text .word {
-      display: inline-block;
-      margin-right: 0.5em; /* Space between words */
-    }
-
-    /* Secondary Nav Bar (Anchor Links to Sections) */
-    .section-nav {
-      display: flex;
-      justify-content: center;
-      background-color: #f9f7ff; /* Light background to differentiate from header */
-      padding: 10px 0;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-    .section-nav a {
-      margin: 0 15px;
-      color: #005f73;
-      text-decoration: none;
-      font-weight: 600;
-      transition: color 0.2s;
-    }
-    .section-nav a:hover {
-      color: #0a6c82;
-    }
-
-    /* Carousel Overlay Controls */
-    .carousel-container {
-      position: relative; /* for absolutely positioned controls */
-      overflow: hidden;
-      margin: auto;
-      max-width: 800px;
-    }
-    .carousel-controls {
-      position: absolute;
-      top: 50%;
-      left: 0;
-      width: 100%;
-      display: flex;
-      justify-content: space-between;
-      transform: translateY(-50%);
-      pointer-events: none;
-    }
-    .carousel-controls button {
-      pointer-events: auto;
-      background: rgba(0, 0, 0, 0.5);
-      color: #fff;
-      border: none;
-      border-radius: 50%;
-      width: 48px;
-      height: 48px;
-      cursor: pointer;
-      margin: 0 10px;
-      transition: background 0.3s;
-    }
-    .carousel-controls button:hover {
-      background: rgba(0, 0, 0, 0.8);
-    }
-    .carousel-controls button i {
-      font-size: 1.2rem;
-    }
-  </style>
 </head>
 <body>
   <!-- Header with Logo and Buttons -->
@@ -94,8 +16,35 @@
     <div class="header-container">
       <div class="logo-group">
         <img src="{{ url_for('static', filename='new_logo.avif') }}" alt="Simul-AI-tor Logo">
-        <h1>Simul-AI-tor</h1>
+
+        <!-- Main Heading and "History Taking" text -->
+        <div class="logo-text">
+          <h1 class="main-heading">Simul-AI-tor</h1>
+
+          <!-- Container for spaced, fade-in letters -->
+          <div class="history-container">
+            <!-- Each letter is a separate span so we can fade them in one by one -->
+            <span class="history-letter">H</span>
+            <span class="history-letter">I</span>
+            <span class="history-letter">S</span>
+            <span class="history-letter">T</span>
+            <span class="history-letter">O</span>
+            <span class="history-letter">R</span>
+            <span class="history-letter">Y</span>
+
+            <!-- Extra spacing between words -->
+            <span class="history-letter">&nbsp;</span>
+
+            <span class="history-letter">T</span>
+            <span class="history-letter">A</span>
+            <span class="history-letter">K</span>
+            <span class="history-letter">I</span>
+            <span class="history-letter">N</span>
+            <span class="history-letter">G</span>
+          </div>
+        </div>
       </div>
+
       <div class="header-right">
         <a href="{{ url_for('login') }}">Log In</a>
         <a href="{{ url_for('register') }}">Register</a>
@@ -103,9 +52,8 @@
     </div>
   </header>
 
-  <!-- Secondary Navigation Bar -->
+  <!-- Secondary Navigation Bar (No "Home") -->
   <nav class="section-nav">
-    <a href="#hero">Home</a>
     <a href="#howitworks">How It Works</a>
     <a href="#features">Features</a>
     <a href="#testimonials">Testimonials</a>
@@ -395,7 +343,7 @@
     }
     window.addEventListener('load', updateCarousel);
 
-    // Basic mobile swipe support
+    // Basic mobile swipe support for the carousel
     let startX = 0;
     let endX = 0;
     slideContainer.addEventListener("touchstart", (e) => {
@@ -430,33 +378,31 @@
     });
 
     // Sequential Typing Effect for Testimonial Quotes
-    document.addEventListener('DOMContentLoaded', function() {
-      function typeText(element, text, speed, callback) {
-        let i = 0;
-        function type() {
-          if (i < text.length) {
-            element.innerHTML += text.charAt(i);
-            i++;
-            setTimeout(type, speed);
-          } else if (callback) {
-            callback();
-          }
+    function typeText(element, text, speed, callback) {
+      let i = 0;
+      element.innerHTML = '';
+      function type() {
+        if (i < text.length) {
+          element.innerHTML += text.charAt(i);
+          i++;
+          setTimeout(type, speed);
+        } else if (callback) {
+          callback();
         }
-        type();
       }
+      type();
+    }
 
+    document.addEventListener('DOMContentLoaded', function() {
       const quotes = document.querySelectorAll('.typing-effect');
-
       function typeNextQuote(index) {
         if (index >= quotes.length) return;
         const quote = quotes[index];
         const text = quote.getAttribute('data-quote');
-        quote.innerHTML = '';
         typeText(quote, text, 50, function() {
           typeNextQuote(index + 1);
         });
       }
-
       typeNextQuote(0);
     });
   </script>
