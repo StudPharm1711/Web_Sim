@@ -416,3 +416,29 @@ footer {
     font-size: 1.8rem;
   }
 }
+@media (max-width: 600px) {
+  /* Let the header container stack vertically */
+  .header-container {
+    flex-direction: column;
+    align-items: center;
+    padding: 10px 20px;
+  }
+
+  /* Logo group and typed text can remain as is, but reduce spacing if needed */
+  .logo-group {
+    margin-bottom: 8px; /* Add some space before the Log In/Register buttons */
+  }
+
+  /* Make sure .header-right is centered and spaced nicely */
+  .header-right {
+    flex-direction: row;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 5px;
+  }
+
+  /* If you want to shrink the red letters a bit more on mobile */
+  .history-letter {
+    font-size: 1rem;
+  }
+}
