@@ -9,6 +9,7 @@ import statistics  # for computing median weighted cost
 from datetime import datetime
 from flask import Flask, render_template, redirect, url_for, request, flash, session, send_file, jsonify, Blueprint
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.exc import IntegrityError
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -96,6 +97,20 @@ class User(UserMixin, db.Model):
     token_completion_usage_gpt4 = db.Column(db.Integer, default=0)
     is_admin = db.Column(db.Boolean, default=False)
     current_session = db.Column(db.String(255), nullable=True)  # To track the current session token
+
+
+# --- Pending Registration Model ---
+class PendingRegistration(db.Model):
+    __tablename__ = 'pending_registration'
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(150), unique=True, nullable=False)
+    hashed_password = db.Column(db.String(255), nullable=False)
+    category = db.Column(db.String(50))
+    discipline = db.Column(db.String(100))
+    stripe_customer_id = db.Column(db.String(100))
+    subscription_id = db.Column(db.String(100))
+    subscription_status = db.Column(db.String(50))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 @login_manager.user_loader
@@ -338,7 +353,7 @@ SYSTEM_LEVEL_COMPLAINTS = {
             "I have persistent hip pain when I walk",
             "My muscles often feel sore and stiff"
         ],
-         "Advanced": [
+        "Advanced": [
             "My back pain is so bad that I can’t stand up straight.",
             "My joints are swollen and hurt so much that I don’t want to move.",
             "I keep getting these horrible muscle spasms that make me jolt.",
@@ -453,7 +468,7 @@ SYSTEM_LEVEL_COMPLAINTS = {
             "I experience symptoms similar to mild psoriasis"
         ],
         "Advanced": [
-            "I feel completely drained all the time, and I keep losing weight.",
+            "I feel completely drained all the time, and I keep losing weight fast.",
             "I barely eat, but I’m still losing a lot of weight fast.",
             "I can’t handle heat at all, it makes me feel weak and shaky.",
             "My muscles feel so weak that even standing is hard.",
@@ -485,6 +500,7 @@ PROMPT_INSTRUCTION = (
 # --- Account Blueprint ---
 account_bp = Blueprint('account', __name__, url_prefix='/account')
 
+
 @app.route('/account')
 @login_required
 def account():
@@ -492,7 +508,8 @@ def account():
     if current_user.subscription_id:
         try:
             subscription = stripe.Subscription.retrieve(current_user.subscription_id)
-            current_period_end = datetime.utcfromtimestamp(subscription.current_period_end).strftime("%Y-%m-%d %H:%M:%S")
+            current_period_end = datetime.utcfromtimestamp(subscription.current_period_end).strftime(
+                "%Y-%m-%d %H:%M:%S")
             subscription_info = {
                 "cancel_at_period_end": subscription.cancel_at_period_end,
                 "current_period_end": current_period_end,
@@ -502,18 +519,22 @@ def account():
             flash(f"Error retrieving subscription info: {str(e)}", "danger")
     return render_template('account.html', subscription_info=subscription_info)
 
+
 app.register_blueprint(account_bp)
+
 
 # --- New Route for Terms and Conditions ---
 @app.route('/terms.html')
 def terms():
     return render_template('terms.html')
 
+
 # --- New Route for Instructions ---
 @app.route('/instructions')
 @login_required
 def instructions():
     return render_template('instructions.html')
+
 
 # --- Subscription Cancellation Route ---
 @app.route('/cancel_subscription', methods=['POST'])
@@ -551,6 +572,7 @@ def cancel_subscription():
         flash(f"Error cancelling subscription: {str(e)}", "danger")
     return redirect(url_for('account'))
 
+
 # --- Reactivation Routes ---
 @app.route('/reactivate_subscription')
 @login_required
@@ -565,6 +587,7 @@ def reactivate_subscription():
         cancel_url=url_for('account', _external=True)
     )
     return redirect(checkout_session.url)
+
 
 @app.route('/reactivate_payment_success')
 @login_required
@@ -608,12 +631,15 @@ def reactivate_payment_success():
         flash(f"Error processing reactivation: {str(e)}", "danger")
     return redirect(url_for('account'))
 
+
 # --- Landing Page Route ---
 @app.route('/')
 def landing():
     return render_template('landing.html')
 
+
 ADMIN_LOGIN_PASSWORD = os.getenv("ADMIN_LOGIN_PASSWORD")
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -654,6 +680,7 @@ def login():
             else:
                 flash("Invalid email or password", "danger")
     return render_template('login.html')
+
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -702,6 +729,8 @@ def register():
         return redirect(checkout_session.url)
     return render_template('register.html')
 
+
+# --- Modified Payment Success Route ---
 @app.route('/payment_success')
 def payment_success():
     session_id = request.args.get('session_id')
@@ -727,49 +756,175 @@ def payment_success():
             flash("We have reached the maximum number of active subscriptions. Please try again later.", "warning")
             return redirect(url_for('register'))
 
-        new_user = User(
+        # Augment the pending registration data with Stripe info.
+        pending_registration["stripe_customer_id"] = stripe_customer_id
+        pending_registration["subscription_id"] = subscription_id
+        pending_registration["subscription_status"] = subscription.status
+
+        # Create a new PendingRegistration record.
+        new_pending = PendingRegistration(
             email=pending_registration["email"],
-            password=pending_registration["hashed_password"],
+            hashed_password=pending_registration["hashed_password"],
             category=pending_registration["category"],
             discipline=pending_registration["discipline"],
             stripe_customer_id=stripe_customer_id,
             subscription_id=subscription_id,
             subscription_status=subscription.status
         )
-        db.session.add(new_user)
-        db.session.commit()
-
+        db.session.add(new_pending)
         try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            flash("You have already registered. Please check your email for the confirmation link. Sometimes emails may be blocked by your email provider. If you haven't received it in 24 hours, please contact simulaitor@outlook.com.", "warning")
+            return redirect(url_for('login'))
+
+        # Save the email in session for later use in resending if needed.
+        session['pending_email'] = pending_registration["email"]
+
+        # Generate a confirmation token from the pending registration data.
+        token = s.dumps(json.dumps(pending_registration), salt='email-confirmation-salt')
+
+        # Send confirmation email with the token link.
+        try:
+            confirmation_link = url_for('confirm_email', token=token, _external=True)
             sg = SendGridAPIClient(os.getenv('SENDGRID_API_KEY'))
-            confirmation_email = Mail(
+            confirm_email = Mail(
                 from_email=os.getenv('FROM_EMAIL', 'support@simul-ai-tor.com'),
-                to_emails=new_user.email,
-                subject="Subscription Confirmation",
+                to_emails=pending_registration["email"],
+                subject="Please Confirm Your Email Address",
                 plain_text_content=(
-                    "Hello,\n\nThank you for subscribing! Your subscription is now active. "
-                    "Enjoy using Simul-AI-tor.\n\nBest regards,\nThe Support Team"
+                    f"Hello,\n\nThank you for subscribing! To complete your registration, please confirm your email address "
+                    f"by clicking the link below:\n\n{confirmation_link}\n\nIf you did not register, please ignore this email."
                 )
             )
-            sg.send(confirmation_email)
+            sg.send(confirm_email)
         except Exception as e:
             flash(f"Error sending confirmation email: {str(e)}", "warning")
+            return redirect(url_for('register'))
 
-        new_user.current_session = str(uuid.uuid4())
-        db.session.commit()
-        session['session_token'] = new_user.current_session
-
-        login_user(new_user)
+        # Remove pending registration from the session.
         session.pop('pending_registration', None)
-        flash("Payment successful! Your subscription is now active. A confirmation email has been sent.", "success")
+        flash("A confirmation email has been sent. Please check your inbox to complete registration.", "info")
+        return redirect(url_for('login'))
     except Exception as e:
         flash(f"Error processing subscription: {str(e)}", "danger")
         return redirect(url_for('register'))
+
+
+# --- New Email Confirmation Route ---
+@app.route('/confirm_email/<token>', methods=['GET'])
+def confirm_email(token):
+    try:
+        # Decode the token (valid for 1 hour)
+        pending_json = s.loads(token, salt='email-confirmation-salt', max_age=3600)
+        registration_data = json.loads(pending_json)
+    except Exception as e:
+        flash("The confirmation link is invalid or has expired.", "danger")
+        # Offer a link to resend the confirmation email.
+        return redirect(url_for('resend_confirmation'))
+
+    # Check if the user already exists.
+    if User.query.filter_by(email=registration_data["email"]).first():
+        flash("This email address has already been confirmed. Please log in.", "info")
+        return redirect(url_for('login'))
+
+    # Query for the pending registration record.
+    pending = PendingRegistration.query.filter_by(email=registration_data["email"]).first()
+    if not pending:
+        flash("No pending registration record found. Please register again.", "danger")
+        return redirect(url_for('register'))
+
+    # Create new user from registration data.
+    new_user = User(
+        email=pending.email,
+        password=pending.hashed_password,
+        category=pending.category,
+        discipline=pending.discipline,
+        stripe_customer_id=pending.stripe_customer_id,
+        subscription_id=pending.subscription_id,
+        subscription_status=pending.subscription_status
+    )
+    db.session.add(new_user)
+    db.session.delete(pending)  # Remove the pending record
+    db.session.commit()
+
+    try:
+        # Optionally, send a final confirmation email.
+        sg = SendGridAPIClient(os.getenv('SENDGRID_API_KEY'))
+        final_confirm = Mail(
+            from_email=os.getenv('FROM_EMAIL', 'support@simul-ai-tor.com'),
+            to_emails=new_user.email,
+            subject="Email Confirmed - Welcome to Simul-AI-tor",
+            plain_text_content=(
+                "Hello,\n\nYour email has been confirmed and your subscription is now active. "
+                "Enjoy using Simul-AI-tor.\n\nBest regards,\nThe Support Team"
+            )
+        )
+        sg.send(final_confirm)
+    except Exception as e:
+        flash(f"Error sending final confirmation email: {str(e)}", "warning")
+
+    # Log the user in.
+    new_user.current_session = str(uuid.uuid4())
+    db.session.commit()
+    session['session_token'] = new_user.current_session
+    login_user(new_user)
+    flash("Your email has been confirmed and registration completed!", "success")
     return redirect(url_for('simulation'))
+
+
+# --- New Resend Confirmation Route ---
+@app.route('/resend_confirmation', methods=['GET'])
+def resend_confirmation():
+    # Retrieve the pending email from session
+    pending_email = session.get('pending_email')
+    if not pending_email:
+        flash("No pending registration found. Please register again.", "danger")
+        return redirect(url_for('register'))
+
+    pending = PendingRegistration.query.filter_by(email=pending_email).first()
+    if not pending:
+        flash("No pending registration record found. Please register again.", "danger")
+        return redirect(url_for('register'))
+
+    # Prepare the registration data to generate a new token.
+    pending_data = {
+        "email": pending.email,
+        "hashed_password": pending.hashed_password,
+        "category": pending.category,
+        "discipline": pending.discipline,
+        "stripe_customer_id": pending.stripe_customer_id,
+        "subscription_id": pending.subscription_id,
+        "subscription_status": pending.subscription_status
+    }
+    token = s.dumps(json.dumps(pending_data), salt='email-confirmation-salt')
+
+    try:
+        confirmation_link = url_for('confirm_email', token=token, _external=True)
+        sg = SendGridAPIClient(os.getenv('SENDGRID_API_KEY'))
+        confirm_email = Mail(
+            from_email=os.getenv('FROM_EMAIL', 'support@simul-ai-tor.com'),
+            to_emails=pending.email,
+            subject="Please Confirm Your Email Address (New Link)",
+            plain_text_content=(
+                f"Hello,\n\nYour previous confirmation link expired. "
+                f"Please complete your registration by clicking the new link below:\n\n{confirmation_link}\n\n"
+                "If you did not register, please ignore this email."
+            )
+        )
+        sg.send(confirm_email)
+        flash("A new confirmation email has been sent. Please check your inbox.", "info")
+    except Exception as e:
+        flash(f"Error sending new confirmation email: {str(e)}", "warning")
+    return redirect(url_for('login'))
+
 
 @app.route('/payment_cancel')
 def payment_cancel():
     flash("Payment was cancelled. Please try again.", "warning")
     return redirect(url_for('register'))
+
 
 @app.route('/logout')
 @login_required
@@ -779,12 +934,14 @@ def logout():
     session.pop('feedback_json', None)
     session.pop('hint', None)
     logout_user()
-    return redirect(url_for('login'))
+    return redirect(url_for('landing'))
+
 
 @app.route('/about')
 @login_required
 def about():
     return render_template('about.html')
+
 
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
@@ -818,6 +975,7 @@ def forgot_password():
         return redirect(url_for('login'))
     return render_template('forgot_password.html')
 
+
 @app.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
     try:
@@ -848,6 +1006,7 @@ def reset_password(token):
             flash("User not found.", "danger")
             return redirect(url_for('forgot_password'))
     return render_template('reset_password.html', token=token)
+
 
 # --- Start Simulation Route with Debug Logging ---
 # --- Start Simulation Route with Debug Logging ---
@@ -906,19 +1065,19 @@ def start_simulation():
 
     # Build the initial system prompt with the new descriptors.
     instr = (
-        f"You are a patient in a history-taking simulation taking place in {country}. "
-        f"Your problem complexity is {problem_complexity} and your patient complexity is {patient_complexity}. "
-        f"Your name is {patient['name']} (age {patient['age']}) and you are a {patient['gender']} patient. "
-        "At the very beginning of the consultation, your initial response MUST be exactly: "
-        "\"Can I speak with someone about my symptoms?\". Once you have provided that opener, "
-        "continue the conversation naturally without repeating the phrase. Consent to answering questions regardless of the interviewer's profession. "
-        f"Present your complaint: {selected_complaint}. "
-        "Provide only minimal details until further questions are asked, then gradually add more information. "
-        "IMPORTANT: You are a patient and must NEVER provide any clinical advice or act as a clinician. "
-        "If asked for advice or for anything beyond discussing your symptoms, steer the conversation back to your complaint. "
-        "If you are asked to consent to a physical examination, ALWAYS respond affirmatively with a clear "
-        "'Yes, I consent to a physical examination,' regardless of the virtual nature of the consultation."
-        + tone
+            f"You are a patient in a history-taking simulation taking place in {country}. "
+            f"Your problem complexity is {problem_complexity} and your patient complexity is {patient_complexity}. "
+            f"Your name is {patient['name']} (age {patient['age']}) and you are a {patient['gender']} patient. "
+            "At the very beginning of the consultation, your initial response MUST be exactly: "
+            "\"Can I speak with someone about my symptoms?\". Once you have provided that opener, "
+            "continue the conversation naturally without repeating the phrase. Consent to answering questions regardless of the interviewer's profession. "
+            f"Present your complaint: {selected_complaint}. "
+            "Provide only minimal details until further questions are asked, then gradually add more information. "
+            "IMPORTANT: You are a patient and must NEVER provide any clinical advice or act as a clinician. "
+            "If asked for advice or for anything beyond discussing your symptoms, steer the conversation back to your complaint. "
+            "If you are asked to consent to a physical examination, ALWAYS respond affirmatively with a clear "
+            "'Yes, I consent to a physical examination,' regardless of the virtual nature of the consultation."
+            + tone
     )
 
     # Initialize conversation with this robust system prompt.
@@ -933,8 +1092,10 @@ def start_simulation():
         )
         first_reply = response.choices[0].message["content"]
         if response.usage and 'prompt_tokens' in response.usage and 'completion_tokens' in response.usage:
-            current_user.token_prompt_usage_gpt4 = (current_user.token_prompt_usage_gpt4 or 0) + response.usage['prompt_tokens']
-            current_user.token_completion_usage_gpt4 = (current_user.token_completion_usage_gpt4 or 0) + response.usage['completion_tokens']
+            current_user.token_prompt_usage_gpt4 = (current_user.token_prompt_usage_gpt4 or 0) + response.usage[
+                'prompt_tokens']
+            current_user.token_completion_usage_gpt4 = (current_user.token_completion_usage_gpt4 or 0) + response.usage[
+                'completion_tokens']
             db.session.commit()
     except Exception as e:
         first_reply = f"Error with API: {str(e)}"
@@ -943,7 +1104,6 @@ def start_simulation():
     session.pop('feedback', None)
     session.pop('hint', None)
     return redirect(url_for('simulation'))
-
 
 
 # --- Simulation Display Route ---
@@ -960,6 +1120,7 @@ def simulation():
         feedback_raw=session.get('feedback'),
         hint=session.get('hint')
     )
+
 
 # --- Send Message Route with Debug Logging ---
 @app.route('/send_message', methods=['POST'])
@@ -986,6 +1147,7 @@ def send_message():
         return jsonify({"status": "ok"}), 200
 
     return jsonify({"status": "error", "message": "No message provided"}), 400
+
 
 # --- Get Reply Route with Debug Logging ---
 @app.route('/get_reply', methods=['POST'])
@@ -1036,6 +1198,7 @@ def get_reply():
     print("DEBUG: After get_reply, conversation:", conversation)
     return jsonify({"reply": resp_text}), 200
 
+
 # --- Hint Route with Debug Logging ---
 @app.route('/hint', methods=['POST'])
 @login_required
@@ -1044,7 +1207,8 @@ def hint():
     if not conversation:
         flash("No conversation available for hint suggestions", "warning")
         return redirect(url_for('simulation'))
-    conv_text = "\n".join([f"{'User' if m['role'] == 'user' else 'Patient'}: {m['content']}" for m in conversation if m['role'] != 'system'])
+    conv_text = "\n".join([f"{'User' if m['role'] == 'user' else 'Patient'}: {m['content']}" for m in conversation if
+                           m['role'] != 'system'])
     hint_text = PROMPT_INSTRUCTION + "\n" + conv_text
     hint_conversation = [{'role': 'system', 'content': hint_text}]
     print("DEBUG: Hint prompt constructed:", hint_text)
@@ -1056,14 +1220,17 @@ def hint():
         )
         hint_response = response.choices[0].message["content"]
         if response.usage and 'prompt_tokens' in response.usage and 'completion_tokens' in response.usage:
-            current_user.token_prompt_usage_gpt35 = (current_user.token_prompt_usage_gpt35 or 0) + response.usage['prompt_tokens']
-            current_user.token_completion_usage_gpt35 = (current_user.token_completion_usage_gpt35 or 0) + response.usage['completion_tokens']
+            current_user.token_prompt_usage_gpt35 = (current_user.token_prompt_usage_gpt35 or 0) + response.usage[
+                'prompt_tokens']
+            current_user.token_completion_usage_gpt35 = (current_user.token_completion_usage_gpt35 or 0) + \
+                                                        response.usage['completion_tokens']
             db.session.commit()
     except Exception as e:
         hint_response = f"Error with API: {str(e)}"
     session['hint'] = hint_response
     print("DEBUG: Hint response received:", hint_response)
     return redirect(url_for('simulation'))
+
 
 # --- Feedback Route with Debug Logging ---
 @app.route('/feedback', methods=['POST'])
@@ -1139,6 +1306,7 @@ def feedback():
         session['feedback_json'] = None
         session['feedback'] = fb
     return redirect(url_for('simulation'))
+
 
 # --- Download Feedback Route ---
 @app.route('/download_feedback', methods=['GET'])
@@ -1275,6 +1443,7 @@ def download_feedback():
         mimetype="application/pdf"
     )
 
+
 @app.route('/clear_simulation')
 @login_required
 def clear_simulation():
@@ -1306,6 +1475,7 @@ def clear_simulation():
     session['conversation'] = [{'role': 'system', 'content': instr}]
     print("DEBUG: Simulation reinitialized with prompt:", session['conversation'])
     return redirect(url_for('simulation'))
+
 
 @app.route('/generate_exam', methods=['POST'])
 @login_required
@@ -1351,11 +1521,11 @@ def generate_exam():
           "Then, generate a complete physical examination with both vital signs and system-specific findings relevant to the complaint."
           )
     exam_prompt = (
-        f"Generate a concise set of physical examination findings for a patient presenting with '{complaint}'. "
-        + vitals_prompt +
-        extra_instructions +
-        " Ensure that the findings are specific to the likely cause of the complaint and written in full, plain language with no acronyms or abbreviations. "
-        "Do not include any introductory phrases or extra text; provide only the exam findings."
+            f"Generate a concise set of physical examination findings for a patient presenting with '{complaint}'. "
+            + vitals_prompt +
+            extra_instructions +
+            " Ensure that the findings are specific to the likely cause of the complaint and written in full, plain language with no acronyms or abbreviations. "
+            "Do not include any introductory phrases or extra text; provide only the exam findings."
     )
     print("DEBUG: Exam prompt:", exam_prompt)
     try:
@@ -1367,19 +1537,22 @@ def generate_exam():
         )
         exam_results = response.choices[0].message["content"].strip()
         if response.usage and 'prompt_tokens' in response.usage and 'completion_tokens' in response.usage:
-            current_user.token_prompt_usage_gpt35 = (current_user.token_prompt_usage_gpt35 or 0) + response.usage['prompt_tokens']
-            current_user.token_completion_usage_gpt35 = (current_user.token_completion_usage_gpt35 or 0) + response.usage['completion_tokens']
+            current_user.token_prompt_usage_gpt35 = (current_user.token_prompt_usage_gpt35 or 0) + response.usage[
+                'prompt_tokens']
+            current_user.token_completion_usage_gpt35 = (current_user.token_completion_usage_gpt35 or 0) + \
+                                                        response.usage['completion_tokens']
             db.session.commit()
     except Exception as e:
         exam_results = f"Error generating exam results: {str(e)}"
     print("DEBUG: Exam results generated:", exam_results)
     return jsonify({"results": exam_results}), 200
 
+
 # --- Daily Update Scheduler ---
 def send_daily_update():
     try:
         active_students = User.query.filter(User.subscription_status == 'active',
-                                              User.category == 'health_student').count()
+                                            User.category == 'health_student').count()
         active_non_students = User.query.filter(User.subscription_status == 'active',
                                                 User.category != 'health_student').count()
         active_users = User.query.filter(User.subscription_status == 'active').all()
@@ -1387,9 +1560,9 @@ def send_daily_update():
         total_cost = 0.0
         for user in active_users:
             cost_gpt35 = (user.token_prompt_usage_gpt35 / 1_000_000 * GPT35_INPUT_COST_PER_1M) + (
-                user.token_completion_usage_gpt35 / 1_000_000 * GPT35_OUTPUT_COST_PER_1M)
+                    user.token_completion_usage_gpt35 / 1_000_000 * GPT35_OUTPUT_COST_PER_1M)
             cost_gpt4 = (user.token_prompt_usage_gpt4 / 1_000_000 * GPT4_INPUT_COST_PER_1M) + (
-                user.token_completion_usage_gpt4 / 1_000_000 * GPT4_OUTPUT_COST_PER_1M)
+                    user.token_completion_usage_gpt4 / 1_000_000 * GPT4_OUTPUT_COST_PER_1M)
             user_cost = cost_gpt35 + cost_gpt4
             weighted_costs.append(user_cost)
             total_cost += user_cost
@@ -1419,6 +1592,7 @@ def send_daily_update():
         sg.send(update_email)
     except Exception as e:
         print(f"Error sending daily update: {str(e)}")
+
 
 scheduler = BackgroundScheduler()
 scheduler.add_job(send_daily_update, 'interval', days=1)
