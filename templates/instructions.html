@@ -51,17 +51,28 @@
         .btn-3d:active {
             transform: translateY(2px);
         }
+        /* Optional styling for the details element */
+        details {
+            margin-top: 20px;
+            padding: 10px;
+            background: #e9ecef;
+            border-radius: 4px;
+        }
+        summary {
+            font-weight: bold;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Simulation Instructions</h1>
         <p>
-            Welcome to Simul-AI-tor! This simulation is designed to help you practice clinical history taking.
+            Welcome to Simul-AI-tor! This simulation is designed to help you practise clinical history taking.
             <br><br>
             <strong>How it works:</strong>
             <br>
-            - Start the simulation by selecting your level of practice and country.
+            - Start the simulation by selecting your level of practise and country.
             <br>
             - Engage in a simulated consultation with a patient.
             <br>
@@ -78,11 +89,32 @@
         <ul>
             <li><strong>Hypothetico-Deductive Reasoning:</strong> Formulate initial hypotheses and ask targeted questions to confirm or rule out a potential diagnosis.</li>
             <li><strong>Bayesian Reasoning:</strong> Update your diagnostic probability as new information becomes available, combining prior expectations with current evidence.</li>
-            <li><strong>Dual-Process Theory:</strong> Balance quick, intuitive judgments with more deliberate, analytical thinking to avoid common cognitive biases.</li>
+            <li><strong>Dual-Process Theory:</strong> Balance quick, intuitive judgements with more deliberate, analytical thinking to avoid common cognitive biases.</li>
         </ul>
         <p>
             We hope this simulation helps you enhance both your history taking and clinical decision-making skills.
         </p>
+
+        <!-- Dropdown for the Calgary–Cambridge narrative -->
+        <details>
+            <summary>More on the Calgary–Cambridge Approach</summary>
+            <p>
+                Taking a patient's history using the Calgary–Cambridge approach involves clear and structured communication, creating a comfortable environment for patients to openly share essential information. Begin by initiating the consultation warmly, introducing yourself clearly, confirming the patient's identity, and setting expectations.
+            </p>
+            <p>
+                Next, gather information by actively listening, asking open-ended questions, and gently exploring the patient's concerns, symptoms, and experiences. Employ reflective questioning and periodically summarise key points to confirm your understanding and ensure clarity.
+            </p>
+            <p>
+                When appropriate, gain explicit consent for a physical examination by clearly explaining the purpose, procedure, and relevance to the patient's presenting issues. Perform the examination respectfully, maintaining patient dignity throughout. After completing the examination, review the findings with the patient at an appropriate time, clearly explaining how these results inform your clinical reasoning.
+            </p>
+            <p>
+                Incorporate clinical reasoning methods such as hypothetico-deductive reasoning by generating hypotheses based on the gathered information and examination findings, then methodically testing these hypotheses. Employ Bayesian reasoning by considering the probability of different conditions, weighing new information against existing knowledge, and updating your assessments accordingly.
+            </p>
+            <p>
+                As the consultation concludes, summarise the key points discussed, including your reasoning process and the next steps. Check the patient's understanding and invite further questions or concerns. Always maintain an empathetic, respectful attitude to build trust and a strong therapeutic relationship. This structured approach enhances clinical reasoning, minimises miscommunication, and fosters patient-centred care.
+            </p>
+        </details>
+
         <a href="{{ url_for('simulation') }}" class="btn-3d">Back</a>
     </div>
 </body>
