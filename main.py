@@ -682,6 +682,7 @@ def login():
     return render_template('login.html')
 
 
+# --- Modified Registration Route (Email confirmation before payment) ---
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -707,6 +708,7 @@ def register():
             flash("For student registration, please use a valid academic email (ending with .ac.uk).", "danger")
             return redirect(url_for('register'))
 
+        # Store pending registration data in session
         pending_registration = {
             "email": email,
             "hashed_password": generate_password_hash(password),
@@ -716,71 +718,26 @@ def register():
         }
         session['pending_registration'] = pending_registration
 
-        price_id = STRIPE_STUDENT_PRICE_ID if category == 'health_student' else STRIPE_NONSTUDENT_PRICE_ID
-
-        checkout_session = stripe.checkout.Session.create(
-            payment_method_types=["card"],
-            line_items=[{"price": price_id, "quantity": 1}],
-            mode="subscription",
-            allow_promotion_codes=True,
-            success_url=url_for('payment_success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
-            cancel_url=url_for('payment_cancel', _external=True),
-        )
-        return redirect(checkout_session.url)
-    return render_template('register.html')
-
-
-# --- Modified Payment Success Route ---
-@app.route('/payment_success')
-def payment_success():
-    session_id = request.args.get('session_id')
-    if not session_id:
-        flash("No session ID provided.", "warning")
-        return redirect(url_for('register'))
-    pending_registration = session.get('pending_registration')
-    if not pending_registration:
-        flash("No pending registration found. Please register again.", "danger")
-        return redirect(url_for('register'))
-    try:
-        checkout_session = stripe.checkout.Session.retrieve(session_id)
-        subscription_id = checkout_session.subscription
-        if not subscription_id:
-            flash("No subscription ID found in session.", "danger")
-            return redirect(url_for('register'))
-        subscription = stripe.Subscription.retrieve(subscription_id)
-        stripe_customer_id = checkout_session.customer
-
-        MAX_ACTIVE_SUBSCRIPTIONS = 100
-        active_subscriptions = User.query.filter(User.subscription_status == 'active').count()
-        if active_subscriptions >= MAX_ACTIVE_SUBSCRIPTIONS:
-            flash("We have reached the maximum number of active subscriptions. Please try again later.", "warning")
-            return redirect(url_for('register'))
-
-        # Augment the pending registration data with Stripe info.
-        pending_registration["stripe_customer_id"] = stripe_customer_id
-        pending_registration["subscription_id"] = subscription_id
-        pending_registration["subscription_status"] = subscription.status
+        # Check if a pending registration already exists for this email.
+        existing_pending = PendingRegistration.query.filter_by(email=email).first()
+        if existing_pending:
+            flash("A registration for this email is already pending confirmation. Please check your email or use the resend link.", "warning")
+            return redirect(url_for('check_email'))
 
         # Create a new PendingRegistration record.
         new_pending = PendingRegistration(
-            email=pending_registration["email"],
+            email=email,
             hashed_password=pending_registration["hashed_password"],
-            category=pending_registration["category"],
-            discipline=pending_registration["discipline"],
-            stripe_customer_id=stripe_customer_id,
-            subscription_id=subscription_id,
-            subscription_status=subscription.status
+            category=category,
+            discipline=discipline
         )
-        db.session.add(new_pending)
         try:
+            db.session.add(new_pending)
             db.session.commit()
         except IntegrityError:
             db.session.rollback()
-            flash("You have already registered. Please check your email for the confirmation link. Sometimes emails may be blocked by your email provider. If you haven't received it in 24 hours, please contact simulaitor@outlook.com.", "warning")
-            return redirect(url_for('login'))
-
-        # Save the email in session for later use in resending if needed.
-        session['pending_email'] = pending_registration["email"]
+            flash("A registration for this email is already pending confirmation. Please check your email or use the resend link.", "warning")
+            return redirect(url_for('check_email'))
 
         # Generate a confirmation token from the pending registration data.
         token = s.dumps(json.dumps(pending_registration), salt='email-confirmation-salt')
@@ -803,39 +760,40 @@ def payment_success():
             flash(f"Error sending confirmation email: {str(e)}", "warning")
             return redirect(url_for('register'))
 
-        # Remove pending registration from the session.
-        session.pop('pending_registration', None)
+        # Save the email in session for later use in resending if needed.
+        session['pending_email'] = pending_registration["email"]
+
         flash("A confirmation email has been sent. Please check your inbox to complete registration.", "info")
-        return redirect(url_for('login'))
-    except Exception as e:
-        flash(f"Error processing subscription: {str(e)}", "danger")
-        return redirect(url_for('register'))
+        return redirect(url_for('check_email'))
+    return render_template('register.html')
 
 
-# --- New Email Confirmation Route ---
+# --- New Route for Check Your Email Page ---
+@app.route('/check_email')
+def check_email():
+    return render_template('check_email.html')
+
+
+# --- Modified Email Confirmation Route ---
 @app.route('/confirm_email/<token>', methods=['GET'])
 def confirm_email(token):
     try:
-        # Decode the token (valid for 1 hour)
         pending_json = s.loads(token, salt='email-confirmation-salt', max_age=3600)
         registration_data = json.loads(pending_json)
     except Exception as e:
         flash("The confirmation link is invalid or has expired.", "danger")
-        # Offer a link to resend the confirmation email.
         return redirect(url_for('resend_confirmation'))
 
-    # Check if the user already exists.
     if User.query.filter_by(email=registration_data["email"]).first():
         flash("This email address has already been confirmed. Please log in.", "info")
         return redirect(url_for('login'))
 
-    # Query for the pending registration record.
     pending = PendingRegistration.query.filter_by(email=registration_data["email"]).first()
     if not pending:
         flash("No pending registration record found. Please register again.", "danger")
         return redirect(url_for('register'))
 
-    # Create new user from registration data.
+    # Create new user from pending registration record.
     new_user = User(
         email=pending.email,
         password=pending.hashed_password,
@@ -849,32 +807,32 @@ def confirm_email(token):
     db.session.delete(pending)  # Remove the pending record
     db.session.commit()
 
-    try:
-        # Optionally, send a final confirmation email.
-        sg = SendGridAPIClient(os.getenv('SENDGRID_API_KEY'))
-        final_confirm = Mail(
-            from_email=os.getenv('FROM_EMAIL', 'support@simul-ai-tor.com'),
-            to_emails=new_user.email,
-            subject="Email Confirmed - Welcome to Simul-AI-tor",
-            plain_text_content=(
-                "Hello,\n\nYour email has been confirmed and your subscription is now active. "
-                "Enjoy using Simul-AI-tor.\n\nBest regards,\nThe Support Team"
-            )
-        )
-        sg.send(final_confirm)
-    except Exception as e:
-        flash(f"Error sending final confirmation email: {str(e)}", "warning")
-
     # Log the user in.
     new_user.current_session = str(uuid.uuid4())
     db.session.commit()
     session['session_token'] = new_user.current_session
     login_user(new_user)
-    flash("Your email has been confirmed and registration completed!", "success")
-    return redirect(url_for('simulation'))
+    flash("Your email has been confirmed. Please proceed to payment.", "success")
+    return redirect(url_for('start_payment'))
 
 
-# --- New Resend Confirmation Route ---
+# --- New Route to Start Payment after Email Confirmation ---
+@app.route('/start_payment')
+@login_required
+def start_payment():
+    price_id = STRIPE_STUDENT_PRICE_ID if current_user.category == 'health_student' else STRIPE_NONSTUDENT_PRICE_ID
+    checkout_session = stripe.checkout.Session.create(
+        payment_method_types=["card"],
+        line_items=[{"price": price_id, "quantity": 1}],
+        mode="subscription",
+        allow_promotion_codes=True,
+        success_url=url_for('payment_success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
+        cancel_url=url_for('account', _external=True)
+    )
+    return redirect(checkout_session.url)
+
+
+# --- Resend Confirmation Route ---
 @app.route('/resend_confirmation', methods=['GET'])
 def resend_confirmation():
     # Retrieve the pending email from session
@@ -918,6 +876,50 @@ def resend_confirmation():
     except Exception as e:
         flash(f"Error sending new confirmation email: {str(e)}", "warning")
     return redirect(url_for('login'))
+
+
+# --- Modified Payment Success Route ---
+@app.route('/payment_success')
+@login_required
+def payment_success():
+    session_id = request.args.get('session_id')
+    if not session_id:
+        flash("No session ID provided.", "warning")
+        return redirect(url_for('start_payment'))
+    try:
+        checkout_session = stripe.checkout.Session.retrieve(session_id)
+        subscription_id = checkout_session.subscription
+        if not subscription_id:
+            flash("No subscription ID found in session.", "danger")
+            return redirect(url_for('start_payment'))
+        subscription = stripe.Subscription.retrieve(subscription_id)
+        stripe_customer_id = checkout_session.customer
+
+        current_user.stripe_customer_id = stripe_customer_id
+        current_user.subscription_id = subscription_id
+        current_user.subscription_status = subscription.status
+        db.session.commit()
+
+        try:
+            sg = SendGridAPIClient(os.getenv('SENDGRID_API_KEY'))
+            final_confirm = Mail(
+                from_email=os.getenv('FROM_EMAIL', 'support@simul-ai-tor.com'),
+                to_emails=current_user.email,
+                subject="Subscription Confirmation",
+                plain_text_content=(
+                    "Hello,\n\nYour subscription has been successfully updated. Enjoy using Simul-AI-tor.\n\n"
+                    "Best regards,\nThe Support Team"
+                )
+            )
+            sg.send(final_confirm)
+        except Exception as e:
+            flash(f"Error sending final confirmation email: {str(e)}", "warning")
+
+        flash("Subscription updated successfully!", "success")
+        return redirect(url_for('account'))
+    except Exception as e:
+        flash(f"Error processing subscription: {str(e)}", "danger")
+        return redirect(url_for('start_payment'))
 
 
 @app.route('/payment_cancel')
@@ -1008,7 +1010,6 @@ def reset_password(token):
     return render_template('reset_password.html', token=token)
 
 
-# --- Start Simulation Route with Debug Logging ---
 # --- Start Simulation Route with Debug Logging ---
 @app.route('/start_simulation', methods=['POST'])
 @login_required
@@ -1159,19 +1160,15 @@ def get_reply():
     user_message_count = sum(1 for m in conversation if m.get('role') == 'user')
 
     # Every 3 user messages, insert a reinforcement message if not already inserted.
-    # (Adjust the modulus (3) to change the frequency.)
     if user_message_count > 0 and user_message_count % 3 == 0:
         reinforcement_message = ("REINFORCEMENT: You are a patient in a history-taking simulation. "
                                  "Remember: You must NEVER provide clinical advice or act as a clinician. "
                                  "Remain strictly in character as a patient.")
-        # Check if a reinforcement message is already present among system messages
         if not any("REINFORCEMENT:" in m.get("content", "") for m in conversation if m.get("role") == "system"):
-            # Insert the reinforcement after the first system message (if any), or at the beginning otherwise.
             insert_index = 1 if conversation and conversation[0].get('role') == 'system' else 0
             conversation.insert(insert_index, {'role': 'system', 'content': reinforcement_message})
             print("DEBUG: Reinforcement message inserted.")
 
-    # Log the conversation before sending to the API.
     print("DEBUG: Before get_reply, conversation:", conversation)
 
     try:
@@ -1181,7 +1178,6 @@ def get_reply():
             temperature=0.8
         )
         resp_text = response.choices[0].message["content"]
-        # Update GPT-3.5 usage tracking
         if response.usage and 'prompt_tokens' in response.usage and 'completion_tokens' in response.usage:
             current_user.token_prompt_usage_gpt35 = (current_user.token_prompt_usage_gpt35 or 0) + response.usage[
                 'prompt_tokens']
@@ -1241,10 +1237,7 @@ def feedback():
         flash("No conversation available for feedback", "warning")
         return redirect(url_for('simulation'))
 
-    # Gather only user messages for the transcript.
     user_conv_text = "\n".join([f"User: {m['content']}" for m in conversation if m.get('role') == 'user'])
-
-    # Old, explicit prompt wording:
     feedback_prompt = (
             "IMPORTANT: Output ONLY valid JSON with NO disclaimers or additional commentary. "
             "Your answer MUST start with '{' and end with '}'. Use double quotes for all keys and string values, "
@@ -1285,7 +1278,6 @@ def feedback():
         )
         fb = response.choices[0].message["content"]
         print("DEBUG: Raw GPT-4 feedback:", fb)
-        # Track GPT-4 usage if needed.
         if response.usage and 'prompt_tokens' in response.usage and 'completion_tokens' in response.usage:
             current_user.token_prompt_usage_gpt4 = (current_user.token_prompt_usage_gpt4 or 0) + response.usage[
                 'prompt_tokens']
@@ -1295,7 +1287,6 @@ def feedback():
     except Exception as e:
         fb = f"Error generating feedback: {str(e)}"
     try:
-        # Attempt to parse fb as JSON and pretty-print it.
         feedback_json = json.loads(fb)
         pretty_feedback = json.dumps(feedback_json, indent=2)
         session['feedback_json'] = feedback_json
@@ -1312,7 +1303,6 @@ def feedback():
 @app.route('/download_feedback', methods=['GET'])
 @login_required
 def download_feedback():
-    """Download the consultation feedback as a PDF with bullet points similar to the HTML container."""
     feedback_dict = session.get('feedback_json')
     raw_feedback = session.get('feedback')
     if not feedback_dict and not raw_feedback:
@@ -1447,7 +1437,6 @@ def download_feedback():
 @app.route('/clear_simulation')
 @login_required
 def clear_simulation():
-    # Debug log before clearing
     print("DEBUG: Clearing simulation; previous conversation:", session.get('conversation'))
     session.pop('feedback', None)
     session.pop('feedback_json', None)
