@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <title>Welcome to Simul-AI-tor</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-
   <!-- Link to external stylesheet -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
   <!-- Font Awesome for Icons (Carousel Arrows, etc.) -->
@@ -16,14 +15,11 @@
     <div class="header-container">
       <div class="logo-group">
         <img src="{{ url_for('static', filename='new_logo.avif') }}" alt="Simul-AI-tor Logo">
-
-        <!-- Main Heading and "History Taking" text -->
+        <!-- Group the main heading and the typed subheading -->
         <div class="logo-text">
-          <h1 class="main-heading">Simul-AI-tor</h1>
-
-          <!-- Container for spaced, fade-in letters -->
+          <h1 class="main-heading" id="main-heading">Simul-AI-tor</h1>
+          <!-- History Taking letters -->
           <div class="history-container">
-            <!-- Each letter is a separate span so we can fade them in one by one -->
             <span class="history-letter">H</span>
             <span class="history-letter">I</span>
             <span class="history-letter">S</span>
@@ -31,10 +27,7 @@
             <span class="history-letter">O</span>
             <span class="history-letter">R</span>
             <span class="history-letter">Y</span>
-
-            <!-- Extra spacing between words -->
             <span class="history-letter">&nbsp;</span>
-
             <span class="history-letter">T</span>
             <span class="history-letter">A</span>
             <span class="history-letter">K</span>
@@ -44,7 +37,6 @@
           </div>
         </div>
       </div>
-
       <div class="header-right">
         <a href="{{ url_for('login') }}">Log In</a>
         <a href="{{ url_for('register') }}">Register</a>
@@ -59,7 +51,7 @@
     <a href="#testimonials">Testimonials</a>
   </nav>
 
-  <!-- Sticky Primary CTA with pulsate effect -->
+  <!-- Sticky Primary CTA -->
   <a href="{{ url_for('register') }}" class="sticky-cta">Start your free trial now!</a>
 
   <!-- Hero Section -->
@@ -222,7 +214,6 @@
         </div>
       </div>
       <div class="carousel-controls">
-        <!-- Replacing text-based buttons with icons -->
         <button onclick="prevSlide()"><i class="fas fa-chevron-left"></i></button>
         <button onclick="nextSlide()"><i class="fas fa-chevron-right"></i></button>
       </div>
@@ -307,9 +298,9 @@
     <small>&copy; 2025 Simul-AI-tor Ltd. All rights reserved.</small>
   </footer>
 
-  <!-- JavaScript for Smooth Scrolling, Carousel, Piano-Key, and Typing Effects -->
+  <!-- JavaScript for Effects -->
   <script>
-    // Smooth scroll to section helper
+    // Smooth scroll helper
     function scrollToSection(id) {
       document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
     }
@@ -325,11 +316,10 @@
     }, { threshold: 0.2 });
     sections.forEach(section => observer.observe(section));
 
-    // Carousel functionality
+    // Carousel functions
     let currentSlide = 0;
     const slideContainer = document.getElementById("carouselSlide");
     const totalSlides = slideContainer.children.length;
-
     function updateCarousel() {
       slideContainer.style.transform = 'translateX(' + (-currentSlide * 100) + '%)';
     }
@@ -342,42 +332,31 @@
       updateCarousel();
     }
     window.addEventListener('load', updateCarousel);
-
-    // Basic mobile swipe support for the carousel
-    let startX = 0;
-    let endX = 0;
-    slideContainer.addEventListener("touchstart", (e) => {
-      startX = e.changedTouches[0].clientX;
-    });
-    slideContainer.addEventListener("touchend", (e) => {
-      endX = e.changedTouches[0].clientX;
-      handleSwipe();
-    });
+    let startX = 0, endX = 0;
+    slideContainer.addEventListener("touchstart", e => { startX = e.changedTouches[0].clientX; });
+    slideContainer.addEventListener("touchend", e => { endX = e.changedTouches[0].clientX; handleSwipe(); });
     function handleSwipe() {
-      if (startX - endX > 50) {
-        nextSlide();
-      } else if (endX - startX > 50) {
-        prevSlide();
-      }
+      if (startX - endX > 50) nextSlide();
+      else if (endX - startX > 50) prevSlide();
     }
 
-    // Piano-Key Effect on Letters
+    // Piano-Key hover effect
     document.addEventListener('DOMContentLoaded', function() {
       const letters = document.querySelectorAll('.letter');
       letters.forEach((letter, index) => {
-        letter.addEventListener('mouseenter', function() {
+        letter.addEventListener('mouseenter', () => {
           letters.forEach(l => l.classList.remove('hover-center', 'hover-left', 'hover-right'));
           letter.classList.add('hover-center');
           if (index > 0) letters[index - 1].classList.add('hover-left');
           if (index < letters.length - 1) letters[index + 1].classList.add('hover-right');
         });
-        letter.addEventListener('mouseleave', function() {
+        letter.addEventListener('mouseleave', () => {
           letters.forEach(l => l.classList.remove('hover-center', 'hover-left', 'hover-right'));
         });
       });
     });
 
-    // Sequential Typing Effect for Testimonial Quotes
+    // Typing effect for testimonial quotes
     function typeText(element, text, speed, callback) {
       let i = 0;
       element.innerHTML = '';
@@ -392,16 +371,13 @@
       }
       type();
     }
-
     document.addEventListener('DOMContentLoaded', function() {
       const quotes = document.querySelectorAll('.typing-effect');
       function typeNextQuote(index) {
         if (index >= quotes.length) return;
         const quote = quotes[index];
         const text = quote.getAttribute('data-quote');
-        typeText(quote, text, 50, function() {
-          typeNextQuote(index + 1);
-        });
+        typeText(quote, text, 50, () => { typeNextQuote(index + 1); });
       }
       typeNextQuote(0);
     });

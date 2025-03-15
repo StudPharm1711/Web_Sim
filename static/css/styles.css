@@ -1,7 +1,7 @@
 /*
    Import Fonts:
-   - "Open Sans" for main body text (already in use).
-   - "Montserrat" for the Features section (new).
+   - "Open Sans" for main body text.
+   - "Montserrat" for the Features section.
 */
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Open+Sans:wght@400;700&display=swap');
 
@@ -20,17 +20,9 @@ body {
 }
 
 /* Pastel Background Variations */
-.section-pastel-lavender {
-  background-color: #F9F7FF; /* Light lavender */
-}
-
-.section-pastel-mint {
-  background-color: #F0FFF0; /* Light mint */
-}
-
-.section-pastel-peach {
-  background-color: #FFF5EE; /* Light peach */
-}
+.section-pastel-lavender { background-color: #F9F7FF; }
+.section-pastel-mint     { background-color: #F0FFF0; }
+.section-pastel-peach    { background-color: #FFF5EE; }
 
 /* Header */
 .header-container {
@@ -40,7 +32,6 @@ body {
   padding: 20px 40px;
   background-color: #ffffff;
   box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  position: relative;
   z-index: 1000;
 }
 
@@ -67,20 +58,19 @@ body {
   margin: 0;
 }
 
-/* Container for HISTORY TAKING letters */
+/* History Taking typed text */
 .history-container {
   display: flex;
-  gap: 0.6rem; /* space between letters */
+  gap: 0.6rem;
   margin-top: 5px;
 }
 
-/* Each letter is red and fades in consecutively */
 .history-letter {
   color: red;
   font-size: 1.2rem;
   text-transform: uppercase;
-  opacity: 0;               /* Start invisible */
-  animation: fadeIn 3s forwards; /* We'll stagger using nth-child below */
+  opacity: 0;
+  animation: fadeIn 3s forwards;
 }
 
 /* Right-side links (Log In/Register) */
@@ -156,24 +146,22 @@ section.visible {
   text-align: center;
   background-color: #ffffff;
   padding-top: 50px;
-  margin-bottom: 0;
 }
 
 .hero-overlay {
   position: relative;
   z-index: 2;
-  margin: 0 auto;
+  margin: auto;
   padding: 50px 20px;
   max-width: 1100px;
   text-align: center;
-  background-color: rgba(255, 255, 255, 0.9);
+  background-color: rgba(255,255,255,0.9);
 }
 
 .hero-overlay h2 {
   font-size: 3rem;
   margin-bottom: 20px;
   color: #34495e;
-  white-space: normal;
   text-align: center;
 }
 
@@ -186,12 +174,11 @@ section.visible {
 
 .hero-overlay .risk-reversal {
   margin-top: 0.5rem;
-  margin-bottom: 0;
   font-size: 0.9rem;
   color: #555;
 }
 
-/* Carousel Container */
+/* Carousel */
 .carousel-container {
   position: relative;
   overflow: hidden;
@@ -212,7 +199,7 @@ section.visible {
 
 .carousel-controls button {
   pointer-events: auto;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0,0,0,0.5);
   color: #fff;
   border: none;
   border-radius: 50%;
@@ -224,7 +211,7 @@ section.visible {
 }
 
 .carousel-controls button:hover {
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0,0,0,0.8);
 }
 
 .carousel-controls button i {
@@ -238,7 +225,6 @@ section.visible {
 
 .carousel-item {
   min-width: 100%;
-  box-sizing: border-box;
   padding: 20px;
   text-align: center;
 }
@@ -270,7 +256,7 @@ section.visible {
   grid-template-columns: repeat(2, 1fr);
   gap: 30px;
   max-width: 900px;
-  margin: 0 auto;
+  margin: auto;
 }
 
 @media (max-width: 768px) {
@@ -280,7 +266,7 @@ section.visible {
 }
 
 .feature-item {
-  background-color: #ffffff;
+  background: #ffffff;
   border-radius: 8px;
   padding: 20px;
   box-shadow: 0 2px 5px rgba(0,0,0,0.1);
@@ -310,13 +296,13 @@ section.visible {
 footer {
   text-align: center;
   padding: 20px;
-  background-color: #ffffff;
+  background: #ffffff;
   font-size: 0.9rem;
   color: #333;
   border-top: 1px solid #ddd;
 }
 
-/* Piano-Key Lettering (For headings like "How It Works", "Features", etc.) */
+/* Piano-Key Lettering (for section headings) */
 .piano-text {
   font-size: 3rem;
 }
@@ -329,12 +315,11 @@ footer {
 
 .piano-text .letter {
   display: inline-block;
-  font-size: 3rem; /* Default for large screens */
+  font-size: 3rem;
   color: #34495e;
   transition: transform 0.2s, color 0.2s, text-shadow 0.2s;
 }
 
-/* Hover effects for Piano-Key Letters */
 .hover-center {
   transform: scale(1.4);
   color: #ffdce0 !important;
@@ -346,47 +331,45 @@ footer {
   transform: scale(1.2);
 }
 
-/* KEYFRAMES: Fade in each letter of HISTORY TAKING over 3s. */
+/* Fade-in keyframes for History Taking letters */
 @keyframes fadeIn {
-  0%   { opacity: 0; }
+  0% { opacity: 0; }
   100% { opacity: 1; }
 }
 
-/* Delay each letter's animation for consecutive fade */
-.history-letter:nth-child(1)  { animation-delay: 0.0s; }
+/* Stagger animation delays for history-letter */
+.history-letter:nth-child(1)  { animation-delay: 0s; }
 .history-letter:nth-child(2)  { animation-delay: 0.2s; }
 .history-letter:nth-child(3)  { animation-delay: 0.4s; }
 .history-letter:nth-child(4)  { animation-delay: 0.6s; }
 .history-letter:nth-child(5)  { animation-delay: 0.8s; }
-.history-letter:nth-child(6)  { animation-delay: 1.0s; }
+.history-letter:nth-child(6)  { animation-delay: 1s; }
 .history-letter:nth-child(7)  { animation-delay: 1.2s; }
 .history-letter:nth-child(8)  { animation-delay: 1.4s; }
 .history-letter:nth-child(9)  { animation-delay: 1.6s; }
 .history-letter:nth-child(10) { animation-delay: 1.8s; }
-.history-letter:nth-child(11) { animation-delay: 2.0s; }
+.history-letter:nth-child(11) { animation-delay: 2s; }
 .history-letter:nth-child(12) { animation-delay: 2.2s; }
 .history-letter:nth-child(13) { animation-delay: 2.4s; }
 .history-letter:nth-child(14) { animation-delay: 2.6s; }
 
-/* STICKY NAV BAR with fade at bottom */
+/* Sticky Navigation Bar */
 .section-nav {
+  /* Using fixed position on mobile as an alternative */
   position: sticky;
   top: 0;
   z-index: 999;
-
+  width: 100%;
+  background: #ffffff;
+  padding: 15px 0;
   display: flex;
   justify-content: center;
   gap: 40px;
-  padding: 15px 0;
-
-  background-color: #ffffff;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-
   position: relative;
   overflow: visible;
 }
 
-/* Gentle fade at the bottom of nav */
 .section-nav::after {
   content: "";
   position: absolute;
@@ -395,11 +378,7 @@ footer {
   width: 100%;
   height: 15px;
   pointer-events: none;
-  background: linear-gradient(
-    to bottom,
-    rgba(255, 255, 255, 1) 0%,
-    rgba(255, 255, 255, 0) 100%
-  );
+  background: linear-gradient(to bottom, rgba(255,255,255,1) 0%, rgba(255,255,255,0) 100%);
 }
 
 .section-nav a {
@@ -416,24 +395,20 @@ footer {
 
 /* MEDIA QUERIES FOR MOBILE */
 @media (max-width: 600px) {
-  /* Stack the header container so logo & buttons don't overlap */
   .header-container {
     flex-direction: column;
     align-items: center;
     padding: 10px 20px;
   }
-
   .logo-group {
-    margin-bottom: 8px; /* space for Log In/Register */
+    margin-bottom: 8px;
   }
-
   .header-right {
     flex-direction: row;
     justify-content: center;
     gap: 10px;
     margin-top: 5px;
   }
-
   .main-heading {
     font-size: 1.6rem;
   }
@@ -453,4 +428,29 @@ footer {
   .piano-text .letter {
     font-size: 1.8rem;
   }
+  /* Alternative approach: For mobile, force the nav bar to be fixed */
+  .section-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+  }
+  /* Add top padding to content to prevent overlap with fixed nav */
+  body::before {
+    content: "";
+    display: block;
+    height: 70px; /* Adjust this value if your nav height changes */
+  }
 }
+@media (max-width: 600px) {
+  .hero-section {
+    padding-top:0px;
+  }
+}
+@media (max-width: 600px) {
+  .section-nav {
+    /* Add left and right padding to pull the links away from the edges */
+    padding: 15px 20px;
+
+    /* Optionally reduce the gap between links a bit, if desired */
+    gap: 20px;
+  }
