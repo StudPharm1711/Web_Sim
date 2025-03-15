@@ -1548,50 +1548,56 @@ def generate_exam():
     return jsonify({"results": exam_results}), 200
 
 
-# --- Daily Update Scheduler ---
 def send_daily_update():
-    try:
-        active_students = User.query.filter(User.subscription_status == 'active',
-                                            User.category == 'health_student').count()
-        active_non_students = User.query.filter(User.subscription_status == 'active',
-                                                User.category != 'health_student').count()
-        active_users = User.query.filter(User.subscription_status == 'active').all()
-        weighted_costs = []
-        total_cost = 0.0
-        for user in active_users:
-            cost_gpt35 = (user.token_prompt_usage_gpt35 / 1_000_000 * GPT35_INPUT_COST_PER_1M) + (
-                    user.token_completion_usage_gpt35 / 1_000_000 * GPT35_OUTPUT_COST_PER_1M)
-            cost_gpt4 = (user.token_prompt_usage_gpt4 / 1_000_000 * GPT4_INPUT_COST_PER_1M) + (
-                    user.token_completion_usage_gpt4 / 1_000_000 * GPT4_OUTPUT_COST_PER_1M)
-            user_cost = cost_gpt35 + cost_gpt4
-            weighted_costs.append(user_cost)
-            total_cost += user_cost
-        median_weighted_cost = statistics.median(weighted_costs) if weighted_costs else 0.0
+    with app.app_context():
+        try:
+            active_students = User.query.filter(
+                User.subscription_status == 'active',
+                User.category == 'health_student'
+            ).count()
+            active_non_students = User.query.filter(
+                User.subscription_status == 'active',
+                User.category != 'health_student'
+            ).count()
+            active_users = User.query.filter(User.subscription_status == 'active').all()
 
-        message = (
-            f"Daily Update:\n"
-            f"Active Student Subscriptions: {active_students}\n"
-            f"Active Non-Student Subscriptions: {active_non_students}\n"
-            f"Total Active Subscriptions: {len(active_users)}\n\n"
-            f"Token Cost Analysis (weighted average per subscription):\n"
-            f"Median Cost per Subscription: ${median_weighted_cost:.4f}\n"
-            f"Total Estimated API Cost (cumulative): ${total_cost:.4f}\n\n"
-            f"Subscription Prices:\n"
-            f" - Health Student: $4.99/month\n"
-            f" - Non-Student: $7.99/month\n\n"
-            f"Monthly API Budget: $120.00\n"
-            f"Current Headroom: ${120 - total_cost if total_cost < 120 else 0:.2f}\n"
-        )
-        sg = SendGridAPIClient(os.getenv('SENDGRID_API_KEY'))
-        update_email = Mail(
-            from_email=os.getenv('FROM_EMAIL', 'support@simul-ai-tor.com'),
-            to_emails="simulaitor@outlook.com",
-            subject="Daily Subscription & API Cost Report",
-            plain_text_content=message
-        )
-        sg.send(update_email)
-    except Exception as e:
-        print(f"Error sending daily update: {str(e)}")
+            weighted_costs = []
+            total_cost = 0.0
+            for user in active_users:
+                cost_gpt35 = (user.token_prompt_usage_gpt35 / 1_000_000 * GPT35_INPUT_COST_PER_1M) + (
+                    user.token_completion_usage_gpt35 / 1_000_000 * GPT35_OUTPUT_COST_PER_1M)
+                cost_gpt4 = (user.token_prompt_usage_gpt4 / 1_000_000 * GPT4_INPUT_COST_PER_1M) + (
+                    user.token_completion_usage_gpt4 / 1_000_000 * GPT4_OUTPUT_COST_PER_1M)
+                user_cost = cost_gpt35 + cost_gpt4
+                weighted_costs.append(user_cost)
+                total_cost += user_cost
+
+            median_weighted_cost = statistics.median(weighted_costs) if weighted_costs else 0.0
+
+            message = (
+                f"Daily Update:\n"
+                f"Active Student Subscriptions: {active_students}\n"
+                f"Active Non-Student Subscriptions: {active_non_students}\n"
+                f"Total Active Subscriptions: {len(active_users)}\n\n"
+                f"Token Cost Analysis (weighted average per subscription):\n"
+                f"Median Cost per Subscription: ${median_weighted_cost:.4f}\n"
+                f"Total Estimated API Cost (cumulative): ${total_cost:.4f}\n\n"
+                f"Subscription Prices:\n"
+                f" - Health Student: $4.99/month\n"
+                f" - Non-Student: $7.99/month\n\n"
+                f"Monthly API Budget: $120.00\n"
+                f"Current Headroom: ${120 - total_cost if total_cost < 120 else 0:.2f}\n"
+            )
+            sg = SendGridAPIClient(os.getenv('SENDGRID_API_KEY'))
+            update_email = Mail(
+                from_email=os.getenv('FROM_EMAIL', 'support@simul-ai-tor.com'),
+                to_emails="simulaitor@outlook.com",
+                subject="Daily Subscription & API Cost Report",
+                plain_text_content=message
+            )
+            sg.send(update_email)
+        except Exception as e:
+            print(f"Error sending daily update: {str(e)}")
 
 
 scheduler = BackgroundScheduler()
