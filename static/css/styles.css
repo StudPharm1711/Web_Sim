@@ -145,14 +145,14 @@ section.visible {
   position: relative;
   text-align: center;
   background-color: #ffffff;
-  padding-top: 50px;
+  padding-top: 0px;
 }
 
 .hero-overlay {
   position: relative;
   z-index: 2;
   margin: auto;
-  padding: 50px 20px;
+  padding: 5px 5px;
   max-width: 1100px;
   text-align: center;
   background-color: rgba(255,255,255,0.9);
@@ -454,3 +454,6 @@ footer {
     /* Optionally reduce the gap between links a bit, if desired */
     gap: 20px;
   }
+  .hero-overlay h2.piano-text {
+  line-height: 1.1;
+}
