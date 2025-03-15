@@ -16,7 +16,7 @@ body {
   font-family: "Open Sans", Arial, sans-serif;
   background-color: #ffffff;
   color: #333;
-  scroll-behavior: smooth; /* 'smooth' was misspelled as 'behaviour' in some references */
+  scroll-behavior: smooth;
 }
 
 /* Pastel Background Variations */
@@ -93,7 +93,7 @@ body {
   box-shadow: 0 4px 8px rgba(0,0,0,0.2);
   z-index: 1001;
   transition: background 0.3s;
-  animation: pulsate 1.5s ease-in-out infinite; /* The pulsate animation */
+  animation: pulsate 1.5s ease-in-out infinite;
 }
 
 .sticky-cta:hover {
@@ -143,7 +143,7 @@ section.visible {
   position: relative;
   text-align: center;
   background-color: #ffffff;
-  padding-top: 50px;  /* Gap between header and hero */
+  padding-top: 50px;
   margin-bottom: 0;
 }
 
@@ -154,7 +154,7 @@ section.visible {
   padding: 50px 20px;
   max-width: 1100px;
   text-align: center;
-  background-color: rgba(255, 255, 255, 0.9); /* Subtle overlay background */
+  background-color: rgba(255, 255, 255, 0.9);
 }
 
 .hero-overlay h2 {
@@ -188,23 +188,35 @@ section.visible {
 }
 
 .carousel-controls {
-  text-align: center;
-  margin-bottom: 20px; /* Space between controls and slides */
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  transform: translateY(-50%);
+  pointer-events: none; /* So you can click through if needed */
 }
 
 .carousel-controls button {
-  background: #0a6c82;
+  pointer-events: auto;  /* Re-enable click on buttons */
+  background: rgba(0, 0, 0, 0.5);
   color: #fff;
   border: none;
-  padding: 10px 20px;
-  margin: 0 10px;
-  border-radius: 4px;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
   cursor: pointer;
+  margin: 0 10px;
   transition: background 0.3s;
 }
 
 .carousel-controls button:hover {
-  background: #005f73;
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.carousel-controls button i {
+  font-size: 1.2rem;
 }
 
 .carousel-slide {
@@ -234,23 +246,29 @@ section.visible {
   border-radius: 8px;
 }
 
-/* NEW Features Section */
+/* Features Section */
 .features-section {
-  font-family: 'Montserrat', sans-serif; /* Apply new font to this section */
+  font-family: 'Montserrat', sans-serif;
   text-align: center;
   padding: 40px 20px;
 }
 
 .features-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-template-columns: repeat(2, 1fr); /* Force 2 columns on larger screens */
   gap: 30px;
   max-width: 900px;
   margin: 0 auto;
 }
 
+@media (max-width: 768px) {
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .feature-item {
-  background-color: #ffffff; /* White card on pastel background */
+  background-color: #ffffff;
   border-radius: 8px;
   padding: 20px;
   box-shadow: 0 2px 5px rgba(0,0,0,0.1);
@@ -287,20 +305,28 @@ footer {
 }
 
 /* Piano-Key Lettering */
+.piano-text {
+  /* Set the overall heading size if needed */
+  font-size: 3rem;
+}
+
 .piano-text .word {
   display: inline-block;
-  margin-right: 0.4rem;
+  font-size: 0;           /* Remove inline-block whitespace */
+  margin-right: 0.2rem;    /* Adjust space between words */
 }
 
 .piano-text .letter {
   display: inline-block;
-  transition: transform 0.2s, color 0.2s, text-shadow 0.2s;
+  font-size: 3rem;        /* Explicitly set each letter's size */
   color: #34495e;
+  transition: transform 0.2s, color 0.2s, text-shadow 0.2s;
 }
 
+/* Hover effects for Piano-Key Letters */
 .hover-center {
   transform: scale(1.4);
-  color: #ffdce0 !important; /* Forced pastel pink */
+  color: #ffdce0 !important;
   text-shadow: 0 0 6px rgba(255,220,224,0.6);
 }
 
