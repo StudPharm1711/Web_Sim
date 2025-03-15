@@ -62,12 +62,18 @@
   </section>
 
   <!-- "How It Works" Section -->
-  <section id="howitworks">
-  <h2 class="section-title piano-text">How It Works</h2>
+    <section id="howitworks" class="section-pastel-lavender">
+  <h2 class="section-title piano-text">
+    <span class="word"><span class="letter">H</span><span class="letter">o</span><span class="letter">w</span></span>
+    <span class="word"><span class="letter">I</span><span class="letter">t</span></span>
+    <span class="word"><span class="letter">W</span><span class="letter">o</span><span class="letter">r</span><span class="letter">k</span><span class="letter">s</span></span>
+  </h2>
+
   <div class="carousel-controls">
     <button onclick="prevSlide()">Prev</button>
     <button onclick="nextSlide()">Next</button>
   </div>
+
   <div class="carousel-container">
     <div class="carousel-slide" id="carouselSlide">
         <!-- Slide 1: Remains the same -->
@@ -100,10 +106,39 @@
           <img src="{{ url_for('static', filename='Carousel4.PNG') }}" alt="Instant Feedback">
         </div>
       </div>
+    </section>
 
+    <!-- Features Section -->
+<section id="howitworks" class="section-pastel-mint">
+  <h2 class="section-title piano-text">
+    <span class="word"><span class="letter">H</span><span class="letter">o</span><span class="letter">w</span></span>
+    <span class="word"><span class="letter">I</span><span class="letter">t</span></span>
+    <span class="word"><span class="letter">W</span><span class="letter">o</span><span class="letter">r</span><span class="letter">k</span><span class="letter">s</span></span>
+  </h2>
+
+  <div class="features-grid">
+    <div class="feature-item">
+      <h3>Immersive AI Patients</h3>
+      <p>Experience life-like patient interactions that adapt to your approach in real-time. Choose from 3 levels including simple problem / simple patient, complex problem/simple patient or complex problem / complex patient.</p>
+    </div>
+    <div class="feature-item">
+      <h3>Feedback</h3>
+      <p>Receive structured feedback based on recognised communication models.</p>
+    </div>
+    <div class="feature-item">
+      <h3>Customise your patient</h3>
+      <p>Chose from a long selection of body systems from which te presenting complaint is derived or if you're brave pick random!</p>
+    </div>
+    <div class="feature-item">
+      <h3>Use voice or typing</h3>
+      <p>Switch between different input modes during the consultation so you can practice whenever, wherever!.</p>
+    </div>
+    <!-- Add more feature-item divs as needed -->
+  </div>
+</section>
 
   <!-- Testimonials Section -->
-  <section id="testimonials">
+  <section id="testimonials" class="section-pastel-peach">
     <h2 class="section-title piano-text">
       <span class="word"><span class="letter">W</span><span class="letter">h</span><span class="letter">a</span><span class="letter">t</span></span>
       <span class="word"><span class="letter">O</span><span class="letter">u</span><span class="letter">r</span></span>

@@ -850,18 +850,38 @@ def reset_password(token):
     return render_template('reset_password.html', token=token)
 
 # --- Start Simulation Route with Debug Logging ---
+# --- Start Simulation Route with Debug Logging ---
 @app.route('/start_simulation', methods=['POST'])
 @login_required
 def start_simulation():
-    level = request.form.get('simulation_level')
+    # Get new fields: problem_complexity and patient_complexity
+    problem_complexity = request.form.get('problem_complexity')
+    patient_complexity = request.form.get('patient_complexity')
     country = request.form.get('country')
     system_choice = request.form.get('system', 'random')
-    if level not in ['Beginner', 'Intermediate', 'Advanced']:
-        flash("Invalid simulation level selected.", "danger")
+
+    if problem_complexity not in ['Basic', 'Intermediate', 'Advanced']:
+        flash("Invalid problem complexity selected.", "danger")
+        return redirect(url_for('simulation'))
+    if patient_complexity not in ['Nil', 'Memory Issues', 'Irritable']:
+        flash("Invalid patient complexity selected.", "danger")
         return redirect(url_for('simulation'))
     if not country:
         flash("Please select a country.", "danger")
         return redirect(url_for('simulation'))
+
+    # Map "Basic" to "Beginner" for compatibility with internal dictionaries
+    level = "Beginner" if problem_complexity == "Basic" else problem_complexity
+
+    # Determine tone descriptor based on patient complexity selection
+    if patient_complexity == "Nil":
+        tone = " Always remain calm, kind, and empathetic, reflecting a warm and humanistic presence. Use colloquial language throughout."
+    elif patient_complexity == "Memory Issues":
+        tone = " You are very forgetful with significant memory issues. You are not orientated to time and place. Use colloquial language throughout. You answer questions but think the person asking questions is a friend of the family."
+    elif patient_complexity == "Irritable":
+        tone = " You are short tempered and noticably irritable. You complain about past experiences with healthcare practitioners and question whether the person asking you questions is even qualified although you do answer questions. Everything frustrates you. Use colloquial language throughout."
+    else:
+        tone = ""
 
     # Choose a patient and store for later use.
     patient = random.choice(PATIENT_NAMES)
@@ -880,38 +900,28 @@ def start_simulation():
     # Store simulation parameters in session.
     session['system_choice'] = system_choice
     session['selected_complaint'] = selected_complaint
-    session['simulation_level'] = level
+    session['problem_complexity'] = problem_complexity
+    session['patient_complexity'] = patient_complexity
     session['country'] = country
 
-    tone = ""
-    if level == "Advanced":
-        if patient["age"] > 60:
-            tone = " Sometimes I forget details and may seem confused."
-        else:
-            tone = " I tend to get a bit short-tempered and will almost certainly respond abrasively."
-
-    # Revised system prompt:
-    # The instruction now clearly states that the initial response must be exactly the specified opener,
-    # and after that, the conversation should proceed normally.
+    # Build the initial system prompt with the new descriptors.
     instr = (
         f"You are a patient in a history-taking simulation taking place in {country}. "
-        f"Your level is {level}. "
+        f"Your problem complexity is {problem_complexity} and your patient complexity is {patient_complexity}. "
         f"Your name is {patient['name']} (age {patient['age']}) and you are a {patient['gender']} patient. "
         "At the very beginning of the consultation, your initial response MUST be exactly: "
         "\"Can I speak with someone about my symptoms?\". Once you have provided that opener, "
-        "Continue the conversation naturally without repeating the phrase. Consent to answering questions regardless of the profession of the interviewer"
+        "continue the conversation naturally without repeating the phrase. Consent to answering questions regardless of the interviewer's profession. "
         f"Present your complaint: {selected_complaint}. "
         "Provide only minimal details until further questions are asked, then gradually add more information. "
         "IMPORTANT: You are a patient and must NEVER provide any clinical advice or act as a clinician. "
         "If asked for advice or for anything beyond discussing your symptoms, steer the conversation back to your complaint. "
         "If you are asked to consent to a physical examination, ALWAYS respond affirmatively with a clear "
-        "'Yes, I consent to a physical examination,' regardless of the virtual nature of the consultation, "
-        "as the exam results will be generated automatically by a dedicated button. "
-        + (f" Additionally, {tone}" if tone else "")
+        "'Yes, I consent to a physical examination,' regardless of the virtual nature of the consultation."
+        + tone
     )
 
-    # Set the conversation to start with this robust system prompt.
-    session['country'] = country
+    # Initialize conversation with this robust system prompt.
     session['conversation'] = [{'role': 'system', 'content': instr}]
     print("DEBUG: Conversation initialized with prompt:", session['conversation'])
 
@@ -933,6 +943,7 @@ def start_simulation():
     session.pop('feedback', None)
     session.pop('hint', None)
     return redirect(url_for('simulation'))
+
 
 
 # --- Simulation Display Route ---
@@ -1079,7 +1090,7 @@ def feedback():
             "5. Closing the session\n"
             "6. Building a relationship\n"
             "7. Providing structure\n\n"
-            "Then, calculate the overall score (max 70) and provide a brief commentary on the user's clinical reasoning "
+            "Then, calculate the overall score (max 70) and provide a brief commentary on the user's clinical reasoning considering hypothetico-deductive and bayesian reasoning in particular"
             'in a key called "clinical_reasoning".\n\n'
             "Format your answer strictly as a single JSON object (do not include any extra text):\n"
             "{\n"
@@ -1103,7 +1114,7 @@ def feedback():
             model="gpt-4-turbo",
             messages=feedback_conversation,
             temperature=0.8,
-            max_tokens=300
+            max_tokens=500
         )
         fb = response.choices[0].message["content"]
         print("DEBUG: Raw GPT-4 feedback:", fb)

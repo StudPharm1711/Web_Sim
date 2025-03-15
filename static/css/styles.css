@@ -1,3 +1,10 @@
+/*
+   Import Fonts:
+   - "Open Sans" for main body text (already in use).
+   - "Montserrat" for the Features section (new).
+*/
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Open+Sans:wght@400;700&display=swap');
+
 /* Global Reset & Base Styles */
 * {
   box-sizing: border-box;
@@ -9,7 +16,20 @@ body {
   font-family: "Open Sans", Arial, sans-serif;
   background-color: #ffffff;
   color: #333;
-  scroll-behaviour: smooth;
+  scroll-behavior: smooth; /* 'smooth' was misspelled as 'behaviour' in some references */
+}
+
+/* Pastel Background Variations */
+.section-pastel-lavender {
+  background-color: #F9F7FF; /* Light lavender */
+}
+
+.section-pastel-mint {
+  background-color: #F0FFF0; /* Light mint */
+}
+
+.section-pastel-peach {
+  background-color: #FFF5EE; /* Light peach */
 }
 
 /* Header */
@@ -39,7 +59,7 @@ body {
   color: #005f73;
 }
 
-/* Only direct child links get the teal button styles */
+/* Header Right Links */
 .header-right {
   display: flex;
   gap: 15px;
@@ -73,13 +93,30 @@ body {
   box-shadow: 0 4px 8px rgba(0,0,0,0.2);
   z-index: 1001;
   transition: background 0.3s;
+  animation: pulsate 1.5s ease-in-out infinite; /* The pulsate animation */
 }
 
 .sticky-cta:hover {
   background: #005f73;
 }
 
-/* Section Defaults - reduce vertical gaps */
+/* Pulsate animation */
+@keyframes pulsate {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Section Defaults */
 section {
   padding: 30px 20px;
   max-width: 1100px;
@@ -101,16 +138,15 @@ section.visible {
   color: #005f73;
 }
 
-/* Hero Section (Video Removed) */
+/* Hero Section */
 .hero-section {
   position: relative;
   text-align: center;
   background-color: #ffffff;
-  padding-top: 50px;  /* small gap between header and hero */
+  padding-top: 50px;  /* Gap between header and hero */
   margin-bottom: 0;
 }
 
-/* Hero Overlay */
 .hero-overlay {
   position: relative;
   z-index: 2;
@@ -118,7 +154,7 @@ section.visible {
   padding: 50px 20px;
   max-width: 1100px;
   text-align: center;
-  background-color: rgba(255, 255, 255, 0.9); /* subtle background */
+  background-color: rgba(255, 255, 255, 0.9); /* Subtle overlay background */
 }
 
 .hero-overlay h2 {
@@ -136,24 +172,6 @@ section.visible {
   color: #34495e;
 }
 
-.hero-overlay .primary-cta {
-  display: inline-block;
-  margin-top: 30px;
-  padding: 15px 30px;
-  font-size: 1.2rem;
-  background: linear-gradient(145deg, #005f73, #0a6c82);
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.3s;
-  text-decoration: none;
-}
-
-.hero-overlay .primary-cta:hover {
-  background: linear-gradient(145deg, #0a6c82, #005f73);
-}
-
 .hero-overlay .risk-reversal {
   margin-top: 0.5rem;
   margin-bottom: 0;
@@ -161,13 +179,7 @@ section.visible {
   color: #555;
 }
 
-/* Intro Video Section (Now Hidden) */
-.video-wrapper,
-.intro-video {
-  display: none;
-}
-
-/* How It Works Carousel */
+/* "How It Works" Carousel */
 .carousel-container {
   position: relative;
   overflow: hidden;
@@ -222,6 +234,37 @@ section.visible {
   border-radius: 8px;
 }
 
+/* NEW Features Section */
+.features-section {
+  font-family: 'Montserrat', sans-serif; /* Apply new font to this section */
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 30px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.feature-item {
+  background-color: #ffffff; /* White card on pastel background */
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.feature-item h3 {
+  color: #005f73;
+  margin-bottom: 10px;
+}
+
+.feature-item p {
+  color: #555;
+}
+
 /* Testimonials */
 .testimonials {
   text-align: center;
@@ -243,7 +286,7 @@ footer {
   border-top: 1px solid #ddd;
 }
 
-/* Piano-Key Lettering Rules */
+/* Piano-Key Lettering */
 .piano-text .word {
   display: inline-block;
   margin-right: 0.4rem;
@@ -257,7 +300,7 @@ footer {
 
 .hover-center {
   transform: scale(1.4);
-  color: #ffdce0 !important; /* forced pastel pink */
+  color: #ffdce0 !important; /* Forced pastel pink */
   text-shadow: 0 0 6px rgba(255,220,224,0.6);
 }
 

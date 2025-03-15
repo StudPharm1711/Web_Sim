@@ -409,16 +409,28 @@
                             </optgroup>
                         </select>
                     </div>
+                    <!-- New drop down for Problem Complexity -->
                     <div class="form-group">
-                        <label for="simulation_level">
-                            Level of Practice
-                            <i class="fa fa-info-circle tooltip-icon" title="Select the level of simulation to determine the complexity of the presenting complaint."></i>
+                        <label for="problem_complexity">
+                            Problem Complexity
+                            <i class="fa fa-info-circle tooltip-icon" title="Select the complexity of the problem: Basic, Intermediate, or Advanced."></i>
                         </label>
-                        <select id="simulation_level" name="simulation_level" class="select2" required>
-                            <option value="">Select Level</option>
-                            <option value="Beginner" data-description="Simple Patient : Simple Problem">Beginner</option>
-                            <option value="Intermediate" data-description="Simple Patient : Complex Problem">Intermediate</option>
-                            <option value="Advanced" data-description="Complex Patient : Complex Problem">Advanced</option>
+                        <select id="problem_complexity" name="problem_complexity" class="select2" required>
+                            <option value="Basic">Basic</option>
+                            <option value="Intermediate">Intermediate</option>
+                            <option value="Advanced">Advanced</option>
+                        </select>
+                    </div>
+                    <!-- New drop down for Patient Complexity -->
+                    <div class="form-group">
+                        <label for="patient_complexity">
+                            Patient Complexity
+                            <i class="fa fa-info-circle tooltip-icon" title="Select the patient's complexity: Nil complexity, Memory Issues, or Irritable."></i>
+                        </label>
+                        <select id="patient_complexity" name="patient_complexity" class="select2" required>
+                            <option value="Nil">Nil complexity</option>
+                            <option value="Memory Issues">Memory Issues</option>
+                            <option value="Irritable">Irritable</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -492,6 +504,11 @@
                             <img src="/static/typing.png" alt="Keyboard Icon">
                             Keyboard
                         </label>
+                        <!-- New toggle for patient voice synthesis -->
+    <label style="margin-left: 20px;">
+        <input type="checkbox" id="togglePatientVoice" checked>
+        Enable Patient Voice
+    </label>
                     </div>
 
                     <!-- Record button (hidden by default unless "Voice" is selected) -->
@@ -618,7 +635,7 @@
             }
         });
 
-        // Custom templating for the simulation level dropdown list results
+        // Custom templating for the simulation level dropdown list results (if needed in future)
         function formatLevel(state) {
             if (!state.id) { return state.text; }
             var description = $(state.element).data('description');
@@ -630,15 +647,16 @@
         }
 
         $(document).ready(function() {
-            $('#simulation_level').select2({
-                theme: "classic",
-                templateResult: formatLevel,
-                templateSelection: simpleSelection
-            });
             $('#country_select').select2({
                 theme: "classic"
             });
             $('#system_select').select2({
+                theme: "classic"
+            });
+            $('#problem_complexity').select2({
+                theme: "classic"
+            });
+            $('#patient_complexity').select2({
                 theme: "classic"
             });
 
@@ -844,11 +862,16 @@
         }
 
         function speakText(text) {
-            if ('speechSynthesis' in window) {
-                const utterance = new SpeechSynthesisUtterance(text);
-                speechSynthesis.speak(utterance);
-            }
-        }
+    // Check if patient voice is enabled.
+    const toggleVoice = document.getElementById('togglePatientVoice');
+    if (toggleVoice && !toggleVoice.checked) {
+        return; // Skip voice synthesis if the toggle is off.
+    }
+    if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        speechSynthesis.speak(utterance);
+    }
+}
 
         const hintForm = document.getElementById('hintForm');
         if (hintForm) {
