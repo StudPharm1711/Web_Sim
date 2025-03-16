@@ -1042,11 +1042,11 @@ def start_simulation():
 
     # Determine tone descriptor based on patient complexity selection
     if patient_complexity == "Nil":
-        tone = " Always use colloquial language throughout as a common person would. Avoid jargon"
+        tone = " Always use natural patient friendly language throughout as a common person would. Avoid jargon"
     elif patient_complexity == "Memory Issues":
-        tone = "You are very forgetful with significant memory issues. You are not orientated to time and place. Use colloquial language throughout. You answer some questions inaccurately or \"I'm not sure\"."
+        tone = "You are very forgetful with significant memory issues. You are not orientated to time and place. Always use natural patient friendly language throughout as a common person would. Avoid jargon or technical words. You answer some questions inaccurately or \"I'm not sure\"."
     elif patient_complexity == "Irritable":
-        tone = " You are short tempered and noticeably irritable. You complain about past experiences with healthcare practitioners and question whether the person asking you questions is even qualified, although you do answer questions. Everything frustrates you. Use colloquial language throughout."
+        tone = " You are short tempered and noticeably irritable. You complain about past experiences with healthcare practitioners and question whether the person asking you questions is even qualified, although you do answer questions. Everything frustrates you. Always use natural patient friendly language throughout as a common person would. Avoid jargon or technical words."
     else:
         tone = ""
 
