@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sign Up for Alerts</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+  <div class="container mt-5">
+    <h1 class="mb-4">Subscription Full</h1>
+    <p>Simul-AI-tor is scaling up gradually to ensure we give the best possible service. We are currently limiting access to a total of 100 concurrent subscriptions. We're sorry, but all subscription spaces are currently taken. Sign up below to receive a single email alert when aat least 15% of spaces becomes available.</p>
+    <form action="{{ url_for('alert_signup') }}" method="post">
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <input type="email" class="form-control" id="email" name="email" placeholder="Enter your email" required>
+      </div>
+      <button type="submit" class="btn btn-primary">Sign Up for Alert</button>
+    </form>
+  </div>
+
+  <!-- Optional JavaScript -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

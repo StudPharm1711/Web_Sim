@@ -22,6 +22,8 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from flask_migrate import Migrate
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 from apscheduler.schedulers.background import BackgroundScheduler
+from sendgrid.helpers.mail import Mail, Header
+
 
 # Import SendGrid libraries
 from sendgrid import SendGridAPIClient
@@ -112,6 +114,12 @@ class PendingRegistration(db.Model):
     subscription_status = db.Column(db.String(50))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+# --- Alert Signup Model ---
+class AlertSignup(db.Model):
+    __tablename__ = 'alert_signup'
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(150), unique=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -548,6 +556,8 @@ def cancel_subscription():
         subscription = stripe.Subscription.modify(user.subscription_id, cancel_at_period_end=True)
         user.subscription_status = subscription.status
         db.session.commit()
+        # Trigger alert notifications if free spaces reach threshold
+        notify_alert_signups()
         try:
             sg = SendGridAPIClient(os.getenv('SENDGRID_API_KEY'))
             cancel_email = Mail(
@@ -687,6 +697,12 @@ def login():
 # --- Modified Registration Route (Email confirmation before payment) ---
 @app.route('/register', methods=['GET', 'POST'])
 def register():
+    # Check for available subscription space
+    active_count = User.query.filter(User.subscription_status == 'active').count()
+    if active_count >= 1:
+        flash("All subscription spaces are currently taken. Please sign up for alerts when a space becomes available.",
+              "info")
+        return redirect(url_for('alert_signup'))  # Ensure you have an alert signup route.
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
@@ -770,13 +786,61 @@ def register():
     return render_template('register.html')
 
 
-# --- New Route for Check Your Email Page ---
-@app.route('/check_email')
-def check_email():
-    return render_template('check_email.html')
+from sendgrid.helpers.mail import Mail, Personalization  # ensure these imports are at the top
 
+from sendgrid.helpers.mail import Mail, Personalization  # ensure these imports are at the top
 
-# --- Modified Email Confirmation Route ---
+@app.route('/alert_signup', methods=['GET', 'POST'])
+def alert_signup():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        print(f"Received alert signup request for email: {email}")
+
+        # Check if this email is already in the table
+        existing = AlertSignup.query.filter_by(email=email).first()
+        if existing:
+            print(f"Email {email} is already in the alert signup table.")
+            flash("This email is already signed up for alerts.", "info")
+            return redirect(url_for('landing'))
+
+        # Save the email in the AlertSignup table
+        new_alert = AlertSignup(email=email)
+        try:
+            db.session.add(new_alert)
+            db.session.commit()
+            print(f"Alert record created for {email}")
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error saving email {email}: {e}")
+            flash(f"Error saving your email: {str(e)}", "danger")
+            return redirect(url_for('alert_signup'))
+
+        # Send confirmation email using SendGrid without a custom unsubscribe header
+        try:
+            print("Initializing SendGrid client...")
+            sg = SendGridAPIClient(os.getenv('SENDGRID_API_KEY'))
+            alert_email = Mail(
+                from_email=os.getenv('FROM_EMAIL', 'support@simul-ai-tor.com'),
+                to_emails=email,
+                subject="Alert Signup Confirmation",
+                plain_text_content=(
+                    "Thank you for signing up for alerts! "
+                    "We will notify you as soon as a subscription space becomes available."
+                )
+            )
+            print("Sending alert signup email via SendGrid...")
+            response = sg.send(alert_email)
+            print(f"Alert signup email sent to {email} with status code: {response.status_code}")
+            flash("Thank you! You've been signed up for alerts.", "success")
+        except Exception as e:
+            print(f"Error sending alert signup email for {email}: {e}")
+            flash(f"Error sending confirmation email: {str(e)}", "danger")
+
+        return redirect(url_for('landing'))
+
+    return render_template('alert_signup.html')
+
+    # --- Modified Email Confirmation Route ---
 @app.route('/confirm_email/<token>', methods=['GET'])
 def confirm_email(token):
     try:
@@ -1543,6 +1607,38 @@ def generate_exam():
     return jsonify({"results": exam_results}), 200
 
 
+# --- New Notification Function ---
+def notify_alert_signups():
+    MAX_SUBSCRIPTIONS = 100  # Adjust as needed or load from config
+    active_count = User.query.filter(User.subscription_status == 'active').count()
+    free_spaces = MAX_SUBSCRIPTIONS - active_count
+    free_percentage = free_spaces / MAX_SUBSCRIPTIONS
+
+    if free_percentage >= 0.15:
+        alert_signups = AlertSignup.query.all()
+        for signup in alert_signups:
+            try:
+                sg = SendGridAPIClient(os.getenv('SENDGRID_API_KEY'))
+                notification_email = Mail(
+                    from_email=os.getenv('FROM_EMAIL', 'support@simul-ai-tor.com'),
+                    to_emails=signup.email,
+                    subject="Subscription Space Now Available!",
+                    plain_text_content=(
+                        "Good news! There are now enough subscription spaces available for you to register. "
+                        "Please visit our registration page to sign up."
+                    )
+                )
+                notification_email.add_header("List-Unsubscribe", "<mailto:unsubscribe@yourdomain.com>")
+                response = sg.send(notification_email)
+                print(f"Notification sent to {signup.email}: {response.status_code}")
+                # Remove the alert entry so they are not notified again
+                db.session.delete(signup)
+            except Exception as e:
+                print(f"Error sending alert to {signup.email}: {str(e)}")
+        db.session.commit()
+
+
+# --- Daily Update Function ---
 def send_daily_update():
     with app.app_context():
         try:
@@ -1594,9 +1690,36 @@ def send_daily_update():
         except Exception as e:
             print(f"Error sending daily update: {str(e)}")
 
+@app.route('/unsubscribe', methods=['GET'])
+def unsubscribe():
+    # Get the email address from the query string
+    email = request.args.get('email')
+    if not email:
+        flash("No email address provided for unsubscribe.", "danger")
+        return redirect(url_for('landing'))
 
+    # Look for the alert signup record for this email
+    alert_record = AlertSignup.query.filter_by(email=email).first()
+    if alert_record:
+        try:
+            db.session.delete(alert_record)
+            db.session.commit()
+            flash("You have been successfully unsubscribed from alerts.", "success")
+            print(f"Unsubscribed {email} successfully.")
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error unsubscribing: {str(e)}", "danger")
+            print(f"Error unsubscribing {email}: {str(e)}")
+    else:
+        flash("Email address not found in our alert signup records.", "info")
+        print(f"No alert signup record found for {email}.")
+
+    return redirect(url_for('landing'))
+
+# --- Scheduler Setup ---
 scheduler = BackgroundScheduler()
 scheduler.add_job(send_daily_update, 'interval', days=1)
+scheduler.add_job(notify_alert_signups, 'interval', minutes=30)  # Check every 30 minutes
 scheduler.start()
 
 if __name__ == '__main__':
