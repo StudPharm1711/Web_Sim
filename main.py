@@ -24,7 +24,6 @@ from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 from apscheduler.schedulers.background import BackgroundScheduler
 from sendgrid.helpers.mail import Mail, Header
 
-
 # Import SendGrid libraries
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
@@ -114,12 +113,14 @@ class PendingRegistration(db.Model):
     subscription_status = db.Column(db.String(50))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+
 # --- Alert Signup Model ---
 class AlertSignup(db.Model):
     __tablename__ = 'alert_signup'
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(150), unique=True, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -165,329 +166,264 @@ PATIENT_NAMES = [
     {"name": "Benjamin Carter", "ethnicity": "American (White)", "gender": "male", "age": 52}
 ]
 
-# Original generic complaints as fallback
-FOUNDATION_COMPLAINTS = [
-    "fever", "persistent cough", "mild chest pain", "headache", "lower back pain"
-]
-ENHANCED_COMPLAINTS = [
-    "chest pain", "shortness of breath", "persistent fatigue", "abdominal pain", "chronic diarrhoea"
-]
-ADVANCED_COMPLAINTS = [
-    "severe chest pain", "acute shortness of breath", "chronic fatigue", "irregular heart palpitations",
-    "intense abdominal pain"
-]
-LEVEL_COMPLAINTS = {
-    "Beginner": FOUNDATION_COMPLAINTS,
-    "Intermediate": ENHANCED_COMPLAINTS,
-    "Advanced": ADVANCED_COMPLAINTS
-}
-
-# New nested dictionary for system-level complaints (10 per level)
-SYSTEM_LEVEL_COMPLAINTS = {
-    "cardiovascular": {
-        "Beginner": [
-            "I sometimes feel a mild discomfort in my chest.",
-            "My heart skips a beat every now and then.",
-            "There’s a light pressure in my chest now and then.",
-            "I get dizzy when I stand up quickly.",
-            "I get a little out of breath when I go up the stairs.",
-            "Sometimes I feel more tired than usual.",
-            "My heart flutters a little, but it goes away fast.",
-            "I notice a slight ache in my chest from time to time.",
-            "My ankles get a little swollen after a long day.",
-            "Occasionally, my heartbeat feels a bit uneven."
-        ],
-        "Intermediate": [
-            "I get chest pain when I walk or do light activity.",
-            "Sometimes, my heart feels like it’s racing or skipping beats.",
-            "There’s this tight feeling in my chest that won’t go away.",
-            "I feel out of breath doing things I used to do easily.",
-            "I get dizzy if I move too fast or bend down.",
-            "I feel a heavy weight on my chest at times.",
-            "My heart beats strangely more often than it used to.",
-            "Exercise makes my chest feel weird, so I stop.",
-            "Sometimes, my arm aches along with the chest pain.",
-            "My heartbeat has become more noticeable lately."
-        ],
-        "Advanced": [
-            "My chest hurts a lot when I do things, and it spreads to my arm or jaw.",
-            "I know something is seriously wrong with my heart, I can feel it.",
-            "I sometimes get so dizzy and weak that I nearly pass out.",
-            "It feels like something is pressing really hard on my chest all the time.",
-            "Even just getting out of bed makes me feel breathless.",
-            "My heart keeps beating in a strange way, and it makes me nervous.",
-            "I feel like an elephant is sitting on my chest, and I start sweating a lot.",
-            "When I exercise, the pain gets unbearable, so I have to stop immediately.",
-            "My heartbeat feels completely out of sync, and it makes my head spin.",
-            "Something isn't right. I suddenly feel like I'm having a major heart problem."
-        ]
-    },
-    "respiratory": {
-        "Beginner": [
-            "mild cough",
-            "occasional wheezing",
-            "minor shortness of breath",
-            "light chest tightness",
-            "intermittent throat clearing",
-            "slight nasal congestion",
-            "mild breathing discomfort",
-            "occasional mild sputum production",
-            "light shortness of breath on exertion",
-            "minor episodes of mild cough"
-        ],
-        "Intermediate": [
-            "I have a cough that keeps coming back with some mucus",
-            "I often hear a wheezing sound when I breathe",
-            "I get short of breath during everyday activities",
-            "My chest feels tight when I’m active",
-            "I sometimes have a little trouble catching my breath when moving",
-            "I feel noticeably short of breath even when resting",
-            "I produce more mucus than usual",
-            "Sometimes I feel wheezy and a bit out of breath",
-            "I have a constant mild difficulty breathing",
-            "There are times when I feel some discomfort when breathing"
-        ],
-        "Advanced": [
-            "I suddenly can’t seem to get enough air, and my chest feels tight.",
-            "I sound really wheezy, like I’m breathing through a straw.",
-            "I can’t stop coughing, and sometimes I see a little blood.",
-            "When I breathe, it makes a strange noise, like a whistle.",
-            "Even when I’m resting, I feel like I’m running out of breath.",
-            "My breathing is so fast and shallow that I feel exhausted.",
-            "I wake up gasping for air, and it’s really scary.",
-            "I have to sit up to breathe properly, lying down makes it worse.",
-            "My chest feels locked up, like no air is getting in.",
-            "It’s like I have to fight for every breath."
-        ]
-    },
-    "gastrointestinal": {
-        "Beginner": [
-            "mild abdominal discomfort",
-            "occasional indigestion",
-            "a bit of bloating",
-            "nausea thats on and off",
-            "occasional heartburn",
-            "mild stomach cramping",
-            "slight constipation",
-            "mild diarrhoea",
-            "intermittent discomfort after eating",
-            "minor stomach upset"
-        ],
-        "Intermediate": [
-            "I have ongoing stomach pain",
-            "I often feel bloated and experience indigestion",
-            "I get regular heartburn that sometimes makes me bring food back up",
-            "I occasionally throw up after meals",
-            "I suffer from constant stomach cramps and discomfort",
-            "I often feel nauseous, and sometimes it leads to vomiting",
-            "I have more frequent bouts of loose stools",
-            "I sometimes experience sharp stomach pain",
-            "I get moderate constipation that is quite uncomfortable",
-            "I constantly feel bloated with some pain"
-        ],
-        "Advanced": [
-            "My stomach hurts so badly that I have to curl up.",
-            "I’ve been throwing up, and nothing stays down.",
-            "I can’t stop running to the toilet, and I feel really weak.",
-            "The pain in my belly is so sharp it takes my breath away.",
-            "I keep getting heartburn, and I’m losing weight without trying.",
-            "My upper stomach feels like it’s on fire.",
-            "I feel sick all the time, and I keep throwing up.",
-            "My belly hurts if I touch it, like something is really wrong inside.",
-            "I noticed blood in the toilet, and I’m freaking out.",
-            "The pain is unbearable, I think something inside me is torn."
-        ]
-    },
-    "neurological": {
-        "Beginner": [
-            "mild headache",
-            "occasional dizziness",
-            "slight tension headache",
-            "brief episodes of light headedness",
-            "minor scalp tenderness",
-            "occasional blurred vision",
-            "light difficulty concentrating",
-            "minor sensory tingling",
-            "mild episodes of fatigue",
-            "occasional slight disorientation"
-        ],
-        "Intermediate": [
-            "I have a constant headache that sometimes makes me feel a little nauseous",
-            "I often feel dizzy and occasionally lose my balance",
-            "I get regular tension headaches",
-            "There are times when my vision gets a bit blurry",
-            "Sometimes I feel as if the room is spinning",
-            "I often feel a mild numbness in my arms or legs",
-            "I occasionally forget things",
-            "I have mild migraine episodes that keep coming back",
-            "My headache sometimes comes with blurred vision",
-            "I notice some changes in how I feel sensations in my arms or legs"
-        ],
-        "Advanced": [
-            "I have the worst headache of my life, and my vision gets blurry.",
-            "Sometimes, I forget what I was saying mid-sentence.",
-            "I feel dizzy all the time, like I might fall over.",
-            "I get these splitting headaches that make me want to hide in a dark room.",
-            "I woke up feeling confused, and I couldn’t remember where I was.",
-            "Half my face feels numb, and I don’t know why.",
-            "I keep tripping over things, like my legs aren’t working properly.",
-            "I tried to say something, but my words came out all wrong.",
-            "I keep getting these weird, brief spells where I feel out of it.",
-            "It feels like I have no control over my body sometimes."
-        ]
-    },
-    "musculoskeletal": {
-        "Beginner": [
-            "mild lower back pain",
-            "occasional joint stiffness",
-            "minor muscle ache",
-            "light shoulder discomfort",
-            "minor knee pain",
-            "slight neck stiffness",
-            "occasional muscle soreness in arms and legs",
-            "pain in my right wrist",
-            "my body aches all over",
-            "mild ankle pain"
-        ],
-        "Intermediate": [
-            "I experience ongoing lower back pain that feels stiff",
-            "I notice joint pain when I move",
-            "I have frequent muscle aches and occasional cramps",
-            "Sometimes I feel a sharp pain in my shoulder",
-            "I have constant discomfort in my knee when I'm active",
-            "My neck pain limits my movement sometimes",
-            "I often get recurring wrist pain when I use my hand",
-            "I feel moderate pain in my elbow when moving it",
-            "I have persistent hip pain when I walk",
-            "My muscles often feel sore and stiff"
-        ],
-        "Advanced": [
-            "My back pain is so bad that I can’t stand up straight.",
-            "My joints are swollen and hurt so much that I don’t want to move.",
-            "I keep getting these horrible muscle spasms that make me jolt.",
-            "I can’t lift my arm because my shoulder hurts so much.",
-            "My knee locks up randomly, and I feel like I’m going to fall.",
-            "My neck pain is making my arms feel weird and tingly.",
-            "My wrist is so painful that I can’t even hold a cup.",
-            "I have this deep, stabbing pain in my hip when I walk.",
-            "I think I broke something, the pain is unbearable.",
-            "My whole body aches, and I feel weak all over."
-        ]
-    },
-    "genitourinary": {
-        "Beginner": [
-            "mild bladder discomfort",
-            "I feel like I need to go pee constantly",
-            "a bit of tummy discomfort",
-            "slight dysuria (painful urination)",
-            "cloudy urine",
-            "mild urgency",
-            "minor pressure during urination",
-            "slight increase in frequency",
-            "intermittent burning sensation when I pee",
-            "mild discomfort during urination"
-        ],
-        "Intermediate": [
-            "I feel a constant burning sensation when I pee",
-            "I feel like I need to pee very often and urgently",
-            "Sometimes my lower belly feels uncomfortable",
-            "I have persistent pain in my lower abdomen when I pee",
-            "I feel a moderate pressure in my bladder",
-            "I often get uncomfortable urges to pee",
-            "I experience moderate pain when I urinate",
-            "Sometimes I notice a little blood in my urine",
-            "I feel constantly urgent when I need to pee",
-            "I experience moderate discomfort in my pelvic area"
-        ],
-        "Advanced": [
-            "It burns so bad when I pee that I’m afraid to go.",
-            "I have unbearable pain in my lower stomach that won’t go away.",
-            "I feel like I can’t empty my bladder, and it really hurts.",
-            "I saw blood in my pee, and now I’m really worried.",
-            "My lower stomach pain is so bad that I feel sick.",
-            "I need to pee all the time, and it stings like crazy.",
-            "It feels like there’s something blocking my urine from coming out.",
-            "I have this horrible pain in my side, like a knife stabbing me.",
-            "My bladder feels like it’s on fire.",
-            "I feel like I have a really bad infection that’s getting worse."
-        ]
-    },
-    "endocrine": {
-        "Beginner": [
-            "mild fatigue",
-            "I've put on weight recently",
-            "my appetite seems up and down",
-            "I'm constantly thirsty",
-            "mild hair thinning",
-            "occasional dry skin",
-            "some muscle weakness",
-            "mood is up and down",
-            "minor sleep disturbances",
-            "feel cold all the time"
-        ],
-        "Intermediate": [
-            "I feel constantly tired and sometimes lose a little weight",
-            "I notice I don’t feel as hungry, which sometimes affects my weight",
-            "There are times I feel too hot and very tired",
-            "My skin is dry and I’m losing some hair",
-            "I feel moderately weak and my joints sometimes ache",
-            "I experience frequent mood swings and have trouble sleeping",
-            "I’m always very thirsty and end up needing to pee more often",
-            "Sometimes I feel very cold and tired",
-            "I notice I look paler when I’m tired",
-            "I often feel sluggish and my weight keeps changing"
-        ],
-        "Advanced": [
-            "I feel completely drained all the time, and I keep losing weight.",
-            "I barely eat, but I’m still losing a lot of weight fast.",
-            "I can’t handle heat at all, it makes me feel weak and shaky.",
-            "My muscles feel so weak that even standing is hard.",
-            "I’ve lost so much hair, and my skin is dry and flaky.",
-            "I drink so much water, but I’m always thirsty.",
-            "I feel freezing cold even when the heating is on.",
-            "Something isn’t right. My body just feels off in every way.",
-            "I have such bad mood swings that I feel like a different person.",
-            "I think my whole system is out of balance."
-        ]
-    },
-    "dermatological": {
-        "Beginner": [
-            "mild skin rash",
-            "occasional itching",
-            "minor dry skin patches",
-            "slight redness on the skin",
-            "small areas of mild irritation",
-            "occasional mild eczema flare-up",
-            "minor skin dryness",
-            "slight scaling of the skin",
-            "occasional mild hives",
-            "light skin irritation"
-        ],
-        "Intermediate": [
-            "I have a rash that keeps coming back with a moderate itch",
-            "My skin is red and sometimes has small bumps",
-            "I often experience eczema flare-ups with dry skin",
-            "My skin feels irritated and a bit flaky",
-            "I have several areas on my skin that are very itchy",
-            "I get moderate inflammation on my skin that turns red",
-            "I sometimes develop hives that are uncomfortable",
-            "I have a rash that sometimes even forms small blisters",
-            "My skin stays red and irritated for long periods",
-            "I experience symptoms similar to mild psoriasis"
-        ],
-        "Advanced": [
-            "I feel completely drained all the time, and I keep losing weight fast.",
-            "I barely eat, but I’m still losing a lot of weight fast.",
-            "I can’t handle heat at all, it makes me feel weak and shaky.",
-            "My muscles feel so weak that even standing is hard.",
-            "I’ve lost so much hair, and my skin is dry and flaky.",
-            "I drink so much water, but I’m always thirsty.",
-            "I feel freezing cold even when the heating is on.",
-            "Something isn’t right. My body just feels off in every way.",
-            "I have such bad mood swings that I feel like a different person.",
-            "I think my whole system is out of balance."
-        ]
-    }
+# Unified dictionary for system-level complaints (all complaints in one list per system)
+SYSTEM_COMPLAINTS = {
+    "cardiovascular": [
+        "I sometimes feel a mild discomfort in my chest.",
+        "My heart skips a beat every now and then.",
+        "There’s a light pressure in my chest now and then.",
+        "I get dizzy when I stand up quickly.",
+        "I get a little out of breath when I go up the stairs.",
+        "Sometimes I feel more tired than usual.",
+        "My heart flutters a little, but it goes away fast.",
+        "I notice a slight ache in my chest from time to time.",
+        "My ankles get a little swollen after a long day.",
+        "Occasionally, my heartbeat feels a bit uneven.",
+        "I get chest pain when I walk or do light activity.",
+        "Sometimes, my heart feels like it’s racing or skipping beats.",
+        "There’s this tight feeling in my chest that won’t go away.",
+        "I feel out of breath doing things I used to do easily.",
+        "I get dizzy if I move too fast or bend down.",
+        "I feel a heavy weight on my chest at times.",
+        "My heart beats strangely more often than it used to.",
+        "Exercise makes my chest feel weird, so I stop.",
+        "Sometimes, my arm aches along with the chest pain.",
+        "My heartbeat has become more noticeable lately.",
+        "My chest hurts a lot when I do things, and it spreads to my arm or jaw.",
+        "I know something is seriously wrong with my heart, I can feel it.",
+        "I sometimes get so dizzy and weak that I nearly pass out.",
+        "It feels like something is pressing really hard on my chest all the time.",
+        "Even just getting out of bed makes me feel breathless.",
+        "My heart keeps beating in a strange way, and it makes me nervous.",
+        "I feel like an elephant is sitting on my chest, and I start sweating a lot.",
+        "When I exercise, the pain gets unbearable, so I have to stop immediately.",
+        "My heartbeat feels completely out of sync, and it makes my head spin.",
+        "Something isn't right. I suddenly feel like I'm having a major heart problem."
+    ],
+    "respiratory": [
+        "mild cough",
+        "occasional wheezing",
+        "minor shortness of breath",
+        "light chest tightness",
+        "intermittent throat clearing",
+        "slight nasal congestion",
+        "mild breathing discomfort",
+        "occasional mild sputum production",
+        "light shortness of breath on exertion",
+        "minor episodes of mild cough",
+        "I have a cough that keeps coming back with some mucus",
+        "I often hear a wheezing sound when I breathe",
+        "I get short of breath during everyday activities",
+        "My chest feels tight when I’m active",
+        "I sometimes have a little trouble catching my breath when moving",
+        "I feel noticeably short of breath even when resting",
+        "I produce more mucus than usual",
+        "Sometimes I feel wheezy and a bit out of breath",
+        "I have a constant mild difficulty breathing",
+        "There are times when I feel some discomfort when breathing",
+        "I suddenly can’t seem to get enough air, and my chest feels tight.",
+        "I sound really wheezy, like I’m breathing through a straw.",
+        "I can’t stop coughing, and sometimes I see a little blood.",
+        "When I breathe, it makes a strange noise, like a whistle.",
+        "Even when I’m resting, I feel like I’m running out of breath.",
+        "My breathing is so fast and shallow that I feel exhausted.",
+        "I wake up gasping for air, and it’s really scary.",
+        "I have to sit up to breathe properly, lying down makes it worse.",
+        "My chest feels locked up, like no air is getting in.",
+        "It’s like I have to fight for every breath."
+    ],
+    "gastrointestinal": [
+        "mild abdominal discomfort",
+        "occasional indigestion",
+        "a bit of bloating",
+        "nausea thats on and off",
+        "occasional heartburn",
+        "mild stomach cramping",
+        "slight constipation",
+        "mild diarrhoea",
+        "intermittent discomfort after eating",
+        "minor stomach upset",
+        "I have ongoing stomach pain",
+        "I often feel bloated and experience indigestion",
+        "I get regular heartburn that sometimes makes me bring food back up",
+        "I occasionally throw up after meals",
+        "I suffer from constant stomach cramps and discomfort",
+        "I often feel nauseous, and sometimes it leads to vomiting",
+        "I have more frequent bouts of loose stools",
+        "I sometimes experience sharp stomach pain",
+        "I get moderate constipation that is quite uncomfortable",
+        "I constantly feel bloated with some pain",
+        "My stomach hurts so badly that I have to curl up.",
+        "I’ve been throwing up, and nothing stays down.",
+        "I can’t stop running to the toilet, and I feel really weak.",
+        "The pain in my belly is so sharp it takes my breath away.",
+        "I keep getting heartburn, and I’m losing weight without trying.",
+        "My upper stomach feels like it’s on fire.",
+        "I feel sick all the time, and I keep throwing up.",
+        "My belly hurts if I touch it, like something is really wrong inside.",
+        "I noticed blood in the toilet, and I’m freaking out.",
+        "The pain is unbearable, I think something inside me is torn."
+    ],
+    "neurological": [
+        "mild headache",
+        "occasional dizziness",
+        "slight tension headache",
+        "brief episodes of light headedness",
+        "minor scalp tenderness",
+        "occasional blurred vision",
+        "light difficulty concentrating",
+        "minor sensory tingling",
+        "mild episodes of fatigue",
+        "occasional slight disorientation",
+        "I have a constant headache that sometimes makes me feel a little nauseous",
+        "I often feel dizzy and occasionally lose my balance",
+        "I get regular tension headaches",
+        "There are times when my vision gets a bit blurry",
+        "Sometimes I feel as if the room is spinning",
+        "I often feel a mild numbness in my arms or legs",
+        "I occasionally forget things",
+        "I have mild migraine episodes that keep coming back",
+        "My headache sometimes comes with blurred vision",
+        "I notice some changes in how I feel sensations in my arms or legs",
+        "I have the worst headache of my life, and my vision gets blurry.",
+        "Sometimes, I forget what I was saying mid-sentence.",
+        "I feel dizzy all the time, like I might fall over.",
+        "I get these splitting headaches that make me want to hide in a dark room.",
+        "I woke up feeling confused, and I couldn’t remember where I was.",
+        "Half my face feels numb, and I don’t know why.",
+        "I keep tripping over things, like my legs aren’t working properly.",
+        "I tried to say something, but my words came out all wrong.",
+        "I keep getting these weird, brief spells where I feel out of it.",
+        "It feels like I have no control over my body sometimes."
+    ],
+    "musculoskeletal": [
+        "mild lower back pain",
+        "occasional joint stiffness",
+        "minor muscle ache",
+        "light shoulder discomfort",
+        "minor knee pain",
+        "slight neck stiffness",
+        "occasional muscle soreness in arms and legs",
+        "pain in my right wrist",
+        "my body aches all over",
+        "mild ankle pain",
+        "I experience ongoing lower back pain that feels stiff",
+        "I notice joint pain when I move",
+        "I have frequent muscle aches and occasional cramps",
+        "Sometimes I feel a sharp pain in my shoulder",
+        "I have constant discomfort in my knee when I'm active",
+        "My neck pain limits my movement sometimes",
+        "I often get recurring wrist pain when I use my hand",
+        "I feel moderate pain in my elbow when moving it",
+        "I have persistent hip pain when I walk",
+        "My muscles often feel sore and stiff",
+        "My back pain is so bad that I can’t stand up straight.",
+        "My joints are swollen and hurt so much that I don’t want to move.",
+        "I keep getting these horrible muscle spasms that make me jolt.",
+        "I can’t lift my arm because my shoulder hurts so much.",
+        "My knee locks up randomly, and I feel like I’m going to fall.",
+        "My neck pain is making my arms feel weird and tingly.",
+        "My wrist is so painful that I can’t even hold a cup.",
+        "I have this deep, stabbing pain in my hip when I walk.",
+        "I think I broke something, the pain is unbearable.",
+        "My whole body aches, and I feel weak all over."
+    ],
+    "genitourinary": [
+        "mild bladder discomfort",
+        "I feel like I need to go pee constantly",
+        "a bit of tummy discomfort",
+        "slight dysuria (painful urination)",
+        "cloudy urine",
+        "mild urgency",
+        "minor pressure during urination",
+        "slight increase in frequency",
+        "intermittent burning sensation when I pee",
+        "mild discomfort during urination",
+        "I feel a constant burning sensation when I pee",
+        "I feel like I need to pee very often and urgently",
+        "Sometimes my lower belly feels uncomfortable",
+        "I have persistent pain in my lower abdomen when I pee",
+        "I feel a moderate pressure in my bladder",
+        "I often get uncomfortable urges to pee",
+        "I experience moderate pain when I urinate",
+        "Sometimes I notice a little blood in my urine",
+        "I feel constantly urgent when I need to pee",
+        "I experience moderate discomfort in my pelvic area",
+        "It burns so bad when I pee that I’m afraid to go.",
+        "I have unbearable pain in my lower stomach that won’t go away.",
+        "I feel like I can’t empty my bladder, and it really hurts.",
+        "I saw blood in my pee, and now I’m really worried.",
+        "My lower stomach pain is so bad that I feel sick.",
+        "I need to pee all the time, and it stings like crazy.",
+        "It feels like there’s something blocking my urine from coming out.",
+        "I have this horrible pain in my side, like a knife stabbing me.",
+        "My bladder feels like it’s on fire.",
+        "I feel like I have a really bad infection that’s getting worse."
+    ],
+    "endocrine": [
+        "mild fatigue",
+        "I've put on weight recently",
+        "my appetite seems up and down",
+        "I'm constantly thirsty",
+        "mild hair thinning",
+        "occasional dry skin",
+        "some muscle weakness",
+        "mood is up and down",
+        "minor sleep disturbances",
+        "feel cold all the time",
+        "I feel constantly tired and sometimes lose a little weight",
+        "I notice I don’t feel as hungry, which sometimes affects my weight",
+        "There are times I feel too hot and very tired",
+        "My skin is dry and I’m losing some hair",
+        "I feel moderately weak and my joints sometimes ache",
+        "I experience frequent mood swings and have trouble sleeping",
+        "I’m always very thirsty and end up needing to pee more often",
+        "Sometimes I feel very cold and tired",
+        "I notice I look paler when I’m tired",
+        "I often feel sluggish and my weight keeps changing",
+        "I feel completely drained all the time, and I keep losing weight.",
+        "I barely eat, but I’m still losing a lot of weight fast.",
+        "I can’t handle heat at all, it makes me feel weak and shaky.",
+        "My muscles feel so weak that even standing is hard.",
+        "I’ve lost so much hair, and my skin is dry and flaky.",
+        "I drink so much water, but I’m always thirsty.",
+        "I feel freezing cold even when the heating is on.",
+        "Something isn’t right. My body just feels off in every way.",
+        "I have such bad mood swings that I feel like a different person.",
+        "I think my whole system is out of balance."
+    ],
+    "dermatological": [
+        "mild skin rash",
+        "occasional itching",
+        "minor dry skin patches",
+        "slight redness on the skin",
+        "small areas of mild irritation",
+        "occasional mild eczema flare-up",
+        "minor skin dryness",
+        "slight scaling of the skin",
+        "occasional mild hives",
+        "light skin irritation",
+        "I have a rash that keeps coming back with a moderate itch",
+        "My skin is red and sometimes has small bumps",
+        "I often experience eczema flare-ups with dry skin",
+        "My skin feels irritated and a bit flaky",
+        "I have several areas on my skin that are very itchy",
+        "I get moderate inflammation on my skin that turns red",
+        "I sometimes develop hives that are uncomfortable",
+        "I have a rash that sometimes even forms small blisters",
+        "My skin stays red and irritated for long periods",
+        "I experience symptoms similar to mild psoriasis",
+        "I feel completely drained all the time, and I keep losing weight fast.",
+        "I barely eat, but I’m still losing a lot of weight fast.",
+        "I can’t handle heat at all, it makes me feel weak and shaky.",
+        "My muscles feel so weak that even standing is hard.",
+        "I’ve lost so much hair, and my skin is dry and flaky.",
+        "I drink so much water, but I’m always thirsty.",
+        "I feel freezing cold even when the heating is on.",
+        "Something isn’t right. My body just feels off in every way.",
+        "I have such bad mood swings that I feel like a different person.",
+        "I think my whole system is out of balance."
+    ]
 }
 
 FEEDBACK_INSTRUCTION = (
@@ -788,7 +724,7 @@ def register():
 
 from sendgrid.helpers.mail import Mail, Personalization  # ensure these imports are at the top
 
-from sendgrid.helpers.mail import Mail, Personalization  # ensure these imports are at the top
+from sendgrid.helpers.mail import Mail, Personalization  # duplicate, can be removed
 
 @app.route('/alert_signup', methods=['GET', 'POST'])
 def alert_signup():
@@ -840,7 +776,8 @@ def alert_signup():
 
     return render_template('alert_signup.html')
 
-    # --- Modified Email Confirmation Route ---
+
+# --- Modified Email Confirmation Route ---
 @app.route('/confirm_email/<token>', methods=['GET'])
 def confirm_email(token):
     try:
@@ -1085,10 +1022,17 @@ def start_simulation():
     patient_complexity = request.form.get('patient_complexity')
     country = request.form.get('country')
     system_choice = request.form.get('system', 'random')
+    # Retrieve the co-morbidity status from the form (expects "yes" or "no")
+    comorbidities = request.form.get('comorbidities', 'no')
+    session['comorbidities'] = comorbidities
 
-    if problem_complexity not in ['Basic', 'Intermediate', 'Advanced']:
-        flash("Invalid problem complexity selected.", "danger")
-        return redirect(url_for('simulation'))
+    # Always include a statement in the prompt about co-morbidities.
+    if comorbidities.lower() == "yes":
+        comorbidity_str = " This patient has co-morbidities, which may influence their clinical presentation based on their age and ethnicity."
+    else:
+        comorbidity_str = " This patient does not have any co-morbidities."
+
+    # Remove level check since we're no longer using levels for complaint selection.
     if patient_complexity not in ['Nil', 'Memory Issues', 'Irritable']:
         flash("Invalid patient complexity selected.", "danger")
         return redirect(url_for('simulation'))
@@ -1096,32 +1040,35 @@ def start_simulation():
         flash("Please select a country.", "danger")
         return redirect(url_for('simulation'))
 
-    # Map "Basic" to "Beginner" for compatibility with internal dictionaries
-    level = "Beginner" if problem_complexity == "Basic" else problem_complexity
-
     # Determine tone descriptor based on patient complexity selection
     if patient_complexity == "Nil":
-        tone = " Always remain calm, kind, and empathetic, reflecting a warm and humanistic presence. Use colloquial language throughout."
+        tone = " Always use colloquial language throughout as a common person would. Avoid jargon"
     elif patient_complexity == "Memory Issues":
-        tone = " You are very forgetful with significant memory issues. You are not orientated to time and place. Use colloquial language throughout. You answer questions but think the person asking questions is a friend of the family."
+        tone = "You are very forgetful with significant memory issues. You are not orientated to time and place. Use colloquial language throughout. You answer some questions inaccurately or \"I'm not sure\"."
     elif patient_complexity == "Irritable":
-        tone = " You are short tempered and noticably irritable. You complain about past experiences with healthcare practitioners and question whether the person asking you questions is even qualified although you do answer questions. Everything frustrates you. Use colloquial language throughout."
+        tone = " You are short tempered and noticeably irritable. You complain about past experiences with healthcare practitioners and question whether the person asking you questions is even qualified, although you do answer questions. Everything frustrates you. Use colloquial language throughout."
     else:
         tone = ""
 
     # Choose a patient and store for later use.
-    patient = random.choice(PATIENT_NAMES)
+    if patient_complexity == "Memory Issues":
+        eligible_patients = [p for p in PATIENT_NAMES if p["age"] >= 60]
+        patient = random.choice(eligible_patients) if eligible_patients else random.choice(PATIENT_NAMES)
+    else:
+        patient = random.choice(PATIENT_NAMES)
+    session['patient'] = patient
+    print("DEBUG: Patient stored in session:", patient)
     session['patient'] = patient
     print("DEBUG: Patient stored in session:", patient)
 
     # If system_choice is 'random', select one at random.
     if system_choice == 'random':
-        system_choice = random.choice(list(SYSTEM_LEVEL_COMPLAINTS.keys()))
-    complaints = SYSTEM_LEVEL_COMPLAINTS.get(system_choice, {}).get(level)
-    if complaints:
+        system_choice = random.choice(list(SYSTEM_COMPLAINTS.keys()))
+    complaints = SYSTEM_COMPLAINTS.get(system_choice)
+    if complaints and isinstance(complaints, list):
         selected_complaint = random.choice(complaints)
     else:
-        selected_complaint = random.choice(LEVEL_COMPLAINTS[level])
+        selected_complaint = "No complaint available."
 
     # Store simulation parameters in session.
     session['system_choice'] = system_choice
@@ -1130,12 +1077,13 @@ def start_simulation():
     session['patient_complexity'] = patient_complexity
     session['country'] = country
 
-    # Build the initial system prompt with the new descriptors.
+    # Build the initial system prompt.
     instr = (
             f"You are a patient in a history-taking simulation taking place in {country}. "
             f"Your problem complexity is {problem_complexity} and your patient complexity is {patient_complexity}. "
-            f"Your name is {patient['name']} (age {patient['age']}) and you are a {patient['gender']} patient. "
-            "At the very beginning of the consultation, your initial response MUST be exactly: "
+            f"Your name is {patient['name']} (age {patient['age']}) and you are a {patient['gender']} patient."
+            + comorbidity_str + " " +
+            "At the very beginning of the consultation, your initial response is: "
             "\"Can I speak with someone about my symptoms?\". Once you have provided that opener, "
             "continue the conversation naturally without repeating the phrase. Consent to answering questions regardless of the interviewer's profession. "
             f"Present your complaint: {selected_complaint}. "
@@ -1147,7 +1095,7 @@ def start_simulation():
             + tone
     )
 
-    # Initialize conversation with this robust system prompt.
+    # Initialize conversation with this system prompt.
     session['conversation'] = [{'role': 'system', 'content': instr}]
     print("DEBUG: Conversation initialized with prompt:", session['conversation'])
 
@@ -1159,10 +1107,8 @@ def start_simulation():
         )
         first_reply = response.choices[0].message["content"]
         if response.usage and 'prompt_tokens' in response.usage and 'completion_tokens' in response.usage:
-            current_user.token_prompt_usage_gpt4 = (current_user.token_prompt_usage_gpt4 or 0) + response.usage[
-                'prompt_tokens']
-            current_user.token_completion_usage_gpt4 = (current_user.token_completion_usage_gpt4 or 0) + response.usage[
-                'completion_tokens']
+            current_user.token_prompt_usage_gpt4 = (current_user.token_prompt_usage_gpt4 or 0) + response.usage['prompt_tokens']
+            current_user.token_completion_usage_gpt4 = (current_user.token_completion_usage_gpt4 or 0) + response.usage['completion_tokens']
             db.session.commit()
     except Exception as e:
         first_reply = f"Error with API: {str(e)}"
@@ -1249,10 +1195,8 @@ def get_reply():
         )
         resp_text = response.choices[0].message["content"]
         if response.usage and 'prompt_tokens' in response.usage and 'completion_tokens' in response.usage:
-            current_user.token_prompt_usage_gpt35 = (current_user.token_prompt_usage_gpt35 or 0) + response.usage[
-                'prompt_tokens']
-            current_user.token_completion_usage_gpt35 = (current_user.token_completion_usage_gpt35 or 0) + \
-                                                        response.usage['completion_tokens']
+            current_user.token_prompt_usage_gpt35 = (current_user.token_prompt_usage_gpt35 or 0) + response.usage['prompt_tokens']
+            current_user.token_completion_usage_gpt35 = (current_user.token_completion_usage_gpt35 or 0) + response.usage['completion_tokens']
             db.session.commit()
     except openai.error.OpenAIError as e:
         resp_text = f"OpenAI API Error: {str(e)}"
@@ -1273,8 +1217,7 @@ def hint():
     if not conversation:
         flash("No conversation available for hint suggestions", "warning")
         return redirect(url_for('simulation'))
-    conv_text = "\n".join([f"{'User' if m['role'] == 'user' else 'Patient'}: {m['content']}" for m in conversation if
-                           m['role'] != 'system'])
+    conv_text = "\n".join([f"{'User' if m['role'] == 'user' else 'Patient'}: {m['content']}" for m in conversation if m['role'] != 'system'])
     hint_text = PROMPT_INSTRUCTION + "\n" + conv_text
     hint_conversation = [{'role': 'system', 'content': hint_text}]
     print("DEBUG: Hint prompt constructed:", hint_text)
@@ -1286,10 +1229,8 @@ def hint():
         )
         hint_response = response.choices[0].message["content"]
         if response.usage and 'prompt_tokens' in response.usage and 'completion_tokens' in response.usage:
-            current_user.token_prompt_usage_gpt35 = (current_user.token_prompt_usage_gpt35 or 0) + response.usage[
-                'prompt_tokens']
-            current_user.token_completion_usage_gpt35 = (current_user.token_completion_usage_gpt35 or 0) + \
-                                                        response.usage['completion_tokens']
+            current_user.token_prompt_usage_gpt35 = (current_user.token_prompt_usage_gpt35 or 0) + response.usage['prompt_tokens']
+            current_user.token_completion_usage_gpt35 = (current_user.token_completion_usage_gpt35 or 0) + response.usage['completion_tokens']
             db.session.commit()
     except Exception as e:
         hint_response = f"Error with API: {str(e)}"
@@ -1321,7 +1262,7 @@ def feedback():
             "6. Building a relationship\n"
             "7. Providing structure\n\n"
             "Then, calculate the overall score (max 70) and provide a brief commentary on the user's clinical reasoning considering hypothetico-deductive and bayesian reasoning in particular"
-            'in a key called "clinical_reasoning".\n\n'
+            ' in a key called "clinical_reasoning".\n\n'
             "Format your answer strictly as a single JSON object (do not include any extra text):\n"
             "{\n"
             '  "initiating_session": {"score": X, "comment": "..."},\n'
@@ -1349,10 +1290,8 @@ def feedback():
         fb = response.choices[0].message["content"]
         print("DEBUG: Raw GPT-4 feedback:", fb)
         if response.usage and 'prompt_tokens' in response.usage and 'completion_tokens' in response.usage:
-            current_user.token_prompt_usage_gpt4 = (current_user.token_prompt_usage_gpt4 or 0) + response.usage[
-                'prompt_tokens']
-            current_user.token_completion_usage_gpt4 = (current_user.token_completion_usage_gpt4 or 0) + response.usage[
-                'completion_tokens']
+            current_user.token_prompt_usage_gpt4 = (current_user.token_prompt_usage_gpt4 or 0) + response.usage['prompt_tokens']
+            current_user.token_completion_usage_gpt4 = (current_user.token_completion_usage_gpt4 or 0) + response.usage['completion_tokens']
             db.session.commit()
     except Exception as e:
         fb = f"Error generating feedback: {str(e)}"
@@ -1511,7 +1450,6 @@ def clear_simulation():
     session.pop('feedback', None)
     session.pop('feedback_json', None)
     session.pop('hint', None)
-    level = session.get('simulation_level', 'Beginner')
     country = session.get('country', 'Unknown')
     import random
     patient = session.get('patient')
@@ -1520,7 +1458,6 @@ def clear_simulation():
         session['patient'] = patient
     instr = (
         f"You are a patient in a history-taking simulation taking place in {country}. "
-        f"Your level is {level}. "
         f"Your name is {patient['name']} (age {patient['age']}) and you are a {patient['gender']} patient. "
         "Begin every interaction by saying exactly: \"Can I speak with someone about my symptoms?\" "
         "and wait for the user's response before providing further details. "
@@ -1596,10 +1533,8 @@ def generate_exam():
         )
         exam_results = response.choices[0].message["content"].strip()
         if response.usage and 'prompt_tokens' in response.usage and 'completion_tokens' in response.usage:
-            current_user.token_prompt_usage_gpt35 = (current_user.token_prompt_usage_gpt35 or 0) + response.usage[
-                'prompt_tokens']
-            current_user.token_completion_usage_gpt35 = (current_user.token_completion_usage_gpt35 or 0) + \
-                                                        response.usage['completion_tokens']
+            current_user.token_prompt_usage_gpt35 = (current_user.token_prompt_usage_gpt35 or 0) + response.usage['prompt_tokens']
+            current_user.token_completion_usage_gpt35 = (current_user.token_completion_usage_gpt35 or 0) + response.usage['completion_tokens']
             db.session.commit()
     except Exception as e:
         exam_results = f"Error generating exam results: {str(e)}"
@@ -1690,6 +1625,7 @@ def send_daily_update():
         except Exception as e:
             print(f"Error sending daily update: {str(e)}")
 
+
 @app.route('/unsubscribe', methods=['GET'])
 def unsubscribe():
     # Get the email address from the query string
@@ -1715,6 +1651,7 @@ def unsubscribe():
         print(f"No alert signup record found for {email}.")
 
     return redirect(url_for('landing'))
+
 
 # --- Scheduler Setup ---
 scheduler = BackgroundScheduler()

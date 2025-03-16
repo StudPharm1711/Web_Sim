@@ -434,16 +434,32 @@
                             </optgroup>
                         </select>
                     </div>
-                    <!-- New drop down for Problem Complexity -->
-                    <div class="form-group">
-                        <label for="problem_complexity">
-                            Problem Complexity
-                            <i class="fa fa-info-circle tooltip-icon" title="Select the complexity of the problem: Basic, Intermediate, or Advanced."></i>
+                    <!-- Removed Clarity of Symptoms dropdown -->
+<div class="form-group">
+                        <label for="system_select">
+                            System
+                            <i class="fa fa-info-circle tooltip-icon" title="Select a body system to receive a system-specific complaint."></i>
                         </label>
-                        <select id="problem_complexity" name="problem_complexity" class="select2" required>
-                            <option value="Basic">Basic</option>
-                            <option value="Intermediate">Intermediate</option>
-                            <option value="Advanced">Advanced</option>
+                        <select id="system_select" name="system" class="select2" required>
+                            <option value="random">Random</option>
+                            <option value="cardiovascular">Cardiovascular</option>
+                            <option value="respiratory">Respiratory</option>
+                            <option value="gastrointestinal">Gastrointestinal</option>
+                            <option value="neurological">Neurological</option>
+                            <option value="musculoskeletal">Musculoskeletal</option>
+                            <option value="genitourinary">Genitourinary</option>
+                            <option value="endocrine">Endocrine</option>
+                            <option value="dermatological">Dermatological</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="comorbidities">
+                            Co-morbidities
+                            <i class="fa fa-info-circle tooltip-icon" title="Does the patient have co-morbidities?"></i>
+                        </label>
+                        <select id="comorbidities" name="comorbidities" class="select2" required>
+                            <option value="no">No</option>
+                            <option value="yes">Yes</option>
                         </select>
                     </div>
                     <!-- New drop down for Patient Complexity -->
@@ -456,23 +472,6 @@
                             <option value="Nil">Nil complexity</option>
                             <option value="Memory Issues">Memory Issues</option>
                             <option value="Irritable">Irritable</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="system_select">
-                            System
-                            <i class="fa fa-info-circle tooltip-icon" title="Select a body system to receive a system-specific, level-tailored complaint."></i>
-                        </label>
-                        <select id="system_select" name="system" class="select2" required>
-                            <option value="random">Random</option>
-                            <option value="cardiovascular">Cardiovascular</option>
-                            <option value="respiratory">Respiratory</option>
-                            <option value="gastrointestinal">Gastrointestinal</option>
-                            <option value="neurological">Neurological</option>
-                            <option value="musculoskeletal">Musculoskeletal</option>
-                            <option value="genitourinary">Genitourinary</option>
-                            <option value="endocrine">Endocrine</option>
-                            <option value="dermatological">Dermatological</option>
                         </select>
                     </div>
                     <div style="display: flex; flex-direction: column;">
@@ -678,7 +677,8 @@
             $('#system_select').select2({
                 theme: "classic"
             });
-            $('#problem_complexity').select2({
+            // Removed clarity_of_symptoms dropdown
+            $('#comorbidities').select2({
                 theme: "classic"
             });
             $('#patient_complexity').select2({
