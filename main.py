@@ -699,7 +699,7 @@ def login():
 def register():
     # Check for available subscription space
     active_count = User.query.filter(User.subscription_status == 'active').count()
-    if active_count >= 1:
+    if active_count >= 100:
         flash("All subscription spaces are currently taken. Please sign up for alerts when a space becomes available.",
               "info")
         return redirect(url_for('alert_signup'))  # Ensure you have an alert signup route.
