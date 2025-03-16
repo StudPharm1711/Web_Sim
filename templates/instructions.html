@@ -24,6 +24,7 @@
         }
         h1 {
             color: #005f73;
+            text-align: center;
         }
         p {
             line-height: 1.6;
@@ -32,6 +33,7 @@
         ul {
             margin-top: 0;
         }
+        /* Button style remains unchanged */
         .btn-3d {
             background: linear-gradient(145deg, #005f73, #0a6c82);
             color: white;
@@ -51,16 +53,31 @@
         .btn-3d:active {
             transform: translateY(2px);
         }
-        /* Optional styling for the details element */
+        /* Details styling for contemporary dropdowns */
         details {
             margin-top: 20px;
-            padding: 10px;
+            padding: 15px;
             background: #e9ecef;
             border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: background 0.3s ease;
+        }
+        details[open] {
+            background: #dfe9f3;
         }
         summary {
             font-weight: bold;
             cursor: pointer;
+            font-size: 1.1rem;
+            outline: none;
+        }
+        summary::-webkit-details-marker {
+            display: none;
+        }
+        .subheading {
+            color: #005f73;
+            margin-top: 10px;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -68,50 +85,98 @@
     <div class="container">
         <h1>Simulation Instructions</h1>
         <p>
-            Welcome to Simul-AI-tor! This simulation is designed to help you practise clinical history taking.
-            <br><br>
-            <strong>How it works:</strong>
-            <br>
-            - Start the simulation by selecting your level of practise and country.
-            <br>
-            - Engage in a simulated consultation with a patient.
-            <br>
-            - Use the "Hint" button if you need guidance on which questions to ask next.
-            <br>
-            - Once you have interacted sufficiently (ideally providing a differential diagnosis, a management plan, and closing the consultation), request detailed feedback.
-            <br><br>
-            <strong>Feedback and Scoring:</strong>
-            <br>
-            - The system scores your performance based on the Calgary–Cambridge model.
-            <br>
-            - It also provides additional commentary on your clinical reasoning, evaluating the use of several key approaches:
-        </p>
-        <ul>
-            <li><strong>Hypothetico-Deductive Reasoning:</strong> Formulate initial hypotheses and ask targeted questions to confirm or rule out a potential diagnosis.</li>
-            <li><strong>Bayesian Reasoning:</strong> Update your diagnostic probability as new information becomes available, combining prior expectations with current evidence.</li>
-            <li><strong>Dual-Process Theory:</strong> Balance quick, intuitive judgements with more deliberate, analytical thinking to avoid common cognitive biases.</li>
-        </ul>
-        <p>
-            We hope this simulation helps you enhance both your history taking and clinical decision-making skills.
+            Welcome to Simul-AI-tor! This simulation is designed to help you practise clinical history taking and refine your clinical reasoning skills.
+            Through this exercise, you'll engage with virtual patients while applying the Calgary–Cambridge model, enhanced with modern concepts of consent for physical examination and robust clinical reasoning strategies.
         </p>
 
-        <!-- Dropdown for the Calgary–Cambridge narrative -->
+        <!-- Dropdown for Initiating the Session -->
         <details>
-            <summary>More on the Calgary–Cambridge Approach</summary>
+            <summary>Initiating the Session</summary>
+            <p class="subheading">Overview:</p>
             <p>
-                Taking a patient's history using the Calgary–Cambridge approach involves clear and structured communication, creating a comfortable environment for patients to openly share essential information. Begin by initiating the consultation warmly, introducing yourself clearly, confirming the patient's identity, and setting expectations.
+                Begin by warmly introducing yourself, confirming the patient's identity, and establishing a collaborative atmosphere. This sets the stage for an open dialogue.
             </p>
+            <p class="subheading">Key Points:</p>
             <p>
-                Next, gather information by actively listening, asking open-ended questions, and gently exploring the patient's concerns, symptoms, and experiences. Employ reflective questioning and periodically summarise key points to confirm your understanding and ensure clarity.
+                Introduce yourself, obtain implicit consent to proceed with the consultation, and clearly outline the consultation process.
             </p>
+        </details>
+
+        <!-- Dropdown for Gathering Information -->
+        <details>
+            <summary>Gathering Information</summary>
+            <p class="subheading">Overview:</p>
             <p>
-                When appropriate, gain explicit consent for a physical examination by clearly explaining the purpose, procedure, and relevance to the patient's presenting issues. Perform the examination respectfully, maintaining patient dignity throughout. After completing the examination, review the findings with the patient at an appropriate time, clearly explaining how these results inform your clinical reasoning.
+                Use open-ended questions to allow the patient to share their symptoms, concerns, and relevant history. Active listening and reflective summarising are vital.
             </p>
+            <p class="subheading">Key Points:</p>
             <p>
-                Incorporate clinical reasoning methods such as hypothetico-deductive reasoning by generating hypotheses based on the gathered information and examination findings, then methodically testing these hypotheses. Employ Bayesian reasoning by considering the probability of different conditions, weighing new information against existing knowledge, and updating your assessments accordingly.
+                Encourage a detailed narrative, ask follow-up questions, and ensure that all critical information is captured.
             </p>
+        </details>
+
+        <!-- Dropdown for Physical Examination & Consent -->
+        <details>
+            <summary>Physical Examination &amp; Consent</summary>
+            <p class="subheading">Overview:</p>
             <p>
-                As the consultation concludes, summarise the key points discussed, including your reasoning process and the next steps. Check the patient's understanding and invite further questions or concerns. Always maintain an empathetic, respectful attitude to build trust and a strong therapeutic relationship. This structured approach enhances clinical reasoning, minimises miscommunication, and fosters patient-centred care.
+                Prior to any physical examination, obtain explicit consent by explaining its purpose and procedure. This demonstrates respect and maintains patient dignity.
+            </p>
+            <p class="subheading">Key Points:</p>
+            <p>
+                Clearly request consent, explain each step of the examination, and integrate how the findings will contribute to your clinical reasoning.
+            </p>
+        </details>
+
+        <!-- Dropdown for Explanation &amp; Planning -->
+        <details>
+            <summary>Explanation &amp; Planning</summary>
+            <p class="subheading">Overview:</p>
+            <p>
+                Share your initial impressions and reasoning with the patient. Discuss potential diagnoses and outline the next steps, incorporating both hypothetico-deductive and Bayesian approaches.
+            </p>
+            <p class="subheading">Key Points:</p>
+            <p>
+                Explain how you update your diagnostic probabilities with new information and how the plan will evolve based on both intuitive and analytical reasoning.
+            </p>
+        </details>
+
+        <!-- Dropdown for Closing the Session -->
+        <details>
+            <summary>Closing the Session</summary>
+            <p class="subheading">Overview:</p>
+            <p>
+                Summarise the consultation, review the key points, and confirm the patient’s understanding. Ensure that any uncertainties are addressed before ending the session.
+            </p>
+            <p class="subheading">Key Points:</p>
+            <p>
+                Recap the main discussion, check for understanding, and clearly outline any follow-up or next steps.
+            </p>
+        </details>
+
+        <!-- Dropdown for Building a Relationship -->
+        <details>
+            <summary>Building a Relationship</summary>
+            <p class="subheading">Overview:</p>
+            <p>
+                Develop a strong therapeutic alliance by demonstrating empathy, actively listening, and validating the patient’s experiences. This is foundational for effective care.
+            </p>
+            <p class="subheading">Key Points:</p>
+            <p>
+                Show genuine concern, respect the patient’s perspective, and foster trust throughout the consultation.
+            </p>
+        </details>
+
+        <!-- Dropdown for Providing Structure -->
+        <details>
+            <summary>Providing Structure</summary>
+            <p class="subheading">Overview:</p>
+            <p>
+                Organise the consultation into clear, sequential phases. A structured approach ensures comprehensive history taking and supports effective clinical reasoning.
+            </p>
+            <p class="subheading">Key Points:</p>
+            <p>
+                Follow a consistent framework and integrate clinical reasoning strategies—balancing intuitive judgements with analytical thought—to guide the consultation.
             </p>
         </details>
 

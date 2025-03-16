@@ -635,7 +635,9 @@ def reactivate_payment_success():
 # --- Landing Page Route ---
 @app.route('/')
 def landing():
-    return render_template('landing.html')
+    active_count = User.query.filter(User.subscription_status == 'active').count()
+    remaining_places = max(100 - active_count, 0)  # ensure it doesn't go negative
+    return render_template('landing.html', remaining_places=remaining_places)
 
 
 ADMIN_LOGIN_PASSWORD = os.getenv("ADMIN_LOGIN_PASSWORD")
@@ -1113,7 +1115,11 @@ def start_simulation():
 def simulation():
     conversation = session.get('conversation', [])
     display_conv = [m for m in conversation if m['role'] != 'system']
-    print("DEBUG: Display conversation (without system messages):", display_conv)
+    safe_display_conv = repr(display_conv).encode('utf-8', errors='replace').decode('utf-8')
+    try:
+        print("DEBUG: Display conversation (without system messages):", safe_display_conv)
+    except OSError as e:
+        print("DEBUG: Error printing conversation:", e)
     return render_template(
         'simulation.html',
         conversation=display_conv,

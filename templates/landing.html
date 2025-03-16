@@ -52,7 +52,9 @@
   </nav>
 
   <!-- Sticky Primary CTA -->
-  <a href="{{ url_for('register') }}" class="sticky-cta">Start your free trial now!</a>
+  <a href="{{ url_for('register') }}" class="sticky-cta">
+  Start your free trial now! <span style="color:red;">Only {{ remaining_places }} places left!</span>
+</a>
 
   <!-- Hero Section -->
   <section class="hero-section" id="hero">
@@ -158,6 +160,7 @@
           <span class="letter">I</span>
         </span>
       </h2>
+      <p style="color:red; font-size:1.5em; font-weight:bold;">Only {{ remaining_places }} places left!</p>
       <p>Interact using your keyboard or your own voice!</p>
       <p class="risk-reversal">Enjoy a 48‑hour free trial – no obligation, cancel anytime.</p>
     </div>
