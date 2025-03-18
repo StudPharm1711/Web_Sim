@@ -19,12 +19,44 @@ body {
   scroll-behavior: smooth;
 }
 
-/* Pastel Background Variations */
-.section-pastel-lavender { background-color: #F9F7FF; }
-.section-pastel-mint     { background-color: #F0FFF0; }
-.section-pastel-peach    { background-color: #FFF5EE; }
+/* Fixed Header Styling */
+header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1001; /* ensures header stays on top */
+  background-color: #ffffff;
+  border-bottom: 1px solid #ddd;
+  padding-top: env(safe-area-inset-top, 0);
+}
 
-/* Header */
+/* Header Placeholder – matches desktop header height (120px + safe-area) */
+.header-placeholder {
+  height: calc(120px + env(safe-area-inset-top, 0));
+}
+
+/* Fixed Secondary Navigation Styling (Desktop) */
+.section-nav {
+  position: fixed;
+  top: calc(120px + env(safe-area-inset-top, 0)); /* directly below header on desktop */
+  left: 0;
+  width: 100%;
+  z-index: 1010; /* raised so nav is above content */
+  background: #ffffff;
+  padding: 15px 0;
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Navigation Placeholder – height for desktop (50px) */
+.nav-placeholder {
+  height: 50px;
+}
+
+/* Header Container */
 .header-container {
   display: flex;
   align-items: center;
@@ -32,39 +64,36 @@ body {
   padding: 20px 40px;
   background-color: #ffffff;
   box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  z-index: 1000;
 }
 
+/* Logo Group */
 .logo-group {
   display: flex;
   align-items: center;
 }
-
 .logo-group img {
   height: 80px;
   margin-right: 15px;
 }
-
 .logo-text {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
 }
 
-/* Main heading */
+/* Main Heading */
 .main-heading {
   font-size: 2rem;
   color: #005f73;
   margin: 0;
 }
 
-/* History Taking typed text */
+/* History Taking Typed Text */
 .history-container {
   display: flex;
   gap: 0.6rem;
   margin-top: 5px;
 }
-
 .history-letter {
   color: red;
   font-size: 1.2rem;
@@ -73,29 +102,27 @@ body {
   animation: fadeIn 3s forwards;
 }
 
-/* Right-side links (Log In/Register) */
+/* Header-right Buttons (Log In/Register) – match logo color */
 .header-right > a {
-  color: #005f73;
-  background: none;
+  background-color: #005f73;
+  color: #fff;
   text-decoration: none;
   font-size: 1rem;
   padding: 6px 10px;
-  border: 1px solid #005f73;
+  border: none;
   border-radius: 4px;
-  transition: background 0.3s, color 0.3s;
+  transition: background 0.3s;
 }
-
 .header-right > a:hover {
-  background: #005f73;
-  color: #fff;
+  background-color: #004f63;
 }
 
-/* Sticky Primary CTA */
+/* Sticky Primary CTA – now matching logo color */
 .sticky-cta {
   position: fixed;
   bottom: 20px;
   right: 20px;
-  background: #0a6c82;
+  background: #005f73;
   color: #fff;
   padding: 15px 25px;
   border-radius: 50px;
@@ -106,17 +133,59 @@ body {
   transition: background 0.3s;
   animation: pulsate 1.5s ease-in-out infinite;
 }
-
 .sticky-cta:hover {
-  background: #005f73;
+  background: #004f63;
 }
 
-/* Pulsate animation for CTA */
+/* Pulsate Animation for CTA */
 @keyframes pulsate {
   0% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.05); opacity: 0.8; }
   100% { transform: scale(1); opacity: 1; }
 }
+
+/* Nav Link Styling (Pastel Colours per link) */
+/* Order: 1st link ("How It Works") = pastel lavender, 2nd ("Features") = pastel mint, 3rd ("Testimonials") = pastel peach */
+.section-nav a {
+  text-decoration: none;
+  font-size: 1rem;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  transition: background 0.3s, color 0.3s;
+}
+.section-nav a:nth-child(1) {
+  background-color: #F9F7FF;
+  color: #005f73;
+  border-color: #005f73;
+}
+.section-nav a:nth-child(2) {
+  background-color: #F0FFF0;
+  color: #005f73;
+  border-color: #005f73;
+}
+.section-nav a:nth-child(3) {
+  background-color: #FFF5EE;
+  color: #005f73;
+  border-color: #005f73;
+}
+/* For the first link, keep its pastel on hover */
+.section-nav a:nth-child(1):hover {
+  background-color: #F9F7FF;
+  color: #005f73;
+}
+.section-nav a:hover {
+  background-color: #005f73;
+  color: #fff;
+}
+.section-nav a:visited {
+  color: #005f73;
+}
+
+/* Pastel Background Variations for Sections */
+.section-pastel-lavender { background-color: #F9F7FF; }
+.section-pastel-mint     { background-color: #F0FFF0; }
+.section-pastel-peach    { background-color: #FFF5EE; }
 
 /* Section Defaults */
 section {
@@ -126,13 +195,13 @@ section {
   opacity: 0;
   transform: translateY(20px);
   transition: opacity 0.6s ease, transform 0.6s ease;
+  /* Desktop scroll offset: 120px header + 50px nav = 170px */
+  scroll-margin-top: calc(120px + 50px + env(safe-area-inset-top, 0));
 }
-
 section.visible {
   opacity: 1;
   transform: translateY(0);
 }
-
 .section-title {
   text-align: center;
   margin-bottom: 40px;
@@ -145,33 +214,28 @@ section.visible {
   position: relative;
   text-align: center;
   background-color: #ffffff;
-  padding-top: 0px;
 }
-
 .hero-overlay {
   position: relative;
   z-index: 2;
   margin: auto;
-  padding: 5px 5px;
+  padding: 5px;
   max-width: 1100px;
   text-align: center;
   background-color: rgba(255,255,255,0.9);
 }
-
 .hero-overlay h2 {
   font-size: 3rem;
   margin-bottom: 20px;
   color: #34495e;
   text-align: center;
 }
-
 .hero-overlay p {
   font-size: 1.5rem;
   max-width: 800px;
   margin: 0 auto 20px;
   color: #34495e;
 }
-
 .hero-overlay .risk-reversal {
   margin-top: 0.5rem;
   font-size: 0.9rem;
@@ -185,7 +249,6 @@ section.visible {
   margin: auto;
   max-width: 800px;
 }
-
 .carousel-controls {
   position: absolute;
   top: 50%;
@@ -196,7 +259,6 @@ section.visible {
   transform: translateY(-50%);
   pointer-events: none;
 }
-
 .carousel-controls button {
   pointer-events: auto;
   background: rgba(0,0,0,0.5);
@@ -209,35 +271,28 @@ section.visible {
   margin: 0 10px;
   transition: background 0.3s;
 }
-
 .carousel-controls button:hover {
   background: rgba(0,0,0,0.8);
 }
-
 .carousel-controls button i {
   font-size: 1.2rem;
 }
-
 .carousel-slide {
   display: flex;
   transition: transform 0.5s ease-in-out;
 }
-
 .carousel-item {
   min-width: 100%;
   padding: 20px;
   text-align: center;
 }
-
 .carousel-item h3 {
   margin-bottom: 15px;
   color: #005f73;
 }
-
 .carousel-item p {
   margin-bottom: 15px;
 }
-
 .carousel-item img,
 .carousel-item video {
   max-width: 100%;
@@ -250,7 +305,6 @@ section.visible {
   text-align: center;
   padding: 40px 20px;
 }
-
 .features-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -258,25 +312,21 @@ section.visible {
   max-width: 900px;
   margin: auto;
 }
-
 @media (max-width: 768px) {
   .features-grid {
     grid-template-columns: 1fr;
   }
 }
-
 .feature-item {
   background: #ffffff;
   border-radius: 8px;
   padding: 20px;
   box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
-
 .feature-item h3 {
   color: #005f73;
   margin-bottom: 10px;
 }
-
 .feature-item p {
   color: #555;
 }
@@ -285,7 +335,6 @@ section.visible {
 .testimonials {
   text-align: center;
 }
-
 .testimonials .quote {
   font-size: 1.2rem;
   margin-bottom: 20px;
@@ -306,26 +355,22 @@ footer {
 .piano-text {
   font-size: 3rem;
 }
-
 .piano-text .word {
   display: inline-block;
   font-size: 0;
   margin-right: 0.2rem;
 }
-
 .piano-text .letter {
   display: inline-block;
   font-size: 3rem;
   color: #34495e;
   transition: transform 0.2s, color 0.2s, text-shadow 0.2s;
 }
-
 .hover-center {
   transform: scale(1.4);
   color: #ffdce0 !important;
   text-shadow: 0 0 6px rgba(255,220,224,0.6);
 }
-
 .hover-left,
 .hover-right {
   transform: scale(1.2);
@@ -353,48 +398,29 @@ footer {
 .history-letter:nth-child(13) { animation-delay: 2.4s; }
 .history-letter:nth-child(14) { animation-delay: 2.6s; }
 
-/* Sticky Navigation Bar */
-.section-nav {
-  /* Using fixed position on mobile as an alternative */
-  position: sticky;
-  top: 0;
-  z-index: 999;
-  width: 100%;
-  background: #ffffff;
-  padding: 15px 0;
-  display: flex;
-  justify-content: center;
-  gap: 40px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  position: relative;
-  overflow: visible;
+/* Container for Main Content */
+.container {
+  max-width: 900px;
+  margin: 20px auto;
+  padding: 20px;
 }
 
-.section-nav::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 15px;
-  pointer-events: none;
-  background: linear-gradient(to bottom, rgba(255,255,255,1) 0%, rgba(255,255,255,0) 100%);
-}
-
-.section-nav a {
-  color: #0a6c82;
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 1.1rem;
-  transition: color 0.2s;
-}
-
-.section-nav a:hover {
-  color: #005f73;
+/* Desktop Scroll Offset for Sections:
+   120px header + 50px nav = 170px */
+section {
+  scroll-margin-top: calc(120px + 50px + env(safe-area-inset-top, 0));
 }
 
 /* MEDIA QUERIES FOR MOBILE */
 @media (max-width: 600px) {
+  /* Update header & nav for mobile: header = 135px, nav = 62.75px */
+  .header-placeholder {
+    height: calc(135px + env(safe-area-inset-top, 0));
+  }
+  .section-nav {
+    top: calc(135px + env(safe-area-inset-top, 0));
+  }
+  /* Mobile header container adjustments */
   .header-container {
     flex-direction: column;
     align-items: center;
@@ -428,32 +454,27 @@ footer {
   .piano-text .letter {
     font-size: 1.8rem;
   }
-  /* Alternative approach: For mobile, force the nav bar to be fixed */
-  .section-nav {
-    position: fixed;
-    top: 0;
-    left: 0;
+  .container {
+    padding: 10px;
   }
-  /* Add top padding to content to prevent overlap with fixed nav */
-  body::before {
-    content: "";
-    display: block;
-    height: 70px; /* Adjust this value if your nav height changes */
+  /* Mobile Scroll Offset for Sections:
+     135px header + 62.75px nav = ~197.75px */
+  section {
+    scroll-margin-top: calc(135px + 62.75px + env(safe-area-inset-top, 0));
   }
 }
+
 @media (max-width: 600px) {
   .hero-section {
-    padding-top:0px;
+    padding-top: 0;
   }
 }
-@media (max-width: 600px) {
-  .section-nav {
-    /* Add left and right padding to pull the links away from the edges */
-    padding: 15px 20px;
 
-    /* Optionally reduce the gap between links a bit, if desired */
-    gap: 20px;
-  }
+@media (max-width: 600px) {
   .hero-overlay h2.piano-text {
-  line-height: 1.1;
+    line-height: 1.1;
+  }
+  .section-nav a {
+    font-size: 0.9rem;
+  }
 }
