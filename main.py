@@ -1096,7 +1096,7 @@ def start_simulation():
     # Get new fields: problem_complexity and patient_complexity
     problem_complexity = request.form.get('problem_complexity')
     patient_complexity = request.form.get('patient_complexity')
-    country = request.form.get('country')
+    country = request.form.get('country', 'United Kingdom')
     system_choice = request.form.get('system', 'random')
     # Retrieve the co-morbidity status from the form (expects "yes" or "no")
     comorbidities = request.form.get('comorbidities', 'no')
