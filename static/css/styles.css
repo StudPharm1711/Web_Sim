@@ -39,12 +39,17 @@ header {
 /* Fixed Secondary Navigation Styling (Desktop) */
 .section-nav {
   position: fixed;
-  top: calc(120px + env(safe-area-inset-top, 0)); /* directly below header on desktop */
+  top: calc(120px + env(safe-area-inset-top, 0));
   left: 0;
-  width: 100%;
-  z-index: 1010; /* raised so nav is above content */
+  right: 0;
+  z-index: 1010;
   background: #ffffff;
-  padding: 15px 0;
+
+  /* NEW LINES HERE: */
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 15px 20px;
+
   display: flex;
   justify-content: center;
   gap: 40px;
@@ -419,7 +424,16 @@ section {
   }
   .section-nav {
     top: calc(135px + env(safe-area-inset-top, 0));
+        max-width: 600px;
+    padding: 15px 10px;
+    gap: 20px;
   }
+
+  .section-nav a {
+    font-size: 0.85rem;
+    padding: 4px 8px;
+  }
+
   /* Mobile header container adjustments */
   .header-container {
     flex-direction: column;

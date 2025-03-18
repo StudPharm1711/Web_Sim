@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
   <title>Register - Simul-AI-tor</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
@@ -119,6 +120,7 @@
     </div>
 
     <form method="POST" action="{{ url_for('register') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <!-- Removed the Username field -->
       <input type="email" name="email" placeholder="Email Address" required>
       <input type="password" name="password" placeholder="Password" required>

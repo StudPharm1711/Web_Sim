@@ -1,15 +1,16 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Simul-AI-tor Simulation</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <!-- Shared CSS file -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <!-- Select2 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <style>
+  <meta charset="UTF-8">
+  <title>Simul-AI-tor Simulation</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- Shared CSS file -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <!-- Select2 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  <style>
     /* Global Styles */
     body {
         margin: 0;
@@ -415,6 +416,7 @@
         <!-- Initial Simulation Setup -->
         <div class="chat-container" style="text-align: center;">
             <form method="POST" action="{{ url_for('start_simulation') }}" id="startSimForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div style="display: flex; align-items: flex-end; flex-wrap: wrap; justify-content: center; gap: 15px;">
                     <div class="form-group">
                         <label for="country_select">
@@ -436,7 +438,7 @@
                         </select>
                     </div>
                     <!-- Removed Clarity of Symptoms dropdown -->
-<div class="form-group">
+                    <div class="form-group">
                         <label for="system_select">
                             System
                             <i class="fa fa-info-circle tooltip-icon" title="Select a body system to receive a system-specific complaint."></i>
@@ -560,6 +562,7 @@
 
                 <div class="buttons-row">
                     <form id="hintForm" method="POST" action="{{ url_for('hint') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" id="hintBtn" class="btn-3d" title="Press for hints if you are stuck!">
                             Hint
                             <i class="fa fa-info-circle tooltip-icon" title="Press for hints if you are stuck!"></i>
@@ -579,7 +582,9 @@
                 </div>
                 <div id="spinnerExam">Gathering abbreviated physical exam results, please wait...</div>
                 <div id="examResults" class="prompt-box" style="display: none; min-height: 150px;"></div>
-                <form id="feedbackForm" method="POST" action="{{ url_for('feedback') }}" class="hidden"></form>
+                <form id="feedbackForm" method="POST" action="{{ url_for('feedback') }}" class="hidden">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                </form>
                 <div id="spinnerHint">Generating hints, please wait...</div>
                 <div id="spinnerFeedback">Generating feedback, please wait...</div>
                 {% if hint %}
@@ -713,49 +718,49 @@
 
             // Updated Voice recognition integration using API detection
             var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-if (SpeechRecognition) {
-    recognition = new SpeechRecognition();
-    // Set continuous mode so that slight pauses are allowed.
-    recognition.continuous = true;
-    recognition.interimResults = false;
-    recognition.lang = 'en-US';
+            if (SpeechRecognition) {
+                recognition = new SpeechRecognition();
+                // Set continuous mode so that slight pauses are allowed.
+                recognition.continuous = true;
+                recognition.interimResults = false;
+                recognition.lang = 'en-US';
 
-    // Define a pause threshold (in milliseconds)
-    var PAUSE_THRESHOLD = 1500; // 1.5 seconds
-    var pauseTimer;
+                // Define a pause threshold (in milliseconds)
+                var PAUSE_THRESHOLD = 1500; // 1.5 seconds
+                var pauseTimer;
 
-    recognition.onstart = function() {
-        $("#recordBtn").text("Recording");
-        $("#recordBtn").css("background", "#ff4d4d");
-    };
+                recognition.onstart = function() {
+                    $("#recordBtn").text("Recording");
+                    $("#recordBtn").css("background", "#ff4d4d");
+                };
 
-    recognition.onresult = function(event) {
-        // Clear the pause timer on each result.
-        clearTimeout(pauseTimer);
+                recognition.onresult = function(event) {
+                    // Clear the pause timer on each result.
+                    clearTimeout(pauseTimer);
 
-        // Use the last result in the event.
-        var transcript = event.results[event.results.length - 1][0].transcript;
-        appendMessage("user", transcript);
-        submitVoiceMessage(transcript);
+                    // Use the last result in the event.
+                    var transcript = event.results[event.results.length - 1][0].transcript;
+                    appendMessage("user", transcript);
+                    submitVoiceMessage(transcript);
 
-        // Set a new timer that will auto-stop the recognition if no new speech comes in.
-        pauseTimer = setTimeout(function() {
-            recognition.stop();
-        }, PAUSE_THRESHOLD);
-    };
+                    // Set a new timer that will auto-stop the recognition if no new speech comes in.
+                    pauseTimer = setTimeout(function() {
+                        recognition.stop();
+                    }, PAUSE_THRESHOLD);
+                };
 
-    recognition.onend = function() {
-        $("#recordBtn").text("Record");
-        $("#recordBtn").css("background", "linear-gradient(145deg, #005f73, #0a6c82)");
-        // The recognition stops automatically after a longer pause.
-    };
+                recognition.onend = function() {
+                    $("#recordBtn").text("Record");
+                    $("#recordBtn").css("background", "linear-gradient(145deg, #005f73, #0a6c82)");
+                    // The recognition stops automatically after a longer pause.
+                };
 
-    recognition.onerror = function(event) {
-        console.error("Speech recognition error", event.error);
-    };
-} else {
-    console.error("Speech recognition not supported in this browser.");
-}
+                recognition.onerror = function(event) {
+                    console.error("Speech recognition error", event.error);
+                };
+            } else {
+                console.error("Speech recognition not supported in this browser.");
+            }
 
             // Radio button toggles for input mode
             const radioVoice = document.getElementById('radioVoice');

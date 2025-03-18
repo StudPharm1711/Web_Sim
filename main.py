@@ -54,6 +54,11 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", os.urandom(24).hex())
 
+from flask_wtf.csrf import CSRFProtect
+
+csrf = CSRFProtect()
+csrf.init_app(app)
+
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 login_manager = LoginManager(app)

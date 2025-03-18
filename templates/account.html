@@ -123,6 +123,7 @@
             <p>Your subscription is active and will renew automatically.</p>
             <p>Current period ends on: <strong>{{ subscription_info.current_period_end }}</strong></p>
             <form action="{{ url_for('cancel_subscription') }}" method="POST">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <input type="hidden" name="user_id" value="{{ current_user.id }}">
               <button type="submit" class="btn-3d"
                       onclick="return confirm('Are you sure you want to cancel your subscription? Your access will remain active until the end of the current billing period (approximately 1 month).');">
@@ -139,7 +140,7 @@
   </div>
 
   <footer>
-    <small>&copy; 2025 William Swain. All rights reserved.</small>
+    <small>&copy; 2025 Simul-AI-tor Ltd. All rights reserved.</small>
   </footer>
 </body>
 </html>
