@@ -303,6 +303,15 @@
         margin-bottom: 10px;
         transition: background 0.3s;
     }
+
+    /* NEW: Row for message + send + hint side by side */
+    .form-row {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 10px;
+        margin-top: 10px;
+    }
     /* Media Queries */
     @media (max-width: 600px) {
         .header-container {
@@ -339,6 +348,26 @@
             flex-direction: column;
             align-items: flex-start;
         }
+
+        /* Example of making .form-row more compact on mobile */
+        .simulation-page .form-row {
+            flex-direction: row;
+            flex-wrap: wrap;
+        }
+        .simulation-page #messageForm {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+        .simulation-page #messageForm textarea {
+            flex: 1;
+            min-height: 50px;
+            margin-right: 8px;
+        }
+        .simulation-page #hintForm {
+            display: flex;
+            align-items: center;
+        }
     }
     /* Additional feedback styling overrides */
     .feedback ul {
@@ -363,49 +392,49 @@
     .chat-log::-webkit-scrollbar-thumb:hover {
         background-color: #999999;
     }
-    </style>
+  </style>
 </head>
-<body>
+<body class="simulation-page">
     <!-- Header Container with Click-Activated Dropdown -->
     <header>
-  <div class="header-container">
-    <div class="logo-group">
-      <img src="{{ url_for('static', filename='new_logo.avif') }}" alt="Simul-AI-tor Logo">
-      <!-- Group the main heading and the typed subheading -->
-      <div class="logo-text">
-        <h1 class="main-heading" id="main-heading">Simul-AI-tor</h1>
-        <!-- HISTORY TAKING letters (will appear in red as per your CSS) -->
-        <div class="history-container">
-          <span class="history-letter">H</span>
-          <span class="history-letter">I</span>
-          <span class="history-letter">S</span>
-          <span class="history-letter">T</span>
-          <span class="history-letter">O</span>
-          <span class="history-letter">R</span>
-          <span class="history-letter">Y</span>
-          <span class="history-letter">&nbsp;</span>
-          <span class="history-letter">T</span>
-          <span class="history-letter">A</span>
-          <span class="history-letter">K</span>
-          <span class="history-letter">I</span>
-          <span class="history-letter">N</span>
-          <span class="history-letter">G</span>
+      <div class="header-container">
+        <div class="logo-group">
+          <img src="{{ url_for('static', filename='new_logo.avif') }}" alt="Simul-AI-tor Logo">
+          <!-- Group the main heading and the typed subheading -->
+          <div class="logo-text">
+            <h1 class="main-heading" id="main-heading">Simul-AI-tor</h1>
+            <!-- HISTORY TAKING letters (will appear in red as per your CSS) -->
+            <div class="history-container">
+              <span class="history-letter">H</span>
+              <span class="history-letter">I</span>
+              <span class="history-letter">S</span>
+              <span class="history-letter">T</span>
+              <span class="history-letter">O</span>
+              <span class="history-letter">R</span>
+              <span class="history-letter">Y</span>
+              <span class="history-letter">&nbsp;</span>
+              <span class="history-letter">T</span>
+              <span class="history-letter">A</span>
+              <span class="history-letter">K</span>
+              <span class="history-letter">I</span>
+              <span class="history-letter">N</span>
+              <span class="history-letter">G</span>
+            </div>
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="dropdown" title="Account">
+            <button class="dropbtn" id="dropbtn"><i class="fa fa-cog"></i></button>
+            <div class="dropdown-content" id="dropdown-content">
+              <a href="{{ url_for('about') }}">About</a>
+              <a href="{{ url_for('account') }}">Subscription</a>
+              <a href="{{ url_for('logout') }}">Logout</a>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="header-right">
-      <div class="dropdown" title="Account">
-        <button class="dropbtn" id="dropbtn"><i class="fa fa-cog"></i></button>
-        <div class="dropdown-content" id="dropdown-content">
-          <a href="{{ url_for('about') }}">About</a>
-          <a href="{{ url_for('account') }}">Subscription</a>
-          <a href="{{ url_for('logout') }}">Logout</a>
-        </div>
-      </div>
-    </div>
-  </div>
-</header>
-<div class="header-placeholder"></div>
+    </header>
+    <div class="header-placeholder"></div>
 
     <div class="container">
         {% if not conversation %}
@@ -551,23 +580,26 @@
                         Record
                     </button>
 
-                    <!-- The message form for typed input -->
-                    <form id="messageForm">
-                        <textarea name="message" rows="2"></textarea>
-                        <div style="text-align: right; margin-top: 5px;">
+                    <!-- Single row for typed message, Send, and Hint -->
+                    <div class="form-row">
+                        <!-- The message form for typed input -->
+                        <form id="messageForm">
+                            <textarea name="message" rows="2"></textarea>
                             <button type="submit" class="btn-3d" id="sendBtn">Send</button>
-                        </div>
-                    </form>
+                        </form>
+
+                        <!-- The hint form -->
+                        <form id="hintForm" method="POST" action="{{ url_for('hint') }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" id="hintBtn" class="btn-3d" title="Press for hints if you are stuck!">
+                                Hint
+                                <i class="fa fa-info-circle tooltip-icon" title="Press for hints if you are stuck!"></i>
+                            </button>
+                        </form>
+                    </div>
                 </div>
 
                 <div class="buttons-row">
-                    <form id="hintForm" method="POST" action="{{ url_for('hint') }}">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" id="hintBtn" class="btn-3d" title="Press for hints if you are stuck!">
-                            Hint
-                            <i class="fa fa-info-circle tooltip-icon" title="Press for hints if you are stuck!"></i>
-                        </button>
-                    </form>
                     <button id="feedbackBtnForm" class="btn-3d" onclick="submitFeedbackForm();" disabled title="Feedback available after 5 interactions">
                         Request Feedback
                         <i class="fa fa-info-circle tooltip-icon" title="Feedback available after 5 interactions"></i>

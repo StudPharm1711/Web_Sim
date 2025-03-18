@@ -46,6 +46,7 @@ GPT35_OUTPUT_COST_PER_1M = float(os.getenv("GPT35_OUTPUT_COST_PER_1M", "1.50"))
 
 # Initialise Flask app and SQLAlchemy
 app = Flask(__name__)
+app.config['WTF_CSRF_ENABLED'] = False
 app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_TYPE'] = "filesystem"
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
@@ -54,7 +55,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", os.urandom(24).hex())
 
-from flask_wtf.csrf import CSRFProtect
+from flask_wtf import CSRFProtect
 
 csrf = CSRFProtect()
 csrf.init_app(app)
@@ -63,6 +64,10 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
+
+def csrf_exempt(view):
+    view.csrf_exempt = True
+    return view
 
 # Initialise serializer for password reset tokens
 s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
@@ -1146,6 +1151,7 @@ def simulation():
 
 # --- Send Message Route with Debug Logging ---
 @app.route('/send_message', methods=['POST'])
+@csrf.exempt
 @login_required
 def send_message():
     conversation = session.get('conversation', [])
@@ -1173,6 +1179,7 @@ def send_message():
 
 # --- Get Reply Route with Debug Logging ---
 @app.route('/get_reply', methods=['POST'])
+@csrf_exempt
 @login_required
 def get_reply():
     conversation = session.get('conversation', [])

@@ -31,7 +31,7 @@ header {
   padding-top: env(safe-area-inset-top, 0);
 }
 
-/* Header Placeholder – matches desktop header height (120px + safe-area) */
+/* Header Placeholder – was originally sized for ~120px header + safe-area */
 .header-placeholder {
   height: calc(120px + env(safe-area-inset-top, 0));
 }
@@ -45,7 +45,6 @@ header {
   z-index: 1010;
   background: #ffffff;
 
-  /* NEW LINES HERE: */
   max-width: 1100px;
   margin: 0 auto;
   padding: 15px 20px;
@@ -150,7 +149,6 @@ header {
 }
 
 /* Nav Link Styling (Pastel Colours per link) */
-/* Order: 1st link ("How It Works") = pastel lavender, 2nd ("Features") = pastel mint, 3rd ("Testimonials") = pastel peach */
 .section-nav a {
   text-decoration: none;
   font-size: 1rem;
@@ -174,7 +172,6 @@ header {
   color: #005f73;
   border-color: #005f73;
 }
-/* For the first link, keep its pastel on hover */
 .section-nav a:nth-child(1):hover {
   background-color: #F9F7FF;
   color: #005f73;
@@ -386,8 +383,7 @@ footer {
   0% { opacity: 0; }
   100% { opacity: 1; }
 }
-
-/* Stagger animation delays for history-letter */
+/* Stagger animation for .history-letter */
 .history-letter:nth-child(1)  { animation-delay: 0s; }
 .history-letter:nth-child(2)  { animation-delay: 0.2s; }
 .history-letter:nth-child(3)  { animation-delay: 0.4s; }
@@ -418,13 +414,23 @@ section {
 
 /* MEDIA QUERIES FOR MOBILE */
 @media (max-width: 600px) {
-  /* Update header & nav for mobile: header = 135px, nav = 62.75px */
+  /* Make the placeholder smaller or remove it on the simulation page */
+  .simulation-page .header-placeholder {
+    display: none; /* or 'height: 0;' if you prefer */
+  }
+
+  /* If your simulation page does NOT use the .section-nav, you can hide the nav-placeholder too */
+  .simulation-page .nav-placeholder {
+    display: none;
+  }
+
+  /* Mobile header & nav adjustments */
   .header-placeholder {
     height: calc(135px + env(safe-area-inset-top, 0));
   }
   .section-nav {
     top: calc(135px + env(safe-area-inset-top, 0));
-        max-width: 600px;
+    max-width: 600px;
     padding: 15px 10px;
     gap: 20px;
   }
@@ -490,5 +496,88 @@ section {
   }
   .section-nav a {
     font-size: 0.9rem;
+  }
+}
+
+/* =========================
+   Scoped CSS for Simulation Page Mobile Adjustments
+   ========================= */
+@media (max-width: 600px) {
+  /* Only apply these to the simulation page */
+
+  /* If you truly want a shorter header on mobile, do so here: */
+  .simulation-page .header-container {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+    /* Let the content define the height rather than forcing it */
+    height: auto;
+    padding: 5px 10px;
+  }
+
+  /* Scale down the logo so the cog can fit on the same row */
+  .simulation-page .logo-group img {
+    height: 40px; /* or whatever size fits nicely */
+  }
+
+  /* Slightly reduce the main heading so it doesn't push the cog off-screen */
+  .simulation-page .main-heading {
+    font-size: 1.3rem;
+  }
+
+  /* If needed, shrink the 'HISTORY TAKING' letters */
+  .simulation-page .history-letter {
+    font-size: 0.9rem;
+  }
+
+  /* Position the dropdown content below the cog with some spacing */
+  .simulation-page .dropdown-content {
+    position: absolute;
+    top: calc(100% + 4px); /* ensures it drops below the cog button */
+    right: 0;
+    z-index: 10;
+  }
+
+  /* Optional: reduce the cog button padding so it fits better */
+  .simulation-page .dropbtn {
+    padding: 5px;
+    font-size: 1.3rem;
+  }
+}
+
+  /* Force the input mode row to wrap so "Enable Patient Voice" isn't cut off */
+  .simulation-page .input-mode-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* Let the forms (Send + Hint) either wrap or remain side by side */
+  .simulation-page .form-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .simulation-page #messageForm {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 220px; /* ensures there's room for textarea + button */
+  }
+  .simulation-page #messageForm textarea {
+    flex: 1;
+    min-height: 50px;
+    margin-right: 8px;
+  }
+
+  .simulation-page #hintForm {
+    display: flex;
+    align-items: center;
   }
 }
