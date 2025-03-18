@@ -554,109 +554,102 @@
                 </div>
 
                 <div class="input-area">
-                    <!-- Radio-based input mode selection with icons -->
-                    <div class="input-mode-row">
-                        <label style="font-weight: bold; color: #005f73; margin-right: 10px;">Input Mode:</label>
-                        <label>
-                            <input type="radio" name="input_mode" value="voice" id="radioVoice" style="margin-right: 6px;">
-                            <img src="/static/talking.png" alt="Voice Icon">
-                            Voice
-                        </label>
-                        <label>
-                            <input type="radio" name="input_mode" value="text" id="radioText" style="margin-right: 6px;" checked>
-                            <img src="/static/typing.png" alt="Keyboard Icon">
-                            Keyboard
-                        </label>
-                        <!-- New toggle for patient voice synthesis -->
-                        <label style="margin-left: 20px;">
-                            <input type="checkbox" id="togglePatientVoice" checked>
-                            Enable Patient Voice
-                        </label>
-                    </div>
+  <!-- Radio-based input mode selection with icons -->
+  <div class="input-mode-row">
+    <label style="font-weight: bold; color: #005f73; margin-right: 10px;">Input Mode:</label>
+    <label>
+      <input type="radio" name="input_mode" value="voice" id="radioVoice" style="margin-right: 6px;">
+      <img src="/static/talking.png"
+    </label>
+    <label>
+      <input type="radio" name="input_mode" value="text" id="radioText" style="margin-right: 6px;" checked>
+      <img src="/static/typing.png"
+    </label>
+    <!-- New toggle for patient voice synthesis -->
+    <label style="margin-left: 20px;">
+      <input type="checkbox" id="togglePatientVoice" checked>
+      Enable Patient Voice
+    </label>
+  </div>
 
-                    <!-- Record button (hidden by default unless "Voice" is selected) -->
-                    <button id="recordBtn" class="btn-3d" style="display: none; max-width: 200px;" title="Click once and speak into your microphone">
-                        <i class="fa fa-microphone tooltip-icon" title="Record your voice"></i>
-                        Record
-                    </button>
+  <!-- Record button (hidden by default unless "Voice" is selected) -->
+  <button id="recordBtn" class="btn-3d" style="display: none; max-width: 200px;" title="Click once and speak into your microphone">
+    <i class="fa fa-microphone tooltip-icon" title="Record your voice"></i>
+    Record
+  </button>
 
-                    <!-- Single row for typed message, Send, and Hint -->
-                    <div class="form-row">
-                        <!-- The message form for typed input -->
-                        <form id="messageForm">
-                            <textarea name="message" rows="2"></textarea>
-                            <button type="submit" class="btn-3d" id="sendBtn">Send</button>
-                        </form>
+  <!-- Message form for typed input (only the text area) -->
+  <form id="messageForm">
+    <textarea name="message" rows="2"></textarea>
+  </form>
 
-                        <!-- The hint form -->
-                        <form id="hintForm" method="POST" action="{{ url_for('hint') }}">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" id="hintBtn" class="btn-3d" title="Press for hints if you are stuck!">
-                                Hint
-                                <i class="fa fa-info-circle tooltip-icon" title="Press for hints if you are stuck!"></i>
-                            </button>
-                        </form>
-                    </div>
-                </div>
+  <!-- New button row beneath the input box for Send and Hint -->
+  <div class="button-row">
+    <button type="submit" form="messageForm" class="btn-3d" id="sendBtn">Send</button>
+    <form id="hintForm" method="POST" action="{{ url_for('hint') }}" style="display: inline;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" id="hintBtn" class="btn-3d" title="Press for hints if you are stuck!">
+        Hint <i class="fa fa-info-circle tooltip-icon" title="Press for hints if you are stuck!"></i>
+      </button>
+    </form>
+  </div>
+</div>
 
-                <div class="buttons-row">
-                    <button id="feedbackBtnForm" class="btn-3d" onclick="submitFeedbackForm();" disabled title="Feedback available after 5 interactions">
-                        Request Feedback
-                        <i class="fa fa-info-circle tooltip-icon" title="Feedback available after 5 interactions"></i>
-                    </button>
-                    <button id="examBtn" class="btn-3d" disabled title="This option becomes available once you have explored the symptoms">
-                        Physical Examination Results
-                        <i class="fa fa-info-circle tooltip-icon" title="This option becomes available once you have explored the symptoms"></i>
-                    </button>
-                    <button onclick="confirmClear()" class="btn-3d btn-clear">
-                        Clear Conversation
-                    </button>
-                </div>
-                <div id="spinnerExam">Gathering abbreviated physical exam results, please wait...</div>
-                <div id="examResults" class="prompt-box" style="display: none; min-height: 150px;"></div>
-                <form id="feedbackForm" method="POST" action="{{ url_for('feedback') }}" class="hidden">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                </form>
-                <div id="spinnerHint">Generating hints, please wait...</div>
-                <div id="spinnerFeedback">Generating feedback, please wait...</div>
-                {% if hint %}
-                    <div class="prompt-box">
-                        <h3>Suggested Next Question:</h3>
-                        <p>{{ hint }}</p>
-                    </div>
+<div class="buttons-row">
+  <button id="feedbackBtnForm" class="btn-3d" onclick="submitFeedbackForm();" disabled title="Feedback available after 5 interactions">
+    Request Feedback <i class="fa fa-info-circle tooltip-icon" title="Feedback available after 5 interactions"></i>
+  </button>
+  <button id="examBtn" class="btn-3d" disabled title="This option becomes available once you have explored the symptoms">
+    Physical Examination Results <i class="fa fa-info-circle tooltip-icon" title="This option becomes available once you have explored the symptoms"></i>
+  </button>
+  <button onclick="confirmClear()" class="btn-3d btn-clear">
+    Clear Conversation
+  </button>
+</div>
+<div id="spinnerExam">Gathering abbreviated physical exam results, please wait...</div>
+<div id="examResults" class="prompt-box" style="display: none; min-height: 150px;"></div>
+<form id="feedbackForm" method="POST" action="{{ url_for('feedback') }}" class="hidden">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+</form>
+<div id="spinnerHint">Generating hints, please wait...</div>
+<div id="spinnerFeedback">Generating feedback, please wait...</div>
+{% if hint %}
+  <div class="prompt-box">
+    <h3>Suggested Next Question:</h3>
+    <p>{{ hint }}</p>
+  </div>
+{% endif %}
+{% if feedback_json %}
+  <div class="feedback">
+    <h3>Consultation Performance</h3>
+    <ul>
+      <li><strong>Initiating the session:</strong> Score: {{ feedback_json.initiating_session.score }}, Comment: {{ feedback_json.initiating_session.comment }}</li>
+      <li><strong>Gathering information:</strong> Score: {{ feedback_json.gathering_information.score }}, Comment: {{ feedback_json.gathering_information.comment }}</li>
+      <li><strong>Physical examination:</strong> Score: {{ feedback_json.physical_examination.score }}, Comment: {{ feedback_json.physical_examination.comment }}</li>
+      <li><strong>Explanation &amp; planning:</strong> Score: {{ feedback_json.explanation_planning.score }}, Comment: {{ feedback_json.explanation_planning.comment }}</li>
+      <li><strong>Closing the session:</strong> Score: {{ feedback_json.closing_session.score }}, Comment: {{ feedback_json.closing_session.comment }}</li>
+      <li><strong>Building a relationship:</strong> Score: {{ feedback_json.building_relationship.score }}, Comment: {{ feedback_json.building_relationship.comment }}</li>
+      <li><strong>Providing structure:</strong> Score: {{ feedback_json.providing_structure.score }}, Comment: {{ feedback_json.providing_structure.comment }}</li>
+      <li><strong>Overall Score:</strong> {{ feedback_json.overall }}/70</li>
+      {% if feedback_json.clinical_reasoning %}
+        <li><strong>Clinical Reasoning &amp; Bias Analysis:</strong> {{ feedback_json.clinical_reasoning }}</li>
+      {% endif %}
+    </ul>
+    <button onclick="location.href='{{ url_for('download_feedback') }}'" class="btn-3d">
+      Download Feedback as PDF
+    </button>
+  </div>
+{% elif feedback_raw %}
+  <div class="feedback">
+    <h3>Feedback:</h3>
+    <pre>{{ feedback_raw }}</pre>
+    <button onclick="location.href='{{ url_for('download_feedback') }}'" class="btn-3d">
+      Download Feedback as PDF
+    </button>
+  </div>
+{% endif %}
                 {% endif %}
-                {% if feedback_json %}
-                    <div class="feedback">
-                        <h3>Consultation Performance</h3>
-                        <ul>
-                            <li><strong>Initiating the session:</strong> Score: {{ feedback_json.initiating_session.score }}, Comment: {{ feedback_json.initiating_session.comment }}</li>
-                            <li><strong>Gathering information:</strong> Score: {{ feedback_json.gathering_information.score }}, Comment: {{ feedback_json.gathering_information.comment }}</li>
-                            <li><strong>Physical examination:</strong> Score: {{ feedback_json.physical_examination.score }}, Comment: {{ feedback_json.physical_examination.comment }}</li>
-                            <li><strong>Explanation &amp; planning:</strong> Score: {{ feedback_json.explanation_planning.score }}, Comment: {{ feedback_json.explanation_planning.comment }}</li>
-                            <li><strong>Closing the session:</strong> Score: {{ feedback_json.closing_session.score }}, Comment: {{ feedback_json.closing_session.comment }}</li>
-                            <li><strong>Building a relationship:</strong> Score: {{ feedback_json.building_relationship.score }}, Comment: {{ feedback_json.building_relationship.comment }}</li>
-                            <li><strong>Providing structure:</strong> Score: {{ feedback_json.providing_structure.score }}, Comment: {{ feedback_json.providing_structure.comment }}</li>
-                            <li><strong>Overall Score:</strong> {{ feedback_json.overall }}/70</li>
-                            {% if feedback_json.clinical_reasoning %}
-                                <li><strong>Clinical Reasoning &amp; Bias Analysis:</strong> {{ feedback_json.clinical_reasoning }}</li>
-                            {% endif %}
-                        </ul>
-                        <button onclick="location.href='{{ url_for('download_feedback') }}'" class="btn-3d">
-                            Download Feedback as PDF
-                        </button>
-                    </div>
-                {% elif feedback_raw %}
-                    <div class="feedback">
-                        <h3>Feedback:</h3>
-                        <pre>{{ feedback_raw }}</pre>
-                        <button onclick="location.href='{{ url_for('download_feedback') }}'" class="btn-3d">
-                            Download Feedback as PDF
-                        </button>
-                    </div>
-                {% endif %}
-            </div>
-        {% endif %}
-    </div>
+
 
     <footer>
         <small>&copy; 2025 Simul-AI-tor Ltd All rights reserved.</small>
