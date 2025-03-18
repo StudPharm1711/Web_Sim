@@ -466,12 +466,12 @@
                     <div class="form-group">
                         <label for="patient_complexity">
                             Patient Complexity
-                            <i class="fa fa-info-circle tooltip-icon" title="Select the patient's complexity: Nil complexity, Memory Issues, or Irritable."></i>
+                            <i class="fa fa-info-circle tooltip-icon" title="Select the patient's complexity: Nil complexity, Memory Issues, or Frustrated."></i>
                         </label>
                         <select id="patient_complexity" name="patient_complexity" class="select2" required>
                             <option value="Nil">Nil complexity</option>
                             <option value="Memory Issues">Memory Issues</option>
-                            <option value="Irritable">Irritable</option>
+                            <option value="Frustrated">Frustrated</option>
                         </select>
                     </div>
                     <div style="display: flex; flex-direction: column;">
@@ -485,6 +485,13 @@
             </form>
         </div>
         {% else %}
+            <!-- Timer display element with tooltip -->
+            <div id="timer-container" style="margin-bottom: 10px;">
+                <div id="timer" style="display: none; font-size: 1.2rem; display: inline-block;">00:00:00</div>
+                <span class="tooltip-icon" title="Keep track of how long your consultations take (remember, this won't include time for physical examination)">
+                    <i class="fa fa-info-circle"></i>
+                </span>
+            </div>
             <!-- Hidden fields to store the chosen complaint and system -->
             {% if session.selected_complaint %}
             <input type="hidden" id="stored_complaint" value="{{ session.selected_complaint }}">
@@ -639,6 +646,10 @@
                     examBtn.title = "Physical examination results have been generated.";
                     examRequested = true;
                 }
+            }
+            // Start timer if chatLog exists (i.e. conversation view)
+            if (document.getElementById('chatLog')) {
+                startTimer();
             }
         });
 
@@ -973,10 +984,38 @@
 
         function confirmClear() {
             if (confirm("Are you sure?")) {
+                stopTimer(); // Stop and hide the timer
                 // Clear stored exam results too.
                 sessionStorage.removeItem('examResults');
                 location.href = '{{ url_for("clear_simulation") }}';
             }
+        }
+
+        // ===== Timer Code =====
+        let timerInterval;
+        let startTime;
+
+        function startTimer() {
+            startTime = Date.now();
+            document.getElementById('timer').style.display = 'inline-block';
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        function updateTimer() {
+            let elapsed = Math.floor((Date.now() - startTime) / 1000);
+            let hours = Math.floor(elapsed / 3600);
+            let minutes = Math.floor((elapsed % 3600) / 60);
+            let seconds = elapsed % 60;
+            let formattedTime =
+                (hours < 10 ? "0" + hours : hours) + ":" +
+                (minutes < 10 ? "0" + minutes : minutes) + ":" +
+                (seconds < 10 ? "0" + seconds : seconds);
+            document.getElementById('timer').innerText = formattedTime;
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+            document.getElementById('timer').style.display = 'none';
         }
     </script>
 </body>

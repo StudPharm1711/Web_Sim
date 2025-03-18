@@ -1033,7 +1033,7 @@ def start_simulation():
         comorbidity_str = " This patient does not have any co-morbidities."
 
     # Remove level check since we're no longer using levels for complaint selection.
-    if patient_complexity not in ['Nil', 'Memory Issues', 'Irritable']:
+    if patient_complexity not in ['Nil', 'Memory Issues', 'Frustrated']:
         flash("Invalid patient complexity selected.", "danger")
         return redirect(url_for('simulation'))
     if not country:
@@ -1045,8 +1045,8 @@ def start_simulation():
         tone = " Always use natural patient friendly language throughout as a common person would. Avoid jargon"
     elif patient_complexity == "Memory Issues":
         tone = "You are very forgetful with significant memory issues. You are not orientated to time and place. Always use natural patient friendly language throughout as a common person would. Avoid jargon or technical words. You answer some questions inaccurately or \"I'm not sure\"."
-    elif patient_complexity == "Irritable":
-        tone = " You are short tempered and noticeably irritable. You complain about past experiences with healthcare practitioners and question whether the person asking you questions is even qualified, although you do answer questions. Everything frustrates you. Always use natural patient friendly language throughout as a common person would. Avoid jargon or technical words."
+    elif patient_complexity == "Frustrated":
+        tone = " You are short tempered, noticeably frustrated and sarcastic. You complain about past experiences with healthcare practitioners and question whether the person asking you questions is even qualified, although you do answer questions. Everything frustrates you. Always use natural patient friendly language throughout as a common person would. Avoid jargon or technical words."
     else:
         tone = ""
 
