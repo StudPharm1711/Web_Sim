@@ -589,3 +589,13 @@ section {
   margin-top: 15px;
   justify-content: flex-end;
 }
+/* Custom button styles for peach button */
+.btn-3d.btn-peach {
+    background: linear-gradient(145deg, #FFDAB9, #FFEFD5);
+    color: #005f73; /* dark teal, which complements peach nicely */
+    font-weight: bold;
+}
+.btn-3d.btn-peach:hover {
+    background: linear-gradient(145deg, #FFEFD5, #FFDAB9);
+    color: #005f73;
+}

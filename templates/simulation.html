@@ -440,7 +440,7 @@
         {% if not conversation %}
         <!-- Thicker, not-full-width Scrolling Banner -->
         <div id="scroll-banner">
-            <p>Alert: Try not to get fixated on a specific diagnosis. Take the opportunity to practice the process and consider the likelihood of various possibilities.</p>
+            <p>Please note: The voice you hear may not represent the gender of the patient - better to ask!</p>
         </div>
         <!-- Initial Simulation Setup -->
         <div class="chat-container" style="text-align: center;">
@@ -510,11 +510,11 @@
                     </div>
                     <div style="display: flex; flex-direction: column;">
                         <label style="visibility: hidden;">Hidden label for spacing</label>
-                        <a href="{{ url_for('instructions') }}" class="btn-3d" style="text-decoration: none; margin-top: 4px;">Instructions</a>
+                        <a href="{{ url_for('instructions') }}" class="btn-3d">Instructions</a>
                     </div>
                 </div>
                 <div style="margin-top: 20px;">
-                    <button type="submit" class="btn-3d">Start Simulation</button>
+                    <button type="submit" class="btn-3d btn-peach">Start Simulation</button>
                 </div>
             </form>
         </div>
@@ -730,7 +730,7 @@
             });
 
             const textarea = document.querySelector('textarea[name="message"]');
-            const text = "Type your response here to begin practicing your history taking...";
+            const text = "Type here or click the microphone and use your own voice to begin the consultation...";
             let index = 0;
             function typeText() {
                 if (index <= text.length) {
