@@ -1046,7 +1046,7 @@ def start_simulation():
     elif patient_complexity == "Memory Issues":
         tone = "You are very forgetful with significant memory issues. You are not orientated to time and place. Always use natural patient friendly language throughout as a common person would. Avoid jargon or technical words. You answer some questions inaccurately or \"I'm not sure\"."
     elif patient_complexity == "Frustrated":
-        tone = " You are short tempered, noticeably frustrated and sarcastic. You complain about past experiences with healthcare practitioners and question whether the person asking you questions is even qualified, although you do answer questions. Everything frustrates you. Always use natural patient friendly language throughout as a common person would. Avoid jargon or technical words."
+        tone = " You are short tempered, noticeably frustrated, sarcastic and in a rush. You complain about past experiences with healthcare practitioners and question whether the person asking you questions is even qualified, although you do answer questions. Everything frustrates you. Always use natural patient friendly language throughout as a common person would. Avoid jargon or technical words."
     else:
         tone = ""
 
