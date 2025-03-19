@@ -617,8 +617,16 @@ section {
 }
 @media (max-width: 600px) {
   .sticky-cta {
-    left: 50%;
-    right: auto; /* Remove the right offset */
-    transform: translateX(-50%);
+    /* Keep it fixed at bottom right or center it—your choice.
+       If you want bottom-right: */
+    center: auto
+
+
+    /* Force text to stay on one line */
+    white-space: nowrap;
+
+    /* Optionally shrink text/padding so it fits smaller screens */
+    font-size: 0.7rem;
+    padding: 10px 15px;
   }
 }
