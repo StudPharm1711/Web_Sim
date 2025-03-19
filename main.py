@@ -103,6 +103,16 @@ class User(UserMixin, db.Model):
     is_admin = db.Column(db.Boolean, default=False)
     current_session = db.Column(db.String(255), nullable=True)  # To track the current session token
 
+# --- Feedback Model Definition ---
+class Feedback(db.Model):
+    __tablename__ = 'feedback'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    score = db.Column(db.Float, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    # Relationship back to the User
+    user = db.relationship('User', backref=db.backref('feedbacks', lazy=True))
+
 # --- Pending Registration Model ---
 class PendingRegistration(db.Model):
     __tablename__ = 'pending_registration'
@@ -1672,5 +1682,52 @@ def test_send_update():
     send_daily_update()
     return "Test email sent. Please check your inbox."
 
+# --- New Functions for Dynamic Feedback Scoring ---
+
+def get_last_three_average(user_id):
+    # Query the last three feedback entries for the given user, ordered by creation time (most recent first)
+    last_three = Feedback.query.filter_by(user_id=user_id)\
+                               .order_by(Feedback.created_at.desc())\
+                               .limit(3).all()
+    if not last_three:
+        return 0  # or handle as needed if there are no feedback entries
+    # Calculate the average score
+    avg_score = sum(f.score for f in last_three) / len(last_three)
+    return avg_score
+
+def get_user_ranking(user_id):
+    # Compute the average score for each user based on all of their feedback entries
+    users_avg = db.session.query(
+                    Feedback.user_id,
+                    db.func.avg(Feedback.score).label("avg_score")
+                ).group_by(Feedback.user_id).all()
+
+    # Sort the list in descending order of the average score (highest first)
+    sorted_users = sorted(users_avg, key=lambda x: x.avg_score, reverse=True)
+
+    # Find the ranking of the specified user (1-indexed)
+    ranking = next((index + 1 for index, record in enumerate(sorted_users) if record.user_id == user_id), None)
+    total_users = len(sorted_users)
+    return ranking, total_users
+
+
+@app.route('/get_scores')
+@login_required
+def get_scores():
+    # Calculate the average of the last three feedback scores for the current user
+    avg_score = get_last_three_average(current_user.id)
+
+    # Calculate the user's ranking and the total number of users with feedback
+    ranking, total_users = get_user_ranking(current_user.id)
+
+    # Return the values as a JSON object
+    return jsonify({
+        "avg_score": avg_score,
+        "ranking": ranking,
+        "total_users": total_users
+    })
+
 if __name__ == '__main__':
     app.run(debug=True)
+
+
