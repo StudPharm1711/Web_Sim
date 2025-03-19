@@ -10,6 +10,8 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <!-- Select2 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  <!-- Tippy.js CSS for basic styling -->
+  <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/dist/tippy.css" />
   <style>
     /* Global Styles */
     body {
@@ -374,6 +376,10 @@
         background-color: #999999;
     }
   </style>
+  <!-- Popper.js is a dependency -->
+  <script src="https://unpkg.com/@popperjs/core@2"></script>
+  <!-- Tippy.js library -->
+  <script src="https://unpkg.com/tippy.js@6"></script>
 </head>
 <body class="simulation-page">
     <!-- Header Container with Click-Activated Dropdown -->
@@ -429,7 +435,7 @@
                     <div class="form-group">
                         <label for="country_select">
                             Country
-                            <i class="fa fa-info-circle tooltip-icon" title="Select your country to tailor the simulation's medication names and healthcare context."></i>
+                            <i class="fa fa-info-circle tooltip-icon" data-tippy-content="Select your country to tailor the simulation's medication names and healthcare context."></i>
                         </label>
                         <select id="country_select" name="country" class="select2" required>
                             <option value="">Select Country</option>
@@ -448,7 +454,7 @@
                     <div class="form-group">
                         <label for="system_select">
                             System
-                            <i class="fa fa-info-circle tooltip-icon" title="Select a body system to receive a system-specific complaint."></i>
+                            <i class="fa fa-info-circle tooltip-icon" data-tippy-content="Select a body system to receive a system-specific complaint."></i>
                         </label>
                         <select id="system_select" name="system" class="select2" required>
                             <option value="random">Random</option>
@@ -467,7 +473,7 @@
                     <div class="form-group">
                         <label for="comorbidities">
                             Co-morbidities
-                            <i class="fa fa-info-circle tooltip-icon" title="Does the patient have co-morbidities?"></i>
+                            <i class="fa fa-info-circle tooltip-icon" data-tippy-content="Does the patient have co-morbidities?"></i>
                         </label>
                         <select id="comorbidities" name="comorbidities" class="select2" required>
                             <option value="no">No</option>
@@ -477,7 +483,7 @@
                     <div class="form-group">
                         <label for="patient_complexity">
                             Patient Complexity
-                            <i class="fa fa-info-circle tooltip-icon" title="Select the patient's complexity: Nil complexity, Memory Issues, or Frustrated."></i>
+                            <i class="fa fa-info-circle tooltip-icon" data-tippy-content="Select the patient's complexity: Nil complexity, Memory Issues, or Frustrated."></i>
                         </label>
                         <select id="patient_complexity" name="patient_complexity" class="select2" required>
                             <option value="Nil">Nil complexity</option>
@@ -500,7 +506,7 @@
             <!-- Timer display element with tooltip -->
             <div id="timer-container" style="margin-bottom: 10px;">
                 <div id="timer" style="display: none; font-size: 1.2rem; display: inline-block;">00:00:00</div>
-                <span class="tooltip-icon" title="Keep track of how long your consultations take (this does not include physical examination time)">
+                <span class="tooltip-icon" data-tippy-content="Keep track of how long your consultations take (this does not include physical examination time)">
                     <i class="fa fa-info-circle"></i>
                 </span>
             </div>
@@ -549,8 +555,8 @@
                           Enable Patient Voice
                         </label>
                     </div>
-                    <button id="recordBtn" class="btn-3d" style="display: none; max-width: 200px;" title="Click once and speak into your microphone">
-                        <i class="fa fa-microphone tooltip-icon" title="Record your voice"></i>
+                    <button id="recordBtn" class="btn-3d" style="display: none; max-width: 200px;" data-tippy-content=Click once and speak into your microphone">
+                        <i class="fa fa-microphone tooltip-icon" data-tippy-content="Record your voice"></i>
                         Record
                     </button>
                     <form id="messageForm">
@@ -561,17 +567,17 @@
                         <form id="hintForm" method="POST" action="{{ url_for('hint') }}" style="display: inline;">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" id="hintBtn" class="btn-3d" title="Press for hints if you are stuck!">
-                                Hint <i class="fa fa-info-circle tooltip-icon" title="Press for hints if you are stuck!"></i>
+                                Hint <i class="fa fa-info-circle tooltip-icon" data-tippy-content="Press for hints if you are stuck!"></i>
                             </button>
                         </form>
                     </div>
                 </div>
                 <div class="buttons-row">
                     <button id="feedbackBtnForm" class="btn-3d" onclick="submitFeedbackForm();" disabled title="Feedback available after 5 interactions">
-                        Request Feedback <i class="fa fa-info-circle tooltip-icon" title="Feedback available after 5 interactions"></i>
+                        Request Feedback <i class="fa fa-info-circle tooltip-icon" data-tippy-content="Feedback available after 5 interactions"></i>
                     </button>
                     <button id="examBtn" class="btn-3d" disabled title="This option becomes available once you have explored the symptoms">
-                        Physical Examination Results <i class="fa fa-info-circle tooltip-icon" title="This option becomes available once you have explored the symptoms"></i>
+                        Physical Examination Results <i class="fa fa-info-circle tooltip-icon" data-tippy-content="This option becomes available once you have explored the symptoms"></i>
                     </button>
                     <button onclick="confirmClear()" class="btn-3d btn-clear">
                         Clear Conversation
@@ -580,12 +586,12 @@
                 <!-- New Score Display: now placed beneath the Clear Conversation buttons -->
                 <div id="score-container" style="margin-top: 15px; text-align: center;">
                     <p>
-                        Your Average Feedback Score: <span id="avgScoreDisplay"></span>
-                        <i class="fa fa-info-circle tooltip-icon" title="This score is calculated as the mean of your last three feedback entries." style="margin-left:5px;"></i>
+                        Average Feedback Score: <span id="avgScoreDisplay"></span>
+                        <i class="fa fa-info-circle tooltip-icon" data-tippy-content="This score is calculated as the mean of your last three feedback scores." style="margin-left:5px;"></i>
                     </p>
                     <p>
-                        Your World Ranking: <span id="rankingDisplay"></span>
-                        <i class="fa fa-info-circle tooltip-icon" title="Your ranking is determined by comparing your overall average feedback score with all users who have received feedback." style="margin-left:5px;"></i>
+                        World Ranking: <span id="rankingDisplay"></span>
+                        <i class="fa fa-info-circle tooltip-icon" data-tippy-content="Your ranking is determined by comparing your overall average feedback score with all users who have received feedback." style="margin-left:5px;"></i>
                     </p>
                 </div>
                 <div id="spinnerExam">Gathering abbreviated physical exam results, please wait...</div>
@@ -1023,5 +1029,20 @@
             }
         });
     </script>
+    <!-- Tippy.js Initialization for tooltips -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      tippy('.tooltip-icon', {
+        maxWidth: 500,
+        appendTo: () => document.body,
+        trigger: 'click',
+        theme: 'light',
+        placement: 'top',
+        animation: 'fade',
+        interactive: true,
+      });
+    });
+    </script>
+
 </body>
 </html>

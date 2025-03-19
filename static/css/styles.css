@@ -153,36 +153,42 @@ header {
   text-decoration: none;
   font-size: 1rem;
   padding: 6px 10px;
-  border: 1px solid transparent;
+  border: none;
   border-radius: 4px;
-  transition: background 0.3s, color 0.3s;
+  font-weight: bold;
+  transition: filter 0.2s, transform 0.1s;
 }
+
+/* Pastel backgrounds with consistent text color */
 .section-nav a:nth-child(1) {
   background-color: #F9F7FF;
   color: #005f73;
-  border-color: #005f73;
 }
 .section-nav a:nth-child(2) {
   background-color: #F0FFF0;
   color: #005f73;
-  border-color: #005f73;
 }
 .section-nav a:nth-child(3) {
   background-color: #FFF5EE;
   color: #005f73;
-  border-color: #005f73;
 }
-.section-nav a:nth-child(1):hover {
-  background-color: #F9F7FF;
-  color: #005f73;
-}
+
+/* Hover: Slight darkening using brightness */
 .section-nav a:hover {
-  background-color: #005f73;
-  color: #fff;
+  filter: brightness(0.95);
 }
+
+/* Active (click): Further darken and depress the button */
+.section-nav a:active {
+  filter: brightness(0.85);
+  transform: translateY(2px);
+}
+
+/* Visited state maintains original text color */
 .section-nav a:visited {
   color: #005f73;
 }
+
 
 /* Pastel Background Variations for Sections */
 .section-pastel-lavender { background-color: #F9F7FF; }
@@ -592,10 +598,20 @@ section {
 /* Custom button styles for peach button */
 .btn-3d.btn-peach {
     background: linear-gradient(145deg, #FFDAB9, #FFEFD5);
-    color: #005f73; /* dark teal, which complements peach nicely */
+    color: #000000; /* dark teal, which complements peach nicely */
     font-weight: bold;
 }
 .btn-3d.btn-peach:hover {
     background: linear-gradient(145deg, #FFEFD5, #FFDAB9);
-    color: #005f73;
+    color: #000000;
+}
+/* Override Tippy.js 'light' theme arrow & background */
+.tippy-box[data-theme~='light'] {
+  background-color: #fff !important;  /* White background */
+  color: #333 !important;             /* Dark text */
+  border: 1px solid #ddd !important;
+}
+
+.tippy-box[data-theme~='light'] .tippy-arrow {
+  color: #fff !important; /* Arrow matches white background */
 }
