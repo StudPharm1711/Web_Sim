@@ -22,11 +22,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from flask_migrate import Migrate
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 from apscheduler.schedulers.background import BackgroundScheduler
-from sendgrid.helpers.mail import Mail, Header
-
-# Import SendGrid libraries
-from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail
+import boto3  # AWS SES via boto3
 
 # Load environment variables from .env file
 load_dotenv()
@@ -72,7 +68,6 @@ def csrf_exempt(view):
 # Initialise serializer for password reset tokens
 s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
-
 # --- Password Complexity Validator ---
 def validate_password(password):
     """
@@ -88,7 +83,6 @@ def validate_password(password):
     if not re.search(r"[0-9]", password):
         return False, "Password must contain at least one digit."
     return True, ""
-
 
 # --- User Model Definition ---
 class User(UserMixin, db.Model):
@@ -109,7 +103,6 @@ class User(UserMixin, db.Model):
     is_admin = db.Column(db.Boolean, default=False)
     current_session = db.Column(db.String(255), nullable=True)  # To track the current session token
 
-
 # --- Pending Registration Model ---
 class PendingRegistration(db.Model):
     __tablename__ = 'pending_registration'
@@ -123,7 +116,6 @@ class PendingRegistration(db.Model):
     subscription_status = db.Column(db.String(50))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-
 # --- Alert Signup Model ---
 class AlertSignup(db.Model):
     __tablename__ = 'alert_signup'
@@ -131,11 +123,9 @@ class AlertSignup(db.Model):
     email = db.Column(db.String(150), unique=True, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
-
 
 # --- Before Request: Ensure Single Session per User ---
 @app.before_request
@@ -146,7 +136,6 @@ def ensure_single_session():
             logout_user()
             flash("You have been logged out because your account was logged in from another location.", "warning")
             return redirect(url_for('login'))
-
 
 # --- Global Simulation Variables ---
 PATIENT_NAMES = [
@@ -178,7 +167,7 @@ PATIENT_NAMES = [
 
 # Unified dictionary for system-level complaints (all complaints in one list per system)
 SYSTEM_COMPLAINTS = {
-"common ailments": [
+    "common ailments": [
         "I've had a dry cough for a week.",
         "My heart skips a beat every now and then.",
         "My skin is so dry.",
@@ -209,72 +198,70 @@ SYSTEM_COMPLAINTS = {
         "I can't hear out of my right ear very well.",
         "My left eye is full of discharge.",
         "Something isn't right. I suddenly feel like I'm having a major heart problem."
-],
-
-"ENT": [
- "I've been experiencing a persistent sore throat that feels raw and scratchy.",
-    "My throat has been irritated and it's painful to swallow.",
-    "There's a constant tickle in my throat that makes me cough frequently.",
-    "My voice has become hoarse over the past few days without any clear cause.",
-    "I keep getting a dry cough that seems to start in my throat.",
-    "I feel as though my ears are blocked and I'm not hearing as clearly as usual.",
-    "Occasionally, I hear a ringing sound in my ears that doesn't stop.",
-    "My ears feel congested and it's hard to focus on sounds.",
-    "I experience a mild ear pain that worsens when I tilt my head.",
-    "Sometimes, I get a bit dizzy along with a buzzing in my ears.",
-    "My nose is constantly blocked and I struggle to breathe through it.",
-    "I've been sneezing frequently with a runny nose that won't subside.",
-    "My nasal passages feel inflamed and irritated, almost like I'm having an allergy attack.",
-    "When I bend over, I feel a sharp pain in my sinuses.",
-    "There's pressure around my cheeks that seems related to my sinuses.",
-    "My face feels tender in the sinus areas, particularly near my nose.",
-    "I've noticed a clear discharge from my nose that's making me worried.",
-    "I experience a bad taste in my mouth from post-nasal drip.",
-    "I find myself clearing my throat constantly due to irritation.",
-    "My tonsils feel slightly swollen and sore, especially in the mornings.",
-    "I have some difficulty swallowing because my throat feels unusually tight.",
-    "There's a recurring, sharp pain in one of my ears that comes and goes.",
-    "I sometimes feel a popping sensation in my ears as if the pressure is shifting.",
-    "My ears occasionally buzz or ring intermittently throughout the day.",
-    "I have a mild headache focused around my forehead and sinuses.",
-    "My nose feels persistently dry and cracked, which is quite uncomfortable.",
-    "After eating, I sometimes feel a burning sensation in my throat.",
-    "I have a scratchy throat that makes speaking for long periods difficult.",
-    "My ears are overly sensitive to sound, which is making me uneasy.",
-    "I experience occasional dizziness that seems to be related to my inner ear."
-
+    ],
+    "ENT": [
+        "I've been experiencing a persistent sore throat that feels raw and scratchy.",
+        "My throat has been irritated and it's painful to swallow.",
+        "There's a constant tickle in my throat that makes me cough frequently.",
+        "My voice has become hoarse over the past few days without any clear cause.",
+        "I keep getting a dry cough that seems to start in my throat.",
+        "I feel as though my ears are blocked and I'm not hearing as clearly as usual.",
+        "Occasionally, I hear a ringing sound in my ears that doesn't stop.",
+        "My ears feel congested and it's hard to focus on sounds.",
+        "I experience a mild ear pain that worsens when I tilt my head.",
+        "Sometimes, I get a bit dizzy along with a buzzing in my ears.",
+        "My nose is constantly blocked and I struggle to breathe through it.",
+        "I've been sneezing frequently with a runny nose that won't subside.",
+        "My nasal passages feel inflamed and irritated, almost like I'm having an allergy attack.",
+        "When I bend over, I feel a sharp pain in my sinuses.",
+        "There's pressure around my cheeks that seems related to my sinuses.",
+        "My face feels tender in the sinus areas, particularly near my nose.",
+        "I've noticed a clear discharge from my nose that's making me worried.",
+        "I experience a bad taste in my mouth from post-nasal drip.",
+        "I find myself clearing my throat constantly due to irritation.",
+        "My tonsils feel slightly swollen and sore, especially in the mornings.",
+        "I have some difficulty swallowing because my throat feels unusually tight.",
+        "There's a recurring, sharp pain in one of my ears that comes and goes.",
+        "I sometimes feel a popping sensation in my ears as if the pressure is shifting.",
+        "My ears occasionally buzz or ring intermittently throughout the day.",
+        "I have a mild headache focused around my forehead and sinuses.",
+        "My nose feels persistently dry and cracked, which is quite uncomfortable.",
+        "After eating, I sometimes feel a burning sensation in my throat.",
+        "I have a scratchy throat that makes speaking for long periods difficult.",
+        "My ears are overly sensitive to sound, which is making me uneasy.",
+        "I experience occasional dizziness that seems to be related to my inner ear."
     ],
     "cardiovascular": [
-    "I have a tickly cough that won’t go away.",
-    "My throat feels scratchy, and it hurts a little when I swallow.",
-    "I keep getting headaches, especially in the afternoon.",
-    "My nose is always blocked, even when I don’t have a cold.",
-    "I feel really bunged up, and my sinuses ache.",
-    "I keep sneezing, and my eyes are itchy.",
-    "My ears feel blocked, and I can’t hear properly.",
-    "I have a sore in my mouth that won’t heal.",
-    "There’s a weird taste in my mouth all the time.",
-    "My stomach feels bloated after I eat.",
-    "I’ve been getting mild heartburn after meals.",
-    "I feel a bit nauseous on and off, but I haven’t been sick.",
-    "I have occasional diarrhoea, but I feel fine otherwise.",
-    "My stools are harder than usual, and I struggle to go.",
-    "I’ve had a dull ache in my lower back for a few days.",
-    "My joints feel a bit stiff and achy in the morning.",
-    "My skin is really dry and itchy, especially on my hands.",
-    "I’ve got this rash that won’t go away.",
-    "My eyes feel dry and irritated all the time.",
-    "I keep getting a little dizziness when I stand up.",
-    "I feel tired all the time, even when I get a good night’s sleep.",
-    "I’ve been feeling a bit more anxious than usual.",
-    "My lips are really chapped, no matter what I do.",
-    "I get pins and needles in my hands every now and then.",
-    "I’ve got a patch of flaky skin on my scalp that’s really itchy.",
-    "My gums bleed a little when I brush my teeth.",
-    "I’ve had a mild sore throat for a few days, but no fever.",
-    "My feet feel cold all the time, even when I wear socks.",
-    "I wake up with a dry mouth, even though I drink plenty of water.",
-    "My hair seems to be falling out more than usual."
+        "I have a tickly cough that won’t go away.",
+        "My throat feels scratchy, and it hurts a little when I swallow.",
+        "I keep getting headaches, especially in the afternoon.",
+        "My nose is always blocked, even when I don’t have a cold.",
+        "I feel really bunged up, and my sinuses ache.",
+        "I keep sneezing, and my eyes are itchy.",
+        "My ears feel blocked, and I can’t hear properly.",
+        "I have a sore in my mouth that won’t heal.",
+        "There’s a weird taste in my mouth all the time.",
+        "My stomach feels bloated after I eat.",
+        "I’ve been getting mild heartburn after meals.",
+        "I feel a bit nauseous on and off, but I haven’t been sick.",
+        "I have occasional diarrhoea, but I feel fine otherwise.",
+        "My stools are harder than usual, and I struggle to go.",
+        "I’ve had a dull ache in my lower back for a few days.",
+        "My joints feel a bit stiff and achy in the morning.",
+        "My skin is really dry and itchy, especially on my hands.",
+        "I’ve got this rash that won’t go away.",
+        "My eyes feel dry and irritated all the time.",
+        "I keep getting a little dizziness when I stand up.",
+        "I feel tired all the time, even when I get a good night’s sleep.",
+        "I’ve been feeling a bit more anxious than usual.",
+        "My lips are really chapped, no matter what I do.",
+        "I get pins and needles in my hands every now and then.",
+        "I’ve got a patch of flaky skin on my scalp that’s really itchy.",
+        "My gums bleed a little when I brush my teeth.",
+        "I’ve had a mild sore throat for a few days, but no fever.",
+        "My feet feel cold all the time, even when I wear socks.",
+        "I wake up with a dry mouth, even though I drink plenty of water.",
+        "My hair seems to be falling out more than usual."
     ],
     "respiratory": [
         "mild cough",
@@ -520,7 +507,6 @@ PROMPT_INSTRUCTION = (
 # --- Account Blueprint ---
 account_bp = Blueprint('account', __name__, url_prefix='/account')
 
-
 @app.route('/account')
 @login_required
 def account():
@@ -539,22 +525,18 @@ def account():
             flash(f"Error retrieving subscription info: {str(e)}", "danger")
     return render_template('account.html', subscription_info=subscription_info)
 
-
 app.register_blueprint(account_bp)
-
 
 # --- New Route for Terms and Conditions ---
 @app.route('/terms.html')
 def terms():
     return render_template('terms.html')
 
-
 # --- New Route for Instructions ---
 @app.route('/instructions')
 @login_required
 def instructions():
     return render_template('instructions.html')
-
 
 # --- Subscription Cancellation Route ---
 @app.route('/cancel_subscription', methods=['POST'])
@@ -571,18 +553,18 @@ def cancel_subscription():
         # Trigger alert notifications if free spaces reach threshold
         notify_alert_signups()
         try:
-            sg = SendGridAPIClient(os.getenv('SENDGRID_API_KEY'))
-            cancel_email = Mail(
-                from_email=os.getenv('FROM_EMAIL', 'support@simul-ai-tor.com'),
-                to_emails=user.email,
-                subject="Subscription Cancellation Confirmation",
-                plain_text_content=(
-                    "Hello,\n\nYour subscription has been scheduled for cancellation at the end of your current "
-                    "billing period. You will retain access until that time.\n\nThank you. "
-                    "Please note: This is an automated email and replies to this address are not monitored."
-                )
+            ses = boto3.client('ses', region_name=os.getenv('AWS_REGION'))
+            response = ses.send_email(
+                Source=os.getenv('FROM_EMAIL', 'support@simul-ai-tor.com'),
+                Destination={'ToAddresses': [user.email]},
+                Message={
+                    'Subject': {'Data': "Subscription Cancellation Confirmation"},
+                    'Body': {'Text': {'Data': (
+                        "Hello,\n\nYour subscription has been scheduled for cancellation at the end of your current billing period. "
+                        "You will retain access until that time.\n\nThank you. Please note: This is an automated email and replies to this address are not monitored."
+                    )}}
+                }
             )
-            sg.send(cancel_email)
         except Exception as e:
             flash(f"Error sending cancellation email: {str(e)}", "warning")
         flash(
@@ -593,7 +575,6 @@ def cancel_subscription():
     except Exception as e:
         flash(f"Error cancelling subscription: {str(e)}", "danger")
     return redirect(url_for('account'))
-
 
 # --- Reactivation Routes ---
 @app.route('/reactivate_subscription')
@@ -609,7 +590,6 @@ def reactivate_subscription():
         cancel_url=url_for('account', _external=True)
     )
     return redirect(checkout_session.url)
-
 
 @app.route('/reactivate_payment_success')
 @login_required
@@ -633,18 +613,18 @@ def reactivate_payment_success():
         db.session.commit()
 
         try:
-            sg = SendGridAPIClient(os.getenv('SENDGRID_API_KEY'))
-            confirmation_email = Mail(
-                from_email=os.getenv('FROM_EMAIL', 'support@simul-ai-tor.com'),
-                to_emails=current_user.email,
-                subject="Subscription Reactivation Confirmation",
-                plain_text_content=(
-                    "Hello,\n\nYour subscription has been reactivated. Enjoy using Simul-AI-tor.\n\n"
-                    "Best regards,\nThe Support Team. Please note: This is an automated email and replies to this "
-                    "address are not monitored."
-                )
+            ses = boto3.client('ses', region_name=os.getenv('AWS_REGION'))
+            response = ses.send_email(
+                Source=os.getenv('FROM_EMAIL', 'support@simul-ai-tor.com'),
+                Destination={'ToAddresses': [current_user.email]},
+                Message={
+                    'Subject': {'Data': "Subscription Reactivation Confirmation"},
+                    'Body': {'Text': {'Data': (
+                        "Hello,\n\nYour subscription has been reactivated. Enjoy using Simul-AI-tor.\n\n"
+                        "Best regards,\nThe Support Team. Please note: This is an automated email and replies to this address are not monitored."
+                    )}}
+                }
             )
-            sg.send(confirmation_email)
         except Exception as e:
             flash(f"Error sending reactivation email: {str(e)}", "warning")
 
@@ -653,7 +633,6 @@ def reactivate_payment_success():
         flash(f"Error processing reactivation: {str(e)}", "danger")
     return redirect(url_for('account'))
 
-
 # --- Landing Page Route ---
 @app.route('/')
 def landing():
@@ -661,9 +640,7 @@ def landing():
     remaining_places = max(100 - active_count, 0)  # ensure it doesn't go negative
     return render_template('landing.html', remaining_places=remaining_places)
 
-
 ADMIN_LOGIN_PASSWORD = os.getenv("ADMIN_LOGIN_PASSWORD")
-
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -704,7 +681,6 @@ def login():
             else:
                 flash("Invalid email or password", "danger")
     return render_template('login.html')
-
 
 # --- Modified Registration Route (Email confirmation before payment) ---
 @app.route('/register', methods=['GET', 'POST'])
@@ -775,17 +751,18 @@ def register():
         # Send confirmation email with the token link.
         try:
             confirmation_link = url_for('confirm_email', token=token, _external=True)
-            sg = SendGridAPIClient(os.getenv('SENDGRID_API_KEY'))
-            confirm_email = Mail(
-                from_email=os.getenv('FROM_EMAIL', 'support@simul-ai-tor.com'),
-                to_emails=pending_registration["email"],
-                subject="Please Confirm Your Email Address",
-                plain_text_content=(
-                    f"Hello,\n\nThank you for subscribing! To complete your registration, please confirm your email address "
-                    f"by clicking the link below:\n\n{confirmation_link}\n\nIf you did not register, please ignore this email."
-                )
+            ses = boto3.client('ses', region_name=os.getenv('AWS_REGION'))
+            response = ses.send_email(
+                Source=os.getenv('FROM_EMAIL', 'support@simul-ai-tor.com'),
+                Destination={'ToAddresses': [pending_registration["email"]]},
+                Message={
+                    'Subject': {'Data': "Please Confirm Your Email Address"},
+                    'Body': {'Text': {'Data': (
+                        f"Hello,\n\nThank you for subscribing! To complete your registration, please confirm your email address "
+                        f"by clicking the link below:\n\n{confirmation_link}\n\nIf you did not register, please ignore this email."
+                    )}}
+                }
             )
-            sg.send(confirm_email)
         except Exception as e:
             flash(f"Error sending confirmation email: {str(e)}", "warning")
             return redirect(url_for('register'))
@@ -796,11 +773,6 @@ def register():
         flash("A confirmation email has been sent. Please check your inbox to complete registration.", "info")
         return redirect(url_for('check_email'))
     return render_template('register.html')
-
-
-from sendgrid.helpers.mail import Mail, Personalization  # ensure these imports are at the top
-
-from sendgrid.helpers.mail import Mail, Personalization  # duplicate, can be removed
 
 @app.route('/alert_signup', methods=['GET', 'POST'])
 def alert_signup():
@@ -827,22 +799,22 @@ def alert_signup():
             flash(f"Error saving your email: {str(e)}", "danger")
             return redirect(url_for('alert_signup'))
 
-        # Send confirmation email using SendGrid without a custom unsubscribe header
+        # Send confirmation email using AWS SES
         try:
-            print("Initializing SendGrid client...")
-            sg = SendGridAPIClient(os.getenv('SENDGRID_API_KEY'))
-            alert_email = Mail(
-                from_email=os.getenv('FROM_EMAIL', 'support@simul-ai-tor.com'),
-                to_emails=email,
-                subject="Alert Signup Confirmation",
-                plain_text_content=(
-                    "Thank you for signing up for alerts! "
-                    "We will notify you as soon as a subscription space becomes available."
-                )
+            print("Initializing AWS SES client...")
+            ses = boto3.client('ses', region_name=os.getenv('AWS_REGION'))
+            response = ses.send_email(
+                Source=os.getenv('FROM_EMAIL', 'support@simul-ai-tor.com'),
+                Destination={'ToAddresses': [email]},
+                Message={
+                    'Subject': {'Data': "Alert Signup Confirmation"},
+                    'Body': {'Text': {'Data': (
+                        "Thank you for signing up for alerts! "
+                        "We will notify you as soon as a subscription space becomes available."
+                    )}}
+                }
             )
-            print("Sending alert signup email via SendGrid...")
-            response = sg.send(alert_email)
-            print(f"Alert signup email sent to {email} with status code: {response.status_code}")
+            print(f"Alert signup email sent to {email} with response: {response}")
             flash("Thank you! You've been signed up for alerts.", "success")
         except Exception as e:
             print(f"Error sending alert signup email for {email}: {e}")
@@ -851,7 +823,6 @@ def alert_signup():
         return redirect(url_for('landing'))
 
     return render_template('alert_signup.html')
-
 
 # --- Modified Email Confirmation Route ---
 @app.route('/confirm_email/<token>', methods=['GET'])
@@ -894,7 +865,6 @@ def confirm_email(token):
     flash("Your email has been confirmed. Please proceed to payment.", "success")
     return redirect(url_for('start_payment'))
 
-
 # --- New Route to Start Payment after Email Confirmation ---
 @app.route('/start_payment')
 @login_required
@@ -909,7 +879,6 @@ def start_payment():
         cancel_url=url_for('account', _external=True)
     )
     return redirect(checkout_session.url)
-
 
 # --- Resend Confirmation Route ---
 @app.route('/resend_confirmation', methods=['GET'])
@@ -939,23 +908,23 @@ def resend_confirmation():
 
     try:
         confirmation_link = url_for('confirm_email', token=token, _external=True)
-        sg = SendGridAPIClient(os.getenv('SENDGRID_API_KEY'))
-        confirm_email = Mail(
-            from_email=os.getenv('FROM_EMAIL', 'support@simul-ai-tor.com'),
-            to_emails=pending.email,
-            subject="Please Confirm Your Email Address (New Link)",
-            plain_text_content=(
-                f"Hello,\n\nYour previous confirmation link expired. "
-                f"Please complete your registration by clicking the new link below:\n\n{confirmation_link}\n\n"
-                "If you did not register, please ignore this email."
-            )
+        ses = boto3.client('ses', region_name=os.getenv('AWS_REGION'))
+        response = ses.send_email(
+            Source=os.getenv('FROM_EMAIL', 'support@simul-ai-tor.com'),
+            Destination={'ToAddresses': [pending.email]},
+            Message={
+                'Subject': {'Data': "Please Confirm Your Email Address (New Link)"},
+                'Body': {'Text': {'Data': (
+                    f"Hello,\n\nYour previous confirmation link expired. "
+                    f"Please complete your registration by clicking the new link below:\n\n{confirmation_link}\n\n"
+                    "If you did not register, please ignore this email."
+                )}}
+            }
         )
-        sg.send(confirm_email)
         flash("A new confirmation email has been sent. Please check your inbox.", "info")
     except Exception as e:
         flash(f"Error sending new confirmation email: {str(e)}", "warning")
     return redirect(url_for('login'))
-
 
 # --- Modified Payment Success Route ---
 @app.route('/payment_success')
@@ -980,17 +949,18 @@ def payment_success():
         db.session.commit()
 
         try:
-            sg = SendGridAPIClient(os.getenv('SENDGRID_API_KEY'))
-            final_confirm = Mail(
-                from_email=os.getenv('FROM_EMAIL', 'support@simul-ai-tor.com'),
-                to_emails=current_user.email,
-                subject="Subscription Confirmation",
-                plain_text_content=(
-                    "Hello,\n\nYour subscription has been successfully updated. Enjoy using Simul-AI-tor.\n\n"
-                    "Best regards,\nThe Support Team"
-                )
+            ses = boto3.client('ses', region_name=os.getenv('AWS_REGION'))
+            response = ses.send_email(
+                Source=os.getenv('FROM_EMAIL', 'support@simul-ai-tor.com'),
+                Destination={'ToAddresses': [current_user.email]},
+                Message={
+                    'Subject': {'Data': "Subscription Confirmation"},
+                    'Body': {'Text': {'Data': (
+                        "Hello,\n\nYour subscription has been successfully updated. Enjoy using Simul-AI-tor.\n\n"
+                        "Best regards,\nThe Support Team"
+                    )}}
+                }
             )
-            sg.send(final_confirm)
         except Exception as e:
             flash(f"Error sending final confirmation email: {str(e)}", "warning")
 
@@ -1000,12 +970,10 @@ def payment_success():
         flash(f"Error processing subscription: {str(e)}", "danger")
         return redirect(url_for('start_payment'))
 
-
 @app.route('/payment_cancel')
 def payment_cancel():
     flash("Payment was cancelled. Please try again.", "warning")
     return redirect(url_for('register'))
-
 
 @app.route('/logout')
 @login_required
@@ -1017,12 +985,10 @@ def logout():
     logout_user()
     return redirect(url_for('landing'))
 
-
 @app.route('/about')
 @login_required
 def about():
     return render_template('about.html')
-
 
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
@@ -1040,14 +1006,15 @@ def forgot_password():
                 f"Best regards,\nYour Support Team\n"
             )
             try:
-                sg = SendGridAPIClient(os.getenv('SENDGRID_API_KEY'))
-                message = Mail(
-                    from_email=os.getenv('FROM_EMAIL', 'support@simul-ai-tor.com'),
-                    to_emails=email,
-                    subject="Password Reset Request",
-                    plain_text_content=email_content
+                ses = boto3.client('ses', region_name=os.getenv('AWS_REGION'))
+                response = ses.send_email(
+                    Source=os.getenv('FROM_EMAIL', 'support@simul-ai-tor.com'),
+                    Destination={'ToAddresses': [email]},
+                    Message={
+                        'Subject': {'Data': "Password Reset Request"},
+                        'Body': {'Text': {'Data': email_content}}
+                    }
                 )
-                sg.send(message)
                 flash("A password reset link has been sent to your email. **Please check your SPAM folder**", "info")
             except Exception as e:
                 flash(f"Error sending email: {str(e)}", "danger")
@@ -1055,7 +1022,6 @@ def forgot_password():
             flash("Email address not found.", "danger")
         return redirect(url_for('login'))
     return render_template('forgot_password.html')
-
 
 @app.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
@@ -1087,7 +1053,6 @@ def reset_password(token):
             flash("User not found.", "danger")
             return redirect(url_for('forgot_password'))
     return render_template('reset_password.html', token=token)
-
 
 # --- Start Simulation Route with Debug Logging ---
 @app.route('/start_simulation', methods=['POST'])
@@ -1155,20 +1120,20 @@ def start_simulation():
 
     # Build the initial system prompt.
     instr = (
-            f"You are a patient in a history-taking simulation taking place in {country}. "
-            f"Your problem complexity is {problem_complexity} and your patient complexity is {patient_complexity}. "
-            f"Your name is {patient['name']} (age {patient['age']}) and you are a {patient['gender']} patient."
-            + comorbidity_str + " " +
-            "At the very beginning of the consultation, your initial response is: "
-            "\"Can I speak with someone about my symptoms?\". Once you have provided that opener, "
-            "continue the conversation naturally without repeating the phrase. Consent to answering questions regardless of the interviewer's profession. "
-            f"Present your complaint: {selected_complaint}. "
-            "Provide only minimal details until further questions are asked, then gradually add more information. "
-            "IMPORTANT: You are a patient and must NEVER provide any clinical advice or act as a clinician. "
-            "If asked for advice or for anything beyond discussing your symptoms, steer the conversation back to your complaint. "
-            "If you are asked to consent to a physical examination, ALWAYS respond affirmatively with a clear "
-            "'Yes, I consent to a physical examination,' regardless of the virtual nature of the consultation."
-            + tone
+        f"You are a patient in a history-taking simulation taking place in {country}. "
+        f"Your problem complexity is {problem_complexity} and your patient complexity is {patient_complexity}. "
+        f"Your name is {patient['name']} (age {patient['age']}) and you are a {patient['gender']} patient."
+        + comorbidity_str + " " +
+        "At the very beginning of the consultation, your initial response is: "
+        "\"Can I speak with someone about my symptoms?\". Once you have provided that opener, "
+        "continue the conversation naturally without repeating the phrase. Consent to answering questions regardless of the interviewer's profession. "
+        f"Present your complaint: {selected_complaint}. "
+        "Provide only minimal details until further questions are asked, then gradually add more information. "
+        "IMPORTANT: You are a patient and must NEVER provide any clinical advice or act as a clinician. "
+        "If asked for advice or for anything beyond discussing your symptoms, steer the conversation back to your complaint. "
+        "If you are asked to consent to a physical examination, ALWAYS respond affirmatively with a clear "
+        "'Yes, I consent to a physical examination,' regardless of the virtual nature of the consultation."
+        + tone
     )
 
     # Initialize conversation with this system prompt.
@@ -1194,7 +1159,6 @@ def start_simulation():
     session.pop('hint', None)
     return redirect(url_for('simulation'))
 
-
 # --- Simulation Display Route ---
 @app.route('/simulation', methods=['GET'])
 @login_required
@@ -1213,7 +1177,6 @@ def simulation():
         feedback_raw=session.get('feedback'),
         hint=session.get('hint')
     )
-
 
 # --- Send Message Route with Debug Logging ---
 @app.route('/send_message', methods=['POST'])
@@ -1242,10 +1205,9 @@ def send_message():
 
     return jsonify({"status": "error", "message": "No message provided"}), 400
 
-
 # --- Get Reply Route with Debug Logging ---
 @app.route('/get_reply', methods=['POST'])
-@csrf_exempt
+@csrf.exempt
 @login_required
 def get_reply():
     conversation = session.get('conversation', [])
@@ -1286,7 +1248,6 @@ def get_reply():
     print("DEBUG: After get_reply, conversation:", conversation)
     return jsonify({"reply": resp_text}), 200
 
-
 # --- Hint Route with Debug Logging ---
 @app.route('/hint', methods=['POST'])
 @login_required
@@ -1316,7 +1277,6 @@ def hint():
     print("DEBUG: Hint response received:", hint_response)
     return redirect(url_for('simulation'))
 
-
 # --- Feedback Route with Debug Logging ---
 @app.route('/feedback', methods=['POST'])
 @login_required
@@ -1328,32 +1288,32 @@ def feedback():
 
     user_conv_text = "\n".join([f"User: {m['content']}" for m in conversation if m.get('role') == 'user'])
     feedback_prompt = (
-            "IMPORTANT: Output ONLY valid JSON with NO disclaimers or additional commentary. "
-            "Your answer MUST start with '{' and end with '}'. Use double quotes for all keys and string values, "
-            "and do NOT use single quotes. Evaluate the following consultation transcript using the Calgary–Cambridge model. "
-            "Score each category on a scale of 1 to 10, and provide a short comment for each:\n"
-            "1. Initiating the session\n"
-            "2. Gathering information\n"
-            "3. Physical examination\n"
-            "4. Explanation & planning\n"
-            "5. Closing the session\n"
-            "6. Building a relationship\n"
-            "7. Providing structure\n\n"
-            "Then, calculate the overall score (max 70) and provide a brief commentary on the user's clinical reasoning considering hypothetico-deductive and bayesian reasoning in particular"
-            ' in a key called "clinical_reasoning".\n\n'
-            "Format your answer strictly as a single JSON object (do not include any extra text):\n"
-            "{\n"
-            '  "initiating_session": {"score": X, "comment": "..."},\n'
-            '  "gathering_information": {"score": X, "comment": "..."},\n'
-            '  "physical_examination": {"score": X, "comment": "..."},\n'
-            '  "explanation_planning": {"score": X, "comment": "..."},\n'
-            '  "closing_session": {"score": X, "comment": "..."},\n'
-            '  "building_relationship": {"score": X, "comment": "..."},\n'
-            '  "providing_structure": {"score": X, "comment": "..."},\n'
-            '  "overall": Y,\n'
-            '  "clinical_reasoning": "..." \n'
-            '}\n\n'
-            "The consultation transcript is:\n" + user_conv_text
+        "IMPORTANT: Output ONLY valid JSON with NO disclaimers or additional commentary. "
+        "Your answer MUST start with '{' and end with '}'. Use double quotes for all keys and string values, "
+        "and do NOT use single quotes. Evaluate the following consultation transcript using the Calgary–Cambridge model. "
+        "Score each category on a scale of 1 to 10, and provide a short comment for each:\n"
+        "1. Initiating the session\n"
+        "2. Gathering information\n"
+        "3. Physical examination\n"
+        "4. Explanation & planning\n"
+        "5. Closing the session\n"
+        "6. Building a relationship\n"
+        "7. Providing structure\n\n"
+        "Then, calculate the overall score (max 70) and provide a brief commentary on the user's clinical reasoning considering hypothetico-deductive and bayesian reasoning in particular"
+        ' in a key called "clinical_reasoning".\n\n'
+        "Format your answer strictly as a single JSON object (do not include any extra text):\n"
+        "{\n"
+        '  "initiating_session": {"score": X, "comment": "..."},\n'
+        '  "gathering_information": {"score": X, "comment": "..."},\n'
+        '  "physical_examination": {"score": X, "comment": "..."},\n'
+        '  "explanation_planning": {"score": X, "comment": "..."},\n'
+        '  "closing_session": {"score": X, "comment": "..."},\n'
+        '  "building_relationship": {"score": X, "comment": "..."},\n'
+        '  "providing_structure": {"score": X, "comment": "..."},\n'
+        '  "overall": Y,\n'
+        '  "clinical_reasoning": "..." \n'
+        '}\n\n'
+        "The consultation transcript is:\n" + user_conv_text
     )
 
     feedback_conversation = [{'role': 'system', 'content': feedback_prompt}]
@@ -1384,7 +1344,6 @@ def feedback():
         session['feedback_json'] = None
         session['feedback'] = fb
     return redirect(url_for('simulation'))
-
 
 # --- Download Feedback Route ---
 @app.route('/download_feedback', methods=['GET'])
@@ -1520,7 +1479,6 @@ def download_feedback():
         mimetype="application/pdf"
     )
 
-
 @app.route('/clear_simulation')
 @login_required
 def clear_simulation():
@@ -1549,7 +1507,6 @@ def clear_simulation():
     session['conversation'] = [{'role': 'system', 'content': instr}]
     print("DEBUG: Simulation reinitialized with prompt:", session['conversation'])
     return redirect(url_for('simulation'))
-
 
 @app.route('/generate_exam', methods=['POST'])
 @login_required
@@ -1601,11 +1558,11 @@ def generate_exam():
           "Then, generate a complete physical examination with both vital signs and system-specific findings relevant to the complaint."
           )
     exam_prompt = (
-            f"Generate a concise set of physical examination findings for a patient presenting with '{complaint}'. "
-            + vitals_prompt +
-            extra_instructions +
-            " Ensure that the findings are specific to the likely cause of the complaint and written in full, plain language with no acronyms or abbreviations. "
-            "Do not include any introductory phrases or extra text; provide only the exam findings."
+        f"Generate a concise set of physical examination findings for a patient presenting with '{complaint}'. "
+        + vitals_prompt +
+        extra_instructions +
+        " Ensure that the findings are specific to the likely cause of the complaint and written in full, plain language with no acronyms or abbreviations. "
+        "Do not include any introductory phrases or extra text; provide only the exam findings."
     )
     print("DEBUG: Exam prompt:", exam_prompt)
     try:
@@ -1625,7 +1582,6 @@ def generate_exam():
     print("DEBUG: Exam results generated:", exam_results)
     return jsonify({"results": exam_results}), 200
 
-
 # --- New Notification Function ---
 def notify_alert_signups():
     MAX_SUBSCRIPTIONS = 100  # Adjust as needed or load from config
@@ -1637,25 +1593,25 @@ def notify_alert_signups():
         alert_signups = AlertSignup.query.all()
         for signup in alert_signups:
             try:
-                sg = SendGridAPIClient(os.getenv('SENDGRID_API_KEY'))
-                notification_email = Mail(
-                    from_email=os.getenv('FROM_EMAIL', 'support@simul-ai-tor.com'),
-                    to_emails=signup.email,
-                    subject="Subscription Space Now Available!",
-                    plain_text_content=(
-                        "Good news! There are now enough subscription spaces available for you to register. "
-                        "Please visit our registration page to sign up."
-                    )
+                ses = boto3.client('ses', region_name=os.getenv('AWS_REGION'))
+                # SES does not support adding a custom "List-Unsubscribe" header directly in send_email.
+                response = ses.send_email(
+                    Source=os.getenv('FROM_EMAIL', 'support@simul-ai-tor.com'),
+                    Destination={'ToAddresses': [signup.email]},
+                    Message={
+                        'Subject': {'Data': "Subscription Space Now Available!"},
+                        'Body': {'Text': {'Data': (
+                            "Good news! There are now enough subscription spaces available for you to register. "
+                            "Please visit our registration page to sign up."
+                        )}}
+                    }
                 )
-                notification_email.add_header("List-Unsubscribe", "<mailto:unsubscribe@yourdomain.com>")
-                response = sg.send(notification_email)
-                print(f"Notification sent to {signup.email}: {response.status_code}")
+                print(f"Notification sent to {signup.email}: {response}")
                 # Remove the alert entry so they are not notified again
                 db.session.delete(signup)
             except Exception as e:
                 print(f"Error sending alert to {signup.email}: {str(e)}")
         db.session.commit()
-
 
 # --- Daily Update Function ---
 def send_daily_update():
@@ -1674,10 +1630,10 @@ def send_daily_update():
             weighted_costs = []
             total_cost = 0.0
             for user in active_users:
-                cost_gpt35 = (user.token_prompt_usage_gpt35 / 1_000_000 * GPT35_INPUT_COST_PER_1M) + (
-                    user.token_completion_usage_gpt35 / 1_000_000 * GPT35_OUTPUT_COST_PER_1M)
-                cost_gpt4 = (user.token_prompt_usage_gpt4 / 1_000_000 * GPT4_INPUT_COST_PER_1M) + (
-                    user.token_completion_usage_gpt4 / 1_000_000 * GPT4_OUTPUT_COST_PER_1M)
+                cost_gpt35 = ((user.token_prompt_usage_gpt35 or 0) / 1_000_000 * GPT35_INPUT_COST_PER_1M) + (
+                    (user.token_completion_usage_gpt35 or 0) / 1_000_000 * GPT35_OUTPUT_COST_PER_1M)
+                cost_gpt4 = ((user.token_prompt_usage_gpt4 or 0) / 1_000_000 * GPT4_INPUT_COST_PER_1M) + (
+                    (user.token_completion_usage_gpt4 or 0) / 1_000_000 * GPT4_OUTPUT_COST_PER_1M)
                 user_cost = cost_gpt35 + cost_gpt4
                 weighted_costs.append(user_cost)
                 total_cost += user_cost
@@ -1698,50 +1654,23 @@ def send_daily_update():
                 f"Monthly API Budget: $120.00\n"
                 f"Current Headroom: ${120 - total_cost if total_cost < 120 else 0:.2f}\n"
             )
-            sg = SendGridAPIClient(os.getenv('SENDGRID_API_KEY'))
-            update_email = Mail(
-                from_email=os.getenv('FROM_EMAIL', 'support@simul-ai-tor.com'),
-                to_emails="simulaitor@outlook.com",
-                subject="Daily Subscription & API Cost Report",
-                plain_text_content=message
+            ses = boto3.client('ses', region_name=os.getenv('AWS_REGION'))
+            response = ses.send_email(
+                Source=os.getenv('FROM_EMAIL', 'support@simul-ai-tor.com'),
+                Destination={'ToAddresses': ["simulaitor@outlook.com"]},
+                Message={
+                    'Subject': {'Data': "Daily Subscription & API Cost Report"},
+                    'Body': {'Text': {'Data': message}}
+                }
             )
-            sg.send(update_email)
+            print("AWS SES response for daily update:", response)
         except Exception as e:
             print(f"Error sending daily update: {str(e)}")
 
-
-@app.route('/unsubscribe', methods=['GET'])
-def unsubscribe():
-    # Get the email address from the query string
-    email = request.args.get('email')
-    if not email:
-        flash("No email address provided for unsubscribe.", "danger")
-        return redirect(url_for('landing'))
-
-    # Look for the alert signup record for this email
-    alert_record = AlertSignup.query.filter_by(email=email).first()
-    if alert_record:
-        try:
-            db.session.delete(alert_record)
-            db.session.commit()
-            flash("You have been successfully unsubscribed from alerts.", "success")
-            print(f"Unsubscribed {email} successfully.")
-        except Exception as e:
-            db.session.rollback()
-            flash(f"Error unsubscribing: {str(e)}", "danger")
-            print(f"Error unsubscribing {email}: {str(e)}")
-    else:
-        flash("Email address not found in our alert signup records.", "info")
-        print(f"No alert signup record found for {email}.")
-
-    return redirect(url_for('landing'))
-
-
-# --- Scheduler Setup ---
-scheduler = BackgroundScheduler()
-scheduler.add_job(send_daily_update, 'interval', days=1)
-scheduler.add_job(notify_alert_signups, 'interval', minutes=30)  # Check every 30 minutes
-scheduler.start()
+@app.route('/test_send_update')
+def test_send_update():
+    send_daily_update()
+    return "Test email sent. Please check your inbox."
 
 if __name__ == '__main__':
     app.run(debug=True)
