@@ -23,6 +23,7 @@ from flask_migrate import Migrate
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 from apscheduler.schedulers.background import BackgroundScheduler
 import boto3  # AWS SES via boto3
+from flask_session import Session
 
 # Load environment variables from .env file
 load_dotenv()
@@ -50,6 +51,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
 )
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", os.urandom(24).hex())
+Session(app)
 
 from flask_wtf import CSRFProtect
 
@@ -107,7 +109,7 @@ class User(UserMixin, db.Model):
 class Feedback(db.Model):
     __tablename__ = 'feedback'
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('subscribers.id'), nullable=False)
     score = db.Column(db.Float, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     # Relationship back to the User
