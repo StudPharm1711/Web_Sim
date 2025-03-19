@@ -615,3 +615,10 @@ section {
 .tippy-box[data-theme~='light'] .tippy-arrow {
   color: #fff !important; /* Arrow matches white background */
 }
+@media (max-width: 600px) {
+  .sticky-cta {
+    left: 50%;
+    right: auto; /* Remove the right offset */
+    transform: translateX(-50%);
+  }
+}
