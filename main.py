@@ -86,7 +86,7 @@ def validate_password(password):
 
 # --- User Model Definition ---
 class User(UserMixin, db.Model):
-    __tablename__ = 'user'  # Explicit table name
+    __tablename__ = 'subscribers'  # Explicit table name
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
@@ -1303,7 +1303,7 @@ def feedback():
         "and do NOT use single quotes. Evaluate the following consultation transcript using the Calgary–Cambridge model. "
         "Score each category on a scale of 1 to 10, and provide a short comment for each:\n"
         "1. Initiating the session\n"
-        "2. Gathering information\n"
+        "2. Gathering information: When scoring, ensure you assess if the transcript clearly explores the history of the present complaint (HPC) (including a pain assessment using the SOCRATES approach when pain/discomfort or similar is mentioned), and covers relevant aspects including past medical and surgical history, social history and family history\n"
         "3. Physical examination\n"
         "4. Explanation & planning\n"
         "5. Closing the session\n"
