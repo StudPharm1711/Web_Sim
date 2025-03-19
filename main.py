@@ -786,6 +786,10 @@ def register():
         return redirect(url_for('check_email'))
     return render_template('register.html')
 
+@app.route('/check_email', methods=['GET'])
+def check_email():
+    return render_template('check_email.html')
+
 @app.route('/alert_signup', methods=['GET', 'POST'])
 def alert_signup():
     if request.method == 'POST':
