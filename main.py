@@ -654,6 +654,7 @@ def landing():
 
 ADMIN_LOGIN_PASSWORD = os.getenv("ADMIN_LOGIN_PASSWORD")
 
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -684,6 +685,12 @@ def login():
             password = request.form['password']
             user = User.query.filter_by(email=email).first()
             if user and check_password_hash(user.password, password):
+                # Check if the user has an active subscription
+                if not user.is_admin and (not user.subscription_id or user.subscription_status != "active"):
+                    flash("Your account is not activated yet. Please complete your payment to activate your account.",
+                          "warning")
+                    return redirect(url_for('start_payment'))
+
                 session.pop('conversation', None)
                 user.current_session = str(uuid.uuid4())
                 db.session.commit()
@@ -850,8 +857,12 @@ def confirm_email(token):
         flash("The confirmation link is invalid or has expired.", "danger")
         return redirect(url_for('resend_confirmation'))
 
-    if User.query.filter_by(email=registration_data["email"]).first():
-        flash("This email address has already been confirmed. Please log in.", "info")
+    existing_user = User.query.filter_by(email=registration_data["email"]).first()
+    if existing_user:
+        if not existing_user.subscription_id or existing_user.subscription_status != "active":
+            flash("Please complete your subscription payment before logging in.", "warning")
+            return redirect(url_for('start_payment'))
+        flash("This email is already confirmed. Please log in.", "info")
         return redirect(url_for('login'))
 
     pending = PendingRegistration.query.filter_by(email=registration_data["email"]).first()
@@ -859,26 +870,25 @@ def confirm_email(token):
         flash("No pending registration record found. Please register again.", "danger")
         return redirect(url_for('register'))
 
-    # Create new user from pending registration record.
     new_user = User(
         email=pending.email,
         password=pending.hashed_password,
         category=pending.category,
         discipline=pending.discipline,
         stripe_customer_id=pending.stripe_customer_id,
-        subscription_id=pending.subscription_id,
-        subscription_status=pending.subscription_status
+        subscription_id=None,  # No subscription yet
+        subscription_status=None  # No payment yet
     )
     db.session.add(new_user)
-    db.session.delete(pending)  # Remove the pending record
+    db.session.delete(pending)
     db.session.commit()
 
-    # Log the user in.
     new_user.current_session = str(uuid.uuid4())
     db.session.commit()
     session['session_token'] = new_user.current_session
     login_user(new_user)
-    flash("Your email has been confirmed. Please proceed to payment.", "success")
+
+    flash("Your email has been confirmed. Please complete payment to activate your account.", "success")
     return redirect(url_for('start_payment'))
 
 # --- New Route to Start Payment after Email Confirmation ---
