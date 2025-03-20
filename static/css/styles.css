@@ -625,7 +625,7 @@ section {
   .sticky-cta {
     /* Keep it fixed at bottom right or center it—your choice.
        If you want bottom-right: */
-    center: auto; */
+    center: auto;
 
     /* Force text to stay on one line */
     white-space: nowrap;
@@ -673,10 +673,6 @@ section {
   transition: background 0.3s ease;
 }
 
-#recordBtn:active {
-  background: #800000; /* Darker maroon when pressed */
-}
-
 @media (max-width: 600px) {
   .scroll-indicator {
     position: fixed;
@@ -705,3 +701,4 @@ section {
 #recordBtn .fa-microphone {
     color: #fff; /* or another preferred color */
 }
+

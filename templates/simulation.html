@@ -233,7 +233,7 @@
         box-shadow: 4px 4px 8px #ffcccc, -4px -4px 8px #ffffff;
     }
     .btn-clear:hover {
-        background: #ff6666;
+        background: #cc5500;
     }
     .btn-3d:disabled {
         background: #cccccc !important;
@@ -557,6 +557,7 @@
                     {% endfor %}
                 </div>
 
+
                 <div class="input-area">
     <div class="input-mode-row">
         <label style="font-weight: bold; color: #005f73; margin-right: 10px;">Input Mode:</label>
@@ -769,6 +770,7 @@
                 };
                 recognition.onend = function() {
                     $("#recordBtn").text("Record");
+                     $("#recordBtn").css("background", "#ff4d4d"); // Reset to light red
                                    };
                 recognition.onerror = function(event) {
                     console.error("Speech recognition error", event.error);
@@ -953,13 +955,14 @@
         }
 
         const feedbackBtnForm = document.getElementById('feedbackBtnForm');
-        if (feedbackBtnForm) {
-            feedbackBtnForm.addEventListener('click', function(e) {
-                const spinnerFeedback = document.getElementById('spinnerFeedback');
-                if (spinnerFeedback) spinnerFeedback.style.display = 'block';
-                this.disabled = true;
-            });
-        }
+if (feedbackBtnForm) {
+    feedbackBtnForm.addEventListener('click', function(e) {
+        const spinnerFeedback = document.getElementById('spinnerFeedback');
+        if (spinnerFeedback) spinnerFeedback.style.display = 'block';
+        this.disabled = true;
+        submitFeedbackForm();  // Submit the feedback form
+    });
+}
 
         function submitFeedbackForm() {
             const feedbackForm = document.getElementById('feedbackForm');
@@ -1104,6 +1107,5 @@ let hasScrolledToBottom = false;
     checkScrollPosition();
   }
 </script>
-
 </body>
 </html>
