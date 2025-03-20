@@ -228,7 +228,7 @@
         box-shadow: 3px 3px 6px #cccccc, -3px -3px 6px #ffffff;
     }
     .btn-clear {
-        background: #FFA500;
+        background: orange;
         color: white;
         box-shadow: 4px 4px 8px #ffcccc, -4px -4px 8px #ffffff;
     }
@@ -756,7 +756,7 @@
                 var pauseTimer;
                 recognition.onstart = function() {
                     $("#recordBtn").text("Recording");
-                    $("#recordBtn").css("background", "#ff4d4d");
+                    $("#recordBtn").css("background", "#cc0000");
                 };
                 recognition.onresult = function(event) {
                     clearTimeout(pauseTimer);
@@ -769,8 +769,7 @@
                 };
                 recognition.onend = function() {
                     $("#recordBtn").text("Record");
-                    $("#recordBtn").css("background", "linear-gradient(145deg, #005f73, #0a6c82)");
-                };
+                                   };
                 recognition.onerror = function(event) {
                     console.error("Speech recognition error", event.error);
                 };

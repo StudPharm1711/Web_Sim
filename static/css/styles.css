@@ -702,3 +702,6 @@ section {
     }
   }
 }
+#recordBtn .fa-microphone {
+    color: #fff; /* or another preferred color */
+}
