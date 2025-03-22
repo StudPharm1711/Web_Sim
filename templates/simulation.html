@@ -443,7 +443,7 @@
         {% if not conversation %}
         <!-- Scrolling Banner -->
         <div id="scroll-banner">
-            <p>Please note: The voice you hear may not represent the gender of the patient - better to ask!</p>
+            <p>Future updates to be announced here!</p>
         </div>
         <!-- Initial Simulation Setup -->
         <div class="chat-container" style="text-align: center;">
@@ -456,8 +456,7 @@
                             <i class="fa fa-info-circle tooltip-icon" data-tippy-content="Select your country to tailor the simulation's medication names and healthcare context."></i>
                         </label>
                         <select id="country_select" name="country" class="select2" required>
-                            <option value="">Select Country</option>
-                            <option value="United Kingdom">United Kingdom</option>
+                            <option value="United Kingdom" selected>United Kingdom</option>
                             <option value="USA">USA</option>
                             <optgroup label="Other Countries">
                                 <option value="Canada">Canada</option>
@@ -523,7 +522,7 @@
             <!-- Simulation Active: Chat Interface -->
             <!-- Timer display element with tooltip -->
             <div id="timer-container" style="margin-bottom: 10px;">
-                <div id="timer" style="display: none; font-size: 1.2rem; display: inline-block;">00:00:00</div>
+                <div id="timer" style="display: none; font-size: 2rem; display: inline-block;">00:00:00</div>
                 <span class="tooltip-icon" data-tippy-content="Keep track of how long your consultations take (this does not include physical examination time)">
                     <i class="fa fa-info-circle"></i>
                 </span>
@@ -570,9 +569,11 @@
           <img src="/static/typing.png">
         </label>
         <label style="margin-left: 20px;">
-          <input type="checkbox" id="togglePatientVoice" checked>
-          Enable Patient Voice
+          <input type="checkbox" id="togglePatientVoice">
+          Patient Voice on/off
         </label>
+        <span class="tooltip-icon" data-tippy-content="Requires speakers. Note that voice is generic to browser and may not represent the patients' gender" style="margin-left: 5px;">
+            <i class="fa fa-info-circle"></i>
     </div>
     <button id="recordBtn" class="btn-3d" style="display: none; max-width: 200px;" data-tippy-content="Click once and speak into your microphone">
         <i class="fa fa-microphone tooltip-icon" data-tippy-content="Record your voice"></i>
@@ -1106,6 +1107,17 @@ let hasScrolledToBottom = false;
     hasScrolledToBottom = false;
     checkScrollPosition();
   }
+</script>
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // Delay for 3 seconds to allow the HISTORY TAKING letters to load
+    setTimeout(function() {
+      var cogIcon = document.querySelector("#dropbtn i.fa-cog");
+      if (cogIcon) {
+        cogIcon.classList.add("spin-animation");
+      }
+    }, 3000); // 3000 milliseconds delay
+  });
 </script>
 </body>
 </html>

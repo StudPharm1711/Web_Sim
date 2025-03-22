@@ -652,7 +652,7 @@ section {
     margin-top: 40px; /* Adjust based on your header height */
   }
   #timer {
-  font-size: 0.5rem !important; /* Adjust this value to your liking */
+  font-size: 1rem !important; /* Adjust this value to your liking */
 }
 #sendBtn {
   background: #ff4d4d;
@@ -700,4 +700,21 @@ section {
 }
 #recordBtn .fa-microphone {
     color: #fff; /* or another preferred color */
+}
+@media (min-width: 768px) {
+  .scroll-indicator {
+    display: none;
+  }
+}
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin-animation {
+  animation: spin 1s linear;
 }
