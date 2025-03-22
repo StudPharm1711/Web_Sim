@@ -711,6 +711,7 @@ def register():
               "info")
         return redirect(url_for('alert_signup'))  # Ensure you have an alert signup route.
     if request.method == 'POST':
+        print("DEBUG: /register POST route reached", flush=True)  # Debug print to confirm entry
         email = request.form['email']
         password = request.form['password']
         category = request.form['category']
@@ -771,6 +772,7 @@ def register():
         try:
             confirmation_link = url_for('confirm_email', token=token, _external=True)
             ses = boto3.client('ses', region_name=os.getenv('AWS_REGION'))
+            print("DEBUG: Sending confirmation email to:", pending_registration["email"])
             response = ses.send_email(
                 Source=os.getenv('FROM_EMAIL', 'support@simul-ai-tor.com'),
                 Destination={'ToAddresses': [pending_registration["email"]]},
@@ -782,7 +784,9 @@ def register():
                     )}}
                 }
             )
+            print("DEBUG: SES response:", response)
         except Exception as e:
+            print("DEBUG: Error sending confirmation email:", e)
             flash(f"Error sending confirmation email: {str(e)}", "warning")
             return redirect(url_for('register'))
 
@@ -1745,5 +1749,3 @@ def get_scores():
 
 if __name__ == '__main__':
     app.run(debug=True)
-
-
