@@ -1,18 +1,225 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Register</title>
+  <meta charset="UTF-8">
+  <title>Register - Simul-AI-tor</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f7f7f7;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      width: 300px;
+      margin: 50px auto;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 15px;
+    }
+    /* Flash messages (if needed) */
+    .flash-messages ul {
+      list-style-type: none;
+      padding: 0;
+      margin: 0 0 15px 0;
+    }
+    .flash-messages li {
+      margin-bottom: 5px;
+      padding: 5px;
+      border: 1px solid #ccc;
+      background-color: #f2f2f2;
+    }
+    form {
+      margin: 0;
+      padding: 0;
+    }
+    form input,
+    form select {
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+      margin: 8px 0;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1rem;
+      text-align: left;
+    }
+    form button {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      border: none;
+      border-radius: 4px;
+      background-color: #005f73;
+      color: #fff;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    form button:disabled {
+      background-color: grey;
+      cursor: not-allowed;
+    }
+    #subscriptionPricing {
+      margin-top: 10px;
+      font-weight: 500;
+      color: #333;
+      text-align: left;
+    }
+    #student-verification {
+      display: none;
+      margin-top: 10px;
+      text-align: left;
+    }
+    .terms {
+      margin-top: 15px;
+      text-align: left;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+    }
+    .terms input[type="checkbox"] {
+      margin-right: 8px;
+    }
+    .terms a {
+      color: #005f73;
+      text-decoration: underline;
+    }
+    .login-link {
+      margin-top: 15px;
+      font-size: 0.9rem;
+    }
+    .login-link a {
+      color: #005f73;
+      text-decoration: underline;
+    }
+  </style>
 </head>
 <body>
-    <h1>Register</h1>
-    <form method="POST">
-        <input type="text" name="username" placeholder="Username" required>
-        <input type="password" name="password" placeholder="Password" required>
-        <button type="submit">Register</button>
+  <div class="container">
+    <h1>Register & Subscribe</h1>
+
+    <div class="flash-messages">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <ul>
+            {% for category, message in messages %}
+              <li class="{{ category }}">{{ message }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      {% endwith %}
+    </div>
+
+    <form method="POST" action="{{ url_for('register') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <!-- Removed the Username field -->
+      <input type="email" name="email" placeholder="Email Address" required>
+      <input type="password" name="password" placeholder="Password" required>
+
+      <select id="category" name="category" required>
+        <option value="">Select your category</option>
+        <option value="health_student">Healthcare Student</option>
+        <option value="health_professional">Healthcare Professional</option>
+        <option value="non_healthcare">Non-Healthcare</option>
+      </select>
+
+      <!-- Discipline Container (hidden by default) -->
+      <div id="disciplineContainer" style="display:none;">
+        <select id="discipline" name="discipline">
+          <option value="">Select your discipline</option>
+          <option value="medicine">Medicine</option>
+          <option value="nursing">Nursing</option>
+          <option value="pharmacy">Pharmacy</option>
+          <option value="dentistry">Dentistry</option>
+          <option value="physiotherapy">Physiotherapy</option>
+          <option value="occupational_therapy">Occupational Therapy</option>
+          <option value="radiography">Radiography</option>
+          <option value="public_health">Public Health</option>
+          <option value="nutrition">Nutrition</option>
+          <option value="biomedical_sciences">Biomedical Sciences</option>
+          <option value="other">Other</option>
+        </select>
+        <input type="text" id="otherDiscipline" name="otherDiscipline" placeholder="Please specify your discipline" style="display:none;">
+      </div>
+
+      <!-- Subscription Pricing & Student Verification -->
+      <div id="subscriptionPricing"></div>
+      <div id="student-verification">
+        <label>Student Verification Required:</label>
+        <p>Please ensure your email ends with ".ac.uk" to receive the student rate.</p>
+      </div>
+
+      <div class="terms">
+        <input type="checkbox" id="agree_terms" name="agree_terms" required>
+        <label for="agree_terms">
+          I have read and agree to the <a href="/terms.html" target="_blank">Terms and Conditions</a>.
+        </label>
+      </div>
+
+      <button type="submit" id="submitBtn" disabled>Register & Subscribe</button>
     </form>
-    <a href="{{ url_for('login') }}">Login</a>
+
+    <p class="login-link">
+      Already have an account? <a href="{{ url_for('login') }}">Log In</a>.
+    </p>
+  </div>
+
+  <script>
+    // Enable/disable submit button based on checkbox state
+    const agreeTermsCheckbox = document.getElementById('agree_terms');
+    const submitBtn = document.getElementById('submitBtn');
+
+    agreeTermsCheckbox.addEventListener('change', function() {
+      submitBtn.disabled = !this.checked;
+    });
+
+    // JavaScript for category and discipline handling
+    const categorySelect = document.getElementById('category');
+    const disciplineContainer = document.getElementById('disciplineContainer');
+    const disciplineSelect = document.getElementById('discipline');
+    const otherDisciplineInput = document.getElementById('otherDiscipline');
+    const subscriptionPricing = document.getElementById('subscriptionPricing');
+    const studentVerification = document.getElementById('student-verification');
+
+    categorySelect.addEventListener('change', function() {
+      if (this.value === 'health_student' || this.value === 'health_professional') {
+        disciplineContainer.style.display = 'block';
+      } else {
+        disciplineContainer.style.display = 'none';
+        otherDisciplineInput.style.display = 'none';
+      }
+      updatePricingAndVerification(this.value);
+    });
+
+    disciplineSelect.addEventListener('change', function() {
+      if (this.value === 'other') {
+        otherDisciplineInput.style.display = 'block';
+      } else {
+        otherDisciplineInput.style.display = 'none';
+      }
+    });
+
+    function updatePricingAndVerification(categoryValue) {
+      if (categoryValue === 'health_student') {
+        subscriptionPricing.textContent = "Monthly Subscription: £4.99/month (Student Rate)";
+        studentVerification.style.display = 'block';
+      } else if (categoryValue === 'health_professional' || categoryValue === 'non_healthcare') {
+        subscriptionPricing.textContent = "Monthly Subscription: £7.99/month";
+        studentVerification.style.display = 'none';
+      } else {
+        subscriptionPricing.textContent = "";
+        studentVerification.style.display = 'none';
+      }
+    }
+  </script>
 </body>
 </html>
-<footer class="text-center mt-4 py-3" style="background-color: #f7f7f7;">
-    <small>&copy; 2025 William Swain. All rights reserved.</small>
-</footer>

@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Welcome to Simul-AI-tor</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Link to external stylesheet -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <!-- Font Awesome for Icons (Carousel Arrows, etc.) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+  <!-- Header with Logo and Buttons -->
+  <header>
+    <div class="header-container">
+      <div class="logo-group">
+        <img src="{{ url_for('static', filename='new_logo.avif') }}" alt="Simul-AI-tor Logo">
+        <!-- Group the main heading and the typed subheading -->
+        <div class="logo-text">
+          <h1 class="main-heading" id="main-heading">Simul-AI-tor</h1>
+          <!-- History Taking letters -->
+          <div class="history-container">
+            <span class="history-letter">H</span>
+            <span class="history-letter">I</span>
+            <span class="history-letter">S</span>
+            <span class="history-letter">T</span>
+            <span class="history-letter">O</span>
+            <span class="history-letter">R</span>
+            <span class="history-letter">Y</span>
+            <span class="history-letter">&nbsp;</span>
+            <span class="history-letter">T</span>
+            <span class="history-letter">A</span>
+            <span class="history-letter">K</span>
+            <span class="history-letter">I</span>
+            <span class="history-letter">N</span>
+            <span class="history-letter">G</span>
+          </div>
+        </div>
+      </div>
+      <div class="header-right">
+        <a href="{{ url_for('login') }}">Log In</a>
+        <a href="{{ url_for('register') }}">Register</a>
+      </div>
+    </div>
+  </header>
+  <div class="header-placeholder"></div>
+
+  <!-- Secondary Navigation Bar (No "Home") -->
+  <nav class="section-nav">
+    <a href="#howitworks">How It Works</a>
+    <a href="#features">Features</a>
+    <a href="#testimonials">Testimonials</a>
+  </nav>
+  <div class="nav-placeholder"></div>
+
+  <!-- Sticky Primary CTA -->
+  <a href="{{ url_for('register') }}" class="sticky-cta">
+  Start your free trial now! <span style="color:red;">Only {{ remaining_places }} places left!</span>
+</a>
+
+  <!-- Hero Section -->
+  <section class="hero-section" id="hero">
+    <div class="hero-overlay">
+      <h2 class="piano-text">
+        <span class="word">
+          <span class="letter">D</span>
+          <span class="letter">e</span>
+          <span class="letter">v</span>
+          <span class="letter">e</span>
+          <span class="letter">l</span>
+          <span class="letter">o</span>
+          <span class="letter">p</span>
+        </span>
+        <span class="word">
+          <span class="letter">Y</span>
+          <span class="letter">o</span>
+          <span class="letter">u</span>
+          <span class="letter">r</span>
+        </span>
+        <span class="word">
+          <span class="letter">C</span>
+          <span class="letter">l</span>
+          <span class="letter">i</span>
+          <span class="letter">n</span>
+          <span class="letter">i</span>
+          <span class="letter">c</span>
+          <span class="letter">a</span>
+          <span class="letter">l</span>
+        </span>
+        <span class="word">
+          <span class="letter">H</span>
+          <span class="letter">i</span>
+          <span class="letter">s</span>
+          <span class="letter">t</span>
+          <span class="letter">o</span>
+          <span class="letter">r</span>
+          <span class="letter">y</span>
+        </span>
+        <span class="word">
+          <span class="letter">T</span>
+          <span class="letter">a</span>
+          <span class="letter">k</span>
+          <span class="letter">i</span>
+          <span class="letter">n</span>
+          <span class="letter">g</span>
+        </span>
+        <span class="word">
+          <span class="letter">S</span>
+          <span class="letter">k</span>
+          <span class="letter">i</span>
+          <span class="letter">l</span>
+          <span class="letter">l</span>
+          <span class="letter">s</span>
+        </span>
+        <span class="word">
+          <span class="letter">w</span>
+          <span class="letter">i</span>
+          <span class="letter">t</span>
+          <span class="letter">h</span>
+        </span>
+        <span class="word">
+          <span class="letter">R</span>
+          <span class="letter">e</span>
+          <span class="letter">a</span>
+          <span class="letter">l</span>
+          <span class="letter">i</span>
+          <span class="letter">s</span>
+          <span class="letter">t</span>
+          <span class="letter">i</span>
+          <span class="letter">c</span>
+        </span>
+        <span class="word">
+          <span class="letter">P</span>
+          <span class="letter">a</span>
+          <span class="letter">t</span>
+          <span class="letter">i</span>
+          <span class="letter">e</span>
+          <span class="letter">n</span>
+          <span class="letter">t</span>
+          <span class="letter">s</span>
+        </span>
+        <span class="word">
+          <span class="letter">S</span>
+          <span class="letter">i</span>
+          <span class="letter">m</span>
+          <span class="letter">u</span>
+          <span class="letter">l</span>
+          <span class="letter">a</span>
+          <span class="letter">t</span>
+          <span class="letter">e</span>
+          <span class="letter">d</span>
+        </span>
+        <span class="word">
+          <span class="letter">U</span>
+          <span class="letter">s</span>
+          <span class="letter">i</span>
+          <span class="letter">n</span>
+          <span class="letter">g</span>
+        </span>
+        <span class="word">
+          <span class="letter">A</span>
+          <span class="letter">I</span>
+        </span>
+      </h2>
+      <p>Who is it for? Students and early career healthcare professionals wanting to develop clinical assessment skills</p>
+      <p class="risk-reversal">Enjoy a 24‑hour free trial – no obligation, cancel anytime.</p>
+    </div>
+  </section>
+
+  <!-- How It Works Section (Carousel) -->
+  <section id="howitworks" class="section-pastel-lavender">
+    <h2 class="section-title piano-text">
+      <span class="word">
+        <span class="letter">H</span>
+        <span class="letter">o</span>
+        <span class="letter">w</span>
+      </span>
+      <span class="word">
+        <span class="letter">I</span>
+        <span class="letter">t</span>
+      </span>
+      <span class="word">
+        <span class="letter">W</span>
+        <span class="letter">o</span>
+        <span class="letter">r</span>
+        <span class="letter">k</span>
+        <span class="letter">s</span>
+      </span>
+    </h2>
+    <div class="carousel-container">
+      <div class="carousel-slide" id="carouselSlide">
+        <!-- Slide 1: Choose a Scenario -->
+        <div class="carousel-item">
+          <h3>1. Choose a Scenario</h3>
+          <p>Customise your patient in terms of an affected body system (e.g., cardiovascular) on which your presenting complaint will be based, then choose whether you want them to have co-morbidities and/or any complexity in their persona .</p>
+          <img src="{{ url_for('static', filename='Carousel1.PNG') }}" alt="Choose a Scenario">
+        </div>
+        <!-- Slide 2: Interact with AI Patients -->
+        <div class="carousel-item">
+          <h3>2. Interact with AI Patients</h3>
+          <p>Engage in dynamic dialogues using a keyboard or live chat using your voice that simulate real patient interactions.</p>
+          <video autoplay muted loop style="max-width:100%; border-radius:8px;">
+            <source src="{{ url_for('static', filename='demo.mp4') }}" type="video/mp4">
+            Your browser does not support the video tag.
+          </video>
+        </div>
+        <!-- Slide 3: Request Physical Examination Results -->
+        <div class="carousel-item">
+          <h3>3. Request Physical Examination Results</h3>
+          <p>Submit your request and receive comprehensive physical examination results to support your diagnosis.</p>
+          <img src="{{ url_for('static', filename='Carousel3.PNG') }}" alt="Request Physical Examination Results">
+        </div>
+        <!-- Slide 4: Receive Instant Feedback -->
+        <div class="carousel-item">
+          <h3>4. Receive Instant Feedback on Your Performance</h3>
+          <p>Gain immediate insights and detailed performance reviews structured around the Calgary-Cambridge model to enhance your skills.</p>
+          <img src="{{ url_for('static', filename='Carousel4.PNG') }}" alt="Instant Feedback">
+        </div>
+      </div>
+      <div class="carousel-controls">
+        <button onclick="prevSlide()"><i class="fas fa-chevron-left"></i></button>
+        <button onclick="nextSlide()"><i class="fas fa-chevron-right"></i></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section id="features" class="section-pastel-mint">
+    <h2 class="section-title piano-text">
+      <span class="word">
+        <span class="letter">K</span>
+        <span class="letter">e</span>
+        <span class="letter">y</span>
+      </span>
+      <span class="word">
+        <span class="letter">F</span>
+        <span class="letter">e</span>
+        <span class="letter">a</span>
+        <span class="letter">t</span>
+        <span class="letter">u</span>
+        <span class="letter">r</span>
+        <span class="letter">e</span>
+        <span class="letter">s</span>
+      </span>
+    </h2>
+    <div class="features-grid">
+      <div class="feature-item">
+        <h3>Immersive AI Patients</h3>
+        <p>Experience life-like patient interactions that adapt to your approach in real-time. Choose from three levels: simple problem/simple patient, complex problem/simple patient, or complex problem/complex patient.</p>
+      </div>
+      <div class="feature-item">
+        <h3>Feedback</h3>
+        <p>Receive structured feedback based on recognized communication models.</p>
+      </div>
+      <div class="feature-item">
+        <h3>Customise Your Patient</h3>
+        <p>Choose from a wide selection of body systems to derive the presenting complaint, or select random if you're feeling adventurous!</p>
+      </div>
+      <div class="feature-item">
+        <h3>Use Voice or Typing</h3>
+        <p>Switch between input modes during the consultation so you can practice anytime, anywhere!</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials Section -->
+  <section id="testimonials" class="section-pastel-peach">
+    <h2 class="section-title piano-text">
+      <span class="word">
+        <span class="letter">W</span>
+        <span class="letter">h</span>
+        <span class="letter">a</span>
+        <span class="letter">t</span>
+      </span>
+      <span class="word">
+        <span class="letter">O</span>
+        <span class="letter">u</span>
+        <span class="letter">r</span>
+      </span>
+      <span class="word">
+        <span class="letter">U</span>
+        <span class="letter">s</span>
+        <span class="letter">e</span>
+        <span class="letter">r</span>
+        <span class="letter">s</span>
+      </span>
+      <span class="word">
+        <span class="letter">S</span>
+        <span class="letter">a</span>
+        <span class="letter">y</span>
+      </span>
+    </h2>
+    <div class="testimonials">
+      <p class="quote typing-effect" data-quote="“This is the future of simulation right here.” – GP"></p>
+      <p class="quote typing-effect" data-quote="“An indispensable tool for developing clinical assessment skills.” – Pharmacist"></p>
+      <p class="quote typing-effect" data-quote="“I wish I had this when I was studying.” – Nurse"></p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <small>&copy; 2025 Simul-AI-tor Ltd. All rights reserved.</small>
+  </footer>
+
+  <!-- JavaScript for Effects -->
+  <script>
+    // Smooth scroll helper
+    function scrollToSection(id) {
+      document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Animate sections when scrolled into view
+    const sections = document.querySelectorAll("section");
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.2 });
+    sections.forEach(section => observer.observe(section));
+
+    // Carousel functions
+    let currentSlide = 0;
+    const slideContainer = document.getElementById("carouselSlide");
+    const totalSlides = slideContainer.children.length;
+    function updateCarousel() {
+      slideContainer.style.transform = 'translateX(' + (-currentSlide * 100) + '%)';
+    }
+    function nextSlide() {
+      currentSlide = (currentSlide + 1) % totalSlides;
+      updateCarousel();
+    }
+    function prevSlide() {
+      currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
+      updateCarousel();
+    }
+    window.addEventListener('load', updateCarousel);
+    let startX = 0, endX = 0;
+    slideContainer.addEventListener("touchstart", e => { startX = e.changedTouches[0].clientX; });
+    slideContainer.addEventListener("touchend", e => { endX = e.changedTouches[0].clientX; handleSwipe(); });
+    function handleSwipe() {
+      if (startX - endX > 50) nextSlide();
+      else if (endX - startX > 50) prevSlide();
+    }
+
+    // Piano-Key hover effect
+    document.addEventListener('DOMContentLoaded', function() {
+      const letters = document.querySelectorAll('.letter');
+      letters.forEach((letter, index) => {
+        letter.addEventListener('mouseenter', () => {
+          letters.forEach(l => l.classList.remove('hover-center', 'hover-left', 'hover-right'));
+          letter.classList.add('hover-center');
+          if (index > 0) letters[index - 1].classList.add('hover-left');
+          if (index < letters.length - 1) letters[index + 1].classList.add('hover-right');
+        });
+        letter.addEventListener('mouseleave', () => {
+          letters.forEach(l => l.classList.remove('hover-center', 'hover-left', 'hover-right'));
+        });
+      });
+    });
+
+    // Typing effect for testimonial quotes
+    function typeText(element, text, speed, callback) {
+      let i = 0;
+      element.innerHTML = '';
+      function type() {
+        if (i < text.length) {
+          element.innerHTML += text.charAt(i);
+          i++;
+          setTimeout(type, speed);
+        } else if (callback) {
+          callback();
+        }
+      }
+      type();
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+      const quotes = document.querySelectorAll('.typing-effect');
+      function typeNextQuote(index) {
+        if (index >= quotes.length) return;
+        const quote = quotes[index];
+        const text = quote.getAttribute('data-quote');
+        typeText(quote, text, 50, () => { typeNextQuote(index + 1); });
+      }
+      typeNextQuote(0);
+    });
+  </script>
+</body>
+</html>

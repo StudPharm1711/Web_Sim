@@ -1,0 +1,703 @@
+/*
+   Import Fonts:
+   - "Open Sans" for main body text.
+   - "Montserrat" for the Features section.
+*/
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Open+Sans:wght@400;700&display=swap');
+
+/* Global Reset & Base Styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Open Sans", Arial, sans-serif;
+  background-color: #ffffff;
+  color: #333;
+  scroll-behavior: smooth;
+}
+
+/* Fixed Header Styling */
+header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1001; /* ensures header stays on top */
+  background-color: #ffffff;
+  border-bottom: 1px solid #ddd;
+  padding-top: env(safe-area-inset-top, 0);
+}
+
+/* Header Placeholder – was originally sized for ~120px header + safe-area */
+.header-placeholder {
+  height: calc(120px + env(safe-area-inset-top, 0));
+}
+
+/* Fixed Secondary Navigation Styling (Desktop) */
+.section-nav {
+  position: fixed;
+  top: calc(120px + env(safe-area-inset-top, 0));
+  left: 0;
+  right: 0;
+  z-index: 1010;
+  background: #ffffff;
+
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 15px 20px;
+
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Navigation Placeholder – height for desktop (50px) */
+.nav-placeholder {
+  height: 50px;
+}
+
+/* Header Container */
+.header-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 40px;
+  background-color: #ffffff;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* Logo Group */
+.logo-group {
+  display: flex;
+  align-items: center;
+}
+.logo-group img {
+  height: 80px;
+  margin-right: 15px;
+}
+.logo-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* Main Heading */
+.main-heading {
+  font-size: 2rem;
+  color: #005f73;
+  margin: 0;
+}
+
+/* History Taking Typed Text */
+.history-container {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 5px;
+}
+.history-letter {
+  color: red;
+  font-size: 1.2rem;
+  text-transform: uppercase;
+  opacity: 0;
+  animation: fadeIn 3s forwards;
+}
+
+/* Header-right Buttons (Log In/Register) – match logo color */
+.header-right > a {
+  background-color: #005f73;
+  color: #fff;
+  text-decoration: none;
+  font-size: 1rem;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 4px;
+  transition: background 0.3s;
+}
+.header-right > a:hover {
+  background-color: #004f63;
+}
+
+/* Sticky Primary CTA – now matching logo color */
+.sticky-cta {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #005f73;
+  color: #fff;
+  padding: 15px 25px;
+  border-radius: 50px;
+  font-size: 1.1rem;
+  text-decoration: none;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  z-index: 1001;
+  transition: background 0.3s;
+  animation: pulsate 1.5s ease-in-out infinite;
+}
+.sticky-cta:hover {
+  background: #004f63;
+}
+
+/* Pulsate Animation for CTA */
+@keyframes pulsate {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Nav Link Styling (Pastel Colours per link) */
+.section-nav a {
+  text-decoration: none;
+  font-size: 1rem;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 4px;
+  font-weight: bold;
+  transition: filter 0.2s, transform 0.1s;
+}
+
+/* Pastel backgrounds with consistent text color */
+.section-nav a:nth-child(1) {
+  background-color: #F9F7FF;
+  color: #005f73;
+}
+.section-nav a:nth-child(2) {
+  background-color: #F0FFF0;
+  color: #005f73;
+}
+.section-nav a:nth-child(3) {
+  background-color: #FFF5EE;
+  color: #005f73;
+}
+
+/* Hover: Slight darkening using brightness */
+.section-nav a:hover {
+  filter: brightness(0.95);
+}
+
+/* Active (click): Further darken and depress the button */
+.section-nav a:active {
+  filter: brightness(0.85);
+  transform: translateY(2px);
+}
+
+/* Visited state maintains original text color */
+.section-nav a:visited {
+  color: #005f73;
+}
+
+
+/* Pastel Background Variations for Sections */
+.section-pastel-lavender { background-color: #F9F7FF; }
+.section-pastel-mint     { background-color: #F0FFF0; }
+.section-pastel-peach    { background-color: #FFF5EE; }
+
+/* Section Defaults */
+section {
+  padding: 30px 20px;
+  max-width: 1100px;
+  margin: auto;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+  /* Desktop scroll offset: 120px header + 50px nav = 170px */
+  scroll-margin-top: calc(120px + 50px + env(safe-area-inset-top, 0));
+}
+section.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.section-title {
+  text-align: center;
+  margin-bottom: 40px;
+  font-size: 2rem;
+  color: #005f73;
+}
+
+/* Hero Section */
+.hero-section {
+  position: relative;
+  text-align: center;
+  background-color: #ffffff;
+}
+.hero-overlay {
+  position: relative;
+  z-index: 2;
+  margin: auto;
+  padding: 5px;
+  max-width: 1100px;
+  text-align: center;
+  background-color: rgba(255,255,255,0.9);
+}
+.hero-overlay h2 {
+  font-size: 3rem;
+  margin-bottom: 20px;
+  color: #34495e;
+  text-align: center;
+}
+.hero-overlay p {
+  font-size: 1.5rem;
+  max-width: 800px;
+  margin: 0 auto 20px;
+  color: #34495e;
+}
+.hero-overlay .risk-reversal {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+/* Carousel */
+.carousel-container {
+  position: relative;
+  overflow: hidden;
+  margin: auto;
+  max-width: 800px;
+}
+.carousel-controls {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.carousel-controls button {
+  pointer-events: auto;
+  background: rgba(0,0,0,0.5);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  cursor: pointer;
+  margin: 0 10px;
+  transition: background 0.3s;
+}
+.carousel-controls button:hover {
+  background: rgba(0,0,0,0.8);
+}
+.carousel-controls button i {
+  font-size: 1.2rem;
+}
+.carousel-slide {
+  display: flex;
+  transition: transform 0.5s ease-in-out;
+}
+.carousel-item {
+  min-width: 100%;
+  padding: 20px;
+  text-align: center;
+}
+.carousel-item h3 {
+  margin-bottom: 15px;
+  color: #005f73;
+}
+.carousel-item p {
+  margin-bottom: 15px;
+}
+.carousel-item img,
+.carousel-item video {
+  max-width: 100%;
+  border-radius: 8px;
+}
+
+/* Features Section */
+.features-section {
+  font-family: 'Montserrat', sans-serif;
+  text-align: center;
+  padding: 40px 20px;
+}
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 30px;
+  max-width: 900px;
+  margin: auto;
+}
+@media (max-width: 768px) {
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.feature-item {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+.feature-item h3 {
+  color: #005f73;
+  margin-bottom: 10px;
+}
+.feature-item p {
+  color: #555;
+}
+
+/* Testimonials */
+.testimonials {
+  text-align: center;
+}
+.testimonials .quote {
+  font-size: 1.2rem;
+  margin-bottom: 20px;
+  color: #005f73;
+}
+
+/* Footer */
+footer {
+  text-align: center;
+  padding: 20px;
+  background: #ffffff;
+  font-size: 0.9rem;
+  color: #333;
+  border-top: 1px solid #ddd;
+}
+
+/* Piano-Key Lettering (for section headings) */
+.piano-text {
+  font-size: 3rem;
+}
+.piano-text .word {
+  display: inline-block;
+  font-size: 0;
+  margin-right: 0.2rem;
+}
+.piano-text .letter {
+  display: inline-block;
+  font-size: 3rem;
+  color: #34495e;
+  transition: transform 0.2s, color 0.2s, text-shadow 0.2s;
+}
+.hover-center {
+  transform: scale(1.4);
+  color: #ffdce0 !important;
+  text-shadow: 0 0 6px rgba(255,220,224,0.6);
+}
+.hover-left,
+.hover-right {
+  transform: scale(1.2);
+}
+
+/* Fade-in keyframes for History Taking letters */
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+/* Stagger animation for .history-letter */
+.history-letter:nth-child(1)  { animation-delay: 0s; }
+.history-letter:nth-child(2)  { animation-delay: 0.2s; }
+.history-letter:nth-child(3)  { animation-delay: 0.4s; }
+.history-letter:nth-child(4)  { animation-delay: 0.6s; }
+.history-letter:nth-child(5)  { animation-delay: 0.8s; }
+.history-letter:nth-child(6)  { animation-delay: 1s; }
+.history-letter:nth-child(7)  { animation-delay: 1.2s; }
+.history-letter:nth-child(8)  { animation-delay: 1.4s; }
+.history-letter:nth-child(9)  { animation-delay: 1.6s; }
+.history-letter:nth-child(10) { animation-delay: 1.8s; }
+.history-letter:nth-child(11) { animation-delay: 2s; }
+.history-letter:nth-child(12) { animation-delay: 2.2s; }
+.history-letter:nth-child(13) { animation-delay: 2.4s; }
+.history-letter:nth-child(14) { animation-delay: 2.6s; }
+
+/* Container for Main Content */
+.container {
+  max-width: 900px;
+  margin: 20px auto;
+  padding: 20px;
+}
+
+/* Desktop Scroll Offset for Sections:
+   120px header + 50px nav = 170px */
+section {
+  scroll-margin-top: calc(120px + 50px + env(safe-area-inset-top, 0));
+}
+
+/* MEDIA QUERIES FOR MOBILE */
+@media (max-width: 600px) {
+  /* Make the placeholder smaller or remove it on the simulation page */
+  .simulation-page .header-placeholder {
+    display: none; /* or 'height: 0;' if you prefer */
+  }
+
+  /* If your simulation page does NOT use the .section-nav, you can hide the nav-placeholder too */
+  .simulation-page .nav-placeholder {
+    display: none;
+  }
+
+  /* Mobile header & nav adjustments */
+  .header-placeholder {
+    height: calc(135px + env(safe-area-inset-top, 0));
+  }
+  .section-nav {
+    top: calc(135px + env(safe-area-inset-top, 0));
+    max-width: 600px;
+    padding: 15px 10px;
+    gap: 20px;
+  }
+
+  .section-nav a {
+    font-size: 0.85rem;
+    padding: 4px 8px;
+  }
+
+  /* Mobile header container adjustments */
+  .header-container {
+    flex-direction: column;
+    align-items: center;
+    padding: 10px 20px;
+  }
+  .logo-group {
+    margin-bottom: 8px;
+  }
+  .header-right {
+    flex-direction: row;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 5px;
+  }
+  .main-heading {
+    font-size: 1.6rem;
+  }
+  .history-container {
+    gap: 0.4rem;
+  }
+  .history-letter {
+    font-size: 1rem;
+  }
+  .sticky-cta {
+    font-size: 1rem;
+    padding: 10px 20px;
+  }
+  .piano-text {
+    font-size: 1.8rem;
+  }
+  .piano-text .letter {
+    font-size: 1.8rem;
+  }
+  .container {
+    padding: 10px;
+  }
+  /* Mobile Scroll Offset for Sections:
+     135px header + 62.75px nav = ~197.75px */
+  section {
+    scroll-margin-top: calc(135px + 62.75px + env(safe-area-inset-top, 0));
+  }
+}
+
+@media (max-width: 600px) {
+  .hero-section {
+    padding-top: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .hero-overlay h2.piano-text {
+    line-height: 1.1;
+  }
+  .section-nav a {
+    font-size: 0.9rem;
+  }
+}
+
+/* =========================
+   Scoped CSS for Simulation Page Mobile Adjustments
+   ========================= */
+@media (max-width: 600px) {
+  /* Only apply these to the simulation page */
+
+  /* If you truly want a shorter header on mobile, do so here: */
+  .simulation-page .header-container {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+    /* Let the content define the height rather than forcing it */
+    height: auto;
+    padding: 5px 10px;
+  }
+
+  /* Scale down the logo so the cog can fit on the same row */
+  .simulation-page .logo-group img {
+    height: 40px; /* or whatever size fits nicely */
+  }
+
+  /* Slightly reduce the main heading so it doesn't push the cog off-screen */
+  .simulation-page .main-heading {
+    font-size: 1.3rem;
+  }
+
+  /* If needed, shrink the 'HISTORY TAKING' letters */
+  .simulation-page .history-letter {
+    font-size: 0.9rem;
+  }
+
+  /* Position the dropdown content below the cog with some spacing */
+  .simulation-page .dropdown-content {
+    position: absolute;
+    top: calc(100% + 4px); /* ensures it drops below the cog button */
+    right: 0;
+    z-index: 10;
+  }
+
+  /* Optional: reduce the cog button padding so it fits better */
+  .simulation-page .dropbtn {
+    padding: 5px;
+    font-size: 1.3rem;
+  }
+}
+
+  /* Force the input mode row to wrap so "Enable Patient Voice" isn't cut off */
+  .simulation-page .input-mode-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* Let the forms (Send + Hint) either wrap or remain side by side */
+  .simulation-page .form-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .simulation-page #messageForm {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 220px; /* ensures there's room for textarea + button */
+  }
+  .simulation-page #messageForm textarea {
+    flex: 1;
+    min-height: 50px;
+    margin-right: 8px;
+    margin-bottom: 15px !important;
+  }
+
+  .simulation-page #hintForm {
+    display: flex;
+    align-items: center;
+  }
+}
+.simulation-page .button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 15px;
+  justify-content: flex-end;
+}
+/* Custom button styles for peach button */
+.btn-3d.btn-peach {
+    background: linear-gradient(145deg, #FFDAB9, #FFEFD5);
+    color: #000000; /* dark teal, which complements peach nicely */
+    font-weight: bold;
+}
+.btn-3d.btn-peach:hover {
+    background: linear-gradient(145deg, #FFEFD5, #FFDAB9);
+    color: #000000;
+}
+/* Override Tippy.js 'light' theme arrow & background */
+.tippy-box[data-theme~='light'] {
+  background-color: #fff !important;  /* White background */
+  color: #333 !important;             /* Dark text */
+  border: 1px solid #ddd !important;
+}
+
+.tippy-box[data-theme~='light'] .tippy-arrow {
+  color: #fff !important; /* Arrow matches white background */
+}
+
+/* Set a high z-index for all tippy tooltips */
+.tippy-box {
+  z-index: 99999 !important;
+}
+
+@media (max-width: 600px) {
+  .sticky-cta {
+    /* Keep it fixed at bottom right or center it—your choice.
+       If you want bottom-right: */
+    center: auto;
+
+    /* Force text to stay on one line */
+    white-space: nowrap;
+
+    /* Optionally shrink text/padding so it fits smaller screens */
+    font-size: 0.7rem;
+    padding: 10px 15px;
+  }
+}
+.button-with-info {
+  display: inline-flex;      /* or flex, up to you */
+  align-items: center;
+  gap: 8px;                  /* space between button & icon */
+  margin-right: 15px;        /* spacing between each set of button+icon */
+}
+
+.tooltip-icon {
+  cursor: pointer;
+  color: #005f73; /* or your chosen icon color */
+}
+ #timer-container {
+    position: relative;
+    z-index: 1100;
+    margin-top: 40px; /* Adjust based on your header height */
+  }
+  #timer {
+  font-size: 0.5rem !important; /* Adjust this value to your liking */
+}
+#sendBtn {
+  background: #ff4d4d;
+  color: #fff;
+  border: none; /* if you want to remove any border */
+  /* Optional: Include other properties to match the .btn-3d style */
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+#recordBtn {
+  background: #ff4d4d; /* Red before activation */
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  transition: background 0.3s ease;
+}
+
+@media (max-width: 600px) {
+  .scroll-indicator {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 2rem;
+    color: #005f73;
+    animation: bounce 2s infinite;
+    z-index: 9999;
+    cursor: pointer;
+  }
+
+  @keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+      transform: translateX(-50%) translateY(0);
+    }
+    40% {
+      transform: translateX(-50%) translateY(-10px);
+    }
+    60% {
+      transform: translateX(-50%) translateY(-5px);
+    }
+  }
+}
+#recordBtn .fa-microphone {
+    color: #fff; /* or another preferred color */
+}
