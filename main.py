@@ -244,41 +244,40 @@ SYSTEM_COMPLAINTS = {
         "I experience occasional dizziness that seems to be related to my inner ear."
     ],
     "cardiovascular": [
-        "I have a tickly cough that won’t go away.",
-        "My throat feels scratchy, and it hurts a little when I swallow.",
-        "I keep getting headaches, especially in the afternoon.",
-        "My nose is always blocked, even when I don’t have a cold.",
-        "I feel really bunged up, and my sinuses ache.",
-        "I keep sneezing, and my eyes are itchy.",
-        "My ears feel blocked, and I can’t hear properly.",
-        "I have a sore in my mouth that won’t heal.",
-        "There’s a weird taste in my mouth all the time.",
-        "My stomach feels bloated after I eat.",
-        "I’ve been getting mild heartburn after meals.",
-        "I feel a bit nauseous on and off, but I haven’t been sick.",
-        "I have occasional diarrhoea, but I feel fine otherwise.",
-        "My stools are harder than usual, and I struggle to go.",
-        "I’ve had a dull ache in my lower back for a few days.",
-        "My joints feel a bit stiff and achy in the morning.",
-        "My skin is really dry and itchy, especially on my hands.",
-        "I’ve got this rash that won’t go away.",
-        "My eyes feel dry and irritated all the time.",
-        "I keep getting a little dizziness when I stand up.",
-        "I feel tired all the time, even when I get a good night’s sleep.",
-        "I’ve been feeling a bit more anxious than usual.",
-        "My lips are really chapped, no matter what I do.",
-        "I get pins and needles in my hands every now and then.",
-        "I’ve got a patch of flaky skin on my scalp that’s really itchy.",
-        "My gums bleed a little when I brush my teeth.",
-        "I’ve had a mild sore throat for a few days, but no fever.",
-        "My feet feel cold all the time, even when I wear socks.",
-        "I wake up with a dry mouth, even though I drink plenty of water.",
-        "My hair seems to be falling out more than usual."
-    ],
+        "I feel a heavy pressure on my chest that just won’t let up.",
+    "My chest feels tight as if something is squeezing it.",
+    "Sometimes I have a bit of a cough when my heart starts pounding fast.",
+    "I get a strong, fast heartbeat that makes me a little scared.",
+    "There are moments when I feel a tight pressure on my chest.",
+    "I notice my heart pounding loudly in my chest.",
+    "Sometimes my chest feels as if it’s being squeezed hard.",
+    "I get a fast heartbeat that makes my chest feel heavy.",
+    "I feel a sort of tightness in my chest that worries me.",
+    "My chest sometimes feels like it's under a lot of pressure.",
+    "I get a rapid heartbeat that makes me stop and take notice.",
+    "There are times when my heart seems to beat too hard for no clear reason.",
+    "I feel a strong flutter in my chest that is hard to ignore.",
+    "Sometimes my heart beats so fast that it seems like it’s working overtime.",
+    "I experience a steady, pressing feeling in my chest.",
+    "My chest feels as if it’s being pressed down on when my heart races.",
+    "I sometimes feel a sharp pain in my chest that makes me pause.",
+    "There are moments when my chest feels constricted and I get uneasy.",
+    "I get a heavy, uncomfortable sensation in my chest that lasts a while.",
+    "My heart seems to beat strongly, making my chest feel full of pressure.",
+    "I notice a strong, pressing weight on my chest sometimes.",
+    "Sometimes my heart pounds in my chest and leaves me a bit anxious.",
+    "I feel a tight, squeezing sensation in my chest that I can’t shake off.",
+    "My chest can feel heavy and tight, and it makes me worry about my health.",
+    "I get a rapid beat in my chest that makes everything seem a bit off.",
+    "I feel a strong, sudden pressure in my chest that catches me off guard.",
+    "Sometimes I feel like my heart is working too hard and my chest bears the strain.",
+    "I get a noticeable thumping in my chest that makes me stop in my tracks.",
+    "My chest often feels tight and weighed down, as if it's under constant pressure."
+],
     "respiratory": [
-        "mild cough",
-        "occasional wheezing",
-        "minor shortness of breath",
+        "I have a bit of a cough",
+        "I'm getting som occasional wheezing",
+        "I'm getting a bit short of breath",
         "light chest tightness",
         "intermittent throat clearing",
         "slight nasal congestion",
@@ -1093,15 +1092,137 @@ def start_simulation():
     patient_complexity = request.form.get('patient_complexity')
     country = request.form.get('country', 'United Kingdom')
     system_choice = request.form.get('system', 'random')
-    # Retrieve the co-morbidity status from the form (expects "yes" or "no")
+    # Retrieve the co-morbidity status from the form (expects "yes", "no", or "yes+")
     comorbidities = request.form.get('comorbidities', 'no')
     session['comorbidities'] = comorbidities
 
-    # Always include a statement in the prompt about co-morbidities.
-    if comorbidities.lower() == "yes":
-        comorbidity_str = " This patient has co-morbidities, which may influence their clinical presentation based on their age and ethnicity."
+    # Determine comorbidity details
+    if comorbidities.lower() == "yes+":
+        # Define a mapping for systems to relevant comorbid conditions, each with 10 diagnoses.
+        system_conditions = {
+            "cardiovascular": [
+                "hypertension",
+                "atrial fibrillation",
+                "hyperlipidaemia",
+                "heart failure",
+                "coronary artery disease",
+                "peripheral vascular disease",
+                "cardiomyopathy",
+                "arrhythmia",
+                "valvular heart disease",
+                "congestive heart failure"
+            ],
+            "gastrointestinal": [
+                "gastroesophageal reflux disease (GERD)",
+                "peptic ulcer disease",
+                "irritable bowel syndrome",
+                "chronic pancreatitis",
+                "liver cirrhosis",
+                "cholelithiasis",
+                "diverticulosis",
+                "inflammatory bowel disease",
+                "celiac disease",
+                "gastroenteritis"
+            ],
+            "respiratory": [
+                "mild asthma",
+                "chronic obstructive pulmonary disease (COPD)",
+                "bronchiectasis",
+                "sleep apnoea",
+                "interstitial lung disease",
+                "pulmonary fibrosis",
+                "chronic bronchitis",
+                "emphysema",
+                "allergic rhinitis",
+                "upper respiratory tract infection"
+            ],
+            "musculoskeletal": [
+                "osteoarthritis",
+                "osteoporosis",
+                "rheumatoid arthritis",
+                "fibromyalgia",
+                "gout",
+                "tendinitis",
+                "sciatica",
+                "back pain",
+                "spondylosis",
+                "ligament sprain"
+            ],
+            "endocrine": [
+                "type 2 diabetes",
+                "thyroid dysfunction",
+                "hyperthyroidism",
+                "hypothyroidism",
+                "Cushing's syndrome",
+                "adrenal insufficiency",
+                "polycystic ovary syndrome",
+                "metabolic syndrome",
+                "vitamin D deficiency",
+                "hypoglycaemia"
+            ],
+            "ENT": [
+                "allergic rhinitis",
+                "chronic sinusitis",
+                "otitis media",
+                "tinnitus",
+                "vertigo",
+                "tonsillitis",
+                "pharyngitis",
+                "laryngitis",
+                "nasal polyps",
+                "hearing loss"
+            ],
+            "genitourinary": [
+                "urinary tract infection",
+                "benign prostatic hyperplasia",
+                "overactive bladder",
+                "interstitial cystitis",
+                "nephrolithiasis",
+                "chronic kidney disease",
+                "urinary incontinence",
+                "prostatitis",
+                "bladder cancer",
+                "urethritis"
+            ],
+            "neurological": [
+                "migraine",
+                "tension headache",
+                "epilepsy",
+                "transient ischaemic attack",
+                "multiple sclerosis",
+                "Parkinson's disease",
+                "peripheral neuropathy",
+                "dizziness of unknown origin",
+                "restless legs syndrome",
+                "dementia"
+            ],
+            "dermatological": [
+                "psoriasis",
+                "eczema",
+                "acne vulgaris",
+                "rosacea",
+                "seborrheic dermatitis",
+                "contact dermatitis",
+                "vitiligo",
+                "basal cell carcinoma",
+                "melanoma",
+                "impetigo"
+            ]
+        }
+        # Build a union of all conditions (removing duplicates)
+        all_conditions = set()
+        for cond_list in system_conditions.values():
+            all_conditions.update(cond_list)
+        # Ensure there are at least 5 conditions
+        if len(all_conditions) < 5:
+            raise ValueError("Not enough comorbid conditions defined to select 5 unique conditions.")
+        # Randomly select exactly 5 conditions
+        selected_conditions = random.sample(list(all_conditions), k=5)
+        comorbidity_details = " This patient has the following comorbid conditions: " + ", ".join(selected_conditions) + "."
+    elif comorbidities.lower() == "yes":
+        comorbidity_details = " This patient has co-morbidities, which may influence their clinical presentation based on their age and ethnicity."
     else:
-        comorbidity_str = " This patient does not have any co-morbidities."
+        comorbidity_details = " This patient does not have any co-morbidities."
 
     # Remove level check since we're no longer using levels for complaint selection.
     if patient_complexity not in ['Nil', 'Memory Issues', 'Frustrated']:
@@ -1111,7 +1232,7 @@ def start_simulation():
         flash("Please select a country.", "danger")
         return redirect(url_for('simulation'))
 
-    # Determine tone descriptor based on patient complexity selection
+    # Determine tone descriptor based on patient complexity selection.
     if patient_complexity == "Nil":
         tone = " Always use natural patient friendly language throughout as a common person would. Avoid jargon"
     elif patient_complexity == "Memory Issues":
@@ -1122,15 +1243,14 @@ def start_simulation():
         tone = ""
 
     # Choose a patient and store for later use.
-    if patient_complexity == "Memory Issues":
+    if comorbidities.lower() == "yes+":
+        eligible_patients = [p for p in PATIENT_NAMES if p["age"] >= 60]
+        patient = random.choice(eligible_patients) if eligible_patients else random.choice(PATIENT_NAMES)
+    elif patient_complexity == "Memory Issues":
         eligible_patients = [p for p in PATIENT_NAMES if p["age"] >= 60]
         patient = random.choice(eligible_patients) if eligible_patients else random.choice(PATIENT_NAMES)
     else:
         patient = random.choice(PATIENT_NAMES)
-    session['patient'] = patient
-    print("DEBUG: Patient stored in session:", patient)
-    session['patient'] = patient
-    print("DEBUG: Patient stored in session:", patient)
 
     # If system_choice is 'random', select one at random.
     if system_choice == 'random':
@@ -1153,7 +1273,7 @@ def start_simulation():
         f"You are a patient in a history-taking simulation taking place in {country}. "
         f"Your problem complexity is {problem_complexity} and your patient complexity is {patient_complexity}. "
         f"Your name is {patient['name']} (age {patient['age']}) and you are a {patient['gender']} patient."
-        + comorbidity_str + " " +
+        + comorbidity_details + " " +
         "At the very beginning of the consultation, your initial response is: "
         "\"Can I speak with someone about my symptoms?\". Once you have provided that opener, "
         "continue the conversation naturally without repeating the phrase. Consent to answering questions regardless of the interviewer's profession. "
@@ -1601,8 +1721,8 @@ def generate_exam():
         f"A patient presents with '{complaint}'. Recent patient statements include: {recent_patient_history}. "
         + vitals_prompt
         + extra_instructions
-        + " Ensure examination findings explicitly match and are consistent with the patient's complaint and recent statements. "
-          "Use plain language without acronyms or abbreviations. Provide ONLY the physical exam findings without introductory phrases or extra text."
+        + " Ensure examination findings explicitly match and are consistent with the patient's complaint and recent statements including vital signs. "
+          "Use plain language without acronyms or abbreviations. Provide ONLY the physical exam findings and vitals without introductory phrases or extra text."
     )
 
     print("DEBUG: Exam prompt:", exam_prompt)
