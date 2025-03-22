@@ -598,12 +598,12 @@ section {
 /* Custom button styles for peach button */
 .btn-3d.btn-peach {
     background: linear-gradient(145deg, #FFDAB9, #FFEFD5);
-    color: #000000; /* dark teal, which complements peach nicely */
+    color: #34495E; /* Deep navy blue */
     font-weight: bold;
 }
 .btn-3d.btn-peach:hover {
     background: linear-gradient(145deg, #FFEFD5, #FFDAB9);
-    color: #000000;
+    color: #34495E;
 }
 /* Override Tippy.js 'light' theme arrow & background */
 .tippy-box[data-theme~='light'] {
