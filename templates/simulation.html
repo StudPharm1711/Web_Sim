@@ -595,26 +595,23 @@
     </div>
     <button onclick="confirmClear()" class="btn-3d btn-clear" style="margin-left: 10px;">Clear</button>
 </div>
-                </div>
-                <div class="buttons-row">
-                  <div class="button-with-info">
-                    <button id="feedbackBtnForm" class="btn-3d" disabled title="Feedback available after 5 interactions">
-                      Request Feedback
-
-                        <div class="scroll-indicator">
-  <i class="fa fa-chevron-down"></i>
-</div>
-
-                    </button>
-                    <i class="fa fa-info-circle tooltip-icon" data-tippy-content="Feedback available after 5 interactions"></i>
-                  </div>
-                  <div class="button-with-info">
+                    <div class="buttons-row">
+                    <div class="button-with-info">
                     <button id="examBtn" class="btn-3d" disabled title="This option becomes available once you have explored the symptoms">
                       Physical Examination Results
                     </button>
                     <i class="fa fa-info-circle tooltip-icon" data-tippy-content="This option becomes available once you have explored the symptoms"></i>
+                    </div>
+                  <div class="button-with-info">
+                    <button id="feedbackBtnForm" class="btn-3d" disabled title="Feedback available after 5 interactions">
+                      Request Feedback
+                        <div class="scroll-indicator">
+  <i class="fa fa-chevron-down"></i>
+</div>
+                    </button>
+                    <i class="fa fa-info-circle tooltip-icon" data-tippy-content="Feedback available after 5 interactions"></i>
                   </div>
-                </div>
+                    </div>
                 <!-- New Score Display: now placed beneath the Clear Conversation buttons -->
                 <div id="score-container" style="margin-top: 15px; text-align: center;">
                     <p>
@@ -634,11 +631,11 @@
                 <div id="spinnerHint">Generating hints, please wait...</div>
                 <div id="spinnerFeedback">Generating feedback, please wait...</div>
                 {% if hint %}
-                  <div class="prompt-box">
-                    <h3>Suggested Next Question:</h3>
-                    <p>{{ hint }}</p>
-                  </div>
-                {% endif %}
+  <div id="hint-box" class="prompt-box">
+    <h3>Suggested Next Question:</h3>
+    <p>{{ hint }}</p>
+  </div>
+{% endif %}
                 {% if feedback_json %}
                   <div class="feedback">
                     <h3>Consultation Performance</h3>
@@ -894,6 +891,20 @@
         }
 
         function submitTypedMessage() {
+  console.log("submitTypedMessage triggered");
+
+  // Remove all hint boxes if they exist
+  const hintBoxes = document.querySelectorAll('#hint-box');
+  if (hintBoxes.length > 0) {
+    console.log("Found hint boxes:", hintBoxes);
+    hintBoxes.forEach(function(hint) {
+      console.log("Removing hint box:", hint);
+      hint.remove();
+    });
+  } else {
+    console.log("No hint boxes found.");
+  }
+
             const textarea = messageForm.querySelector('textarea');
             const userMessage = textarea.value.trim();
             if (userMessage === "") return;
@@ -919,21 +930,38 @@
         }
 
         function submitVoiceMessage(transcript) {
-            fetch("{{ url_for('send_message') }}", {
-                method: "POST",
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                body: new URLSearchParams({ "message": transcript })
-            })
-            .then(response => response.json())
-            .then(data => {
-                fetch("{{ url_for('get_reply') }}", { method: "POST" })
-                .then(response => response.json())
-                .then(data => {
-                    appendMessage("assistant", data.reply);
-                    updateFeedbackButton();
-                });
-            });
-        }
+  console.log("submitVoiceMessage triggered with transcript:", transcript);
+
+  // Remove all hint boxes if they exist
+  const hintBoxes = document.querySelectorAll('#hint-box');
+  if (hintBoxes.length > 0) {
+    console.log("Found hint boxes (voice), removing them.");
+    hintBoxes.forEach(function(hint) {
+      console.log("Removing hint box:", hint);
+      hint.remove();
+    });
+  } else {
+    console.log("No hint boxes found for voice.");
+  }
+
+  fetch("{{ url_for('send_message') }}", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ "message": transcript })
+  })
+  .then(response => response.json())
+  .then(data => {
+      console.log("Response from send_message (voice):", data);
+      return fetch("{{ url_for('get_reply') }}", { method: "POST" });
+  })
+  .then(response => response.json())
+  .then(data => {
+      console.log("Response from get_reply (voice):", data);
+      appendMessage("assistant", data.reply);
+      updateFeedbackButton();
+  })
+  .catch(error => console.error("Error in submitVoiceMessage:", error));
+}
 
         function speakText(text) {
             const toggleVoice = document.getElementById('togglePatientVoice');
@@ -1007,6 +1035,10 @@ if (feedbackBtnForm) {
                         examResultsDiv.innerHTML = "<h3>Exam Results:</h3><p>" + data.results + "</p>";
                         sessionStorage.setItem('examResults', data.results);
                     }
+                    // Call the function to check scroll position after exam results are updated.
+        if (window.onNewContentAdded) {
+            window.onNewContentAdded();
+        }
                 })
                 .catch(error => {
                     if (spinnerExam) spinnerExam.style.display = 'none';
@@ -1118,6 +1150,16 @@ let hasScrolledToBottom = false;
       }
     }, 3000); // 3000 milliseconds delay
   });
+
+  document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('messageForm').addEventListener('submit', function(e) {
+      const hintBox = document.getElementById('hint-box');
+      if (hintBox) {
+        hintBox.remove();
+      }
+    });
+  });
 </script>
+
 </body>
 </html>

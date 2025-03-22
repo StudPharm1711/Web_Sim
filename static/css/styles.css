@@ -718,3 +718,24 @@ section {
 .spin-animation {
   animation: spin 1s linear;
 }
+#spinnerFeedback {
+  display: none;
+  position: fixed;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.2rem;
+  color: #005f73;
+  background: linear-gradient(135deg, #e0fbfc, #a0ddd7);
+  padding: 10px 20px;
+  border: 1px solid #005f73;
+  border-radius: 12px;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

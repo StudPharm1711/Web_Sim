@@ -1221,7 +1221,7 @@ def send_message():
     if msg:
         stripped_msg = msg.strip()
         lower_msg = stripped_msg.lower()
-        # If the message is too short or meets other conditions indicating insufficient context...
+        # If the message is too short or meets conditions indicating insufficient context...
         if (len(stripped_msg) < 3 or
                 lower_msg in generic_phrases or
                 not re.search(r"[aeiou]", stripped_msg) or
@@ -1230,6 +1230,7 @@ def send_message():
 
         conversation.append({'role': 'user', 'content': msg})
         session['conversation'] = conversation
+        session.pop('hint', None)  # Clear the hint after a new question is submitted
         print("DEBUG: After user message added, conversation:", session['conversation'])
         return jsonify({"status": "ok"}), 200
 
@@ -1543,74 +1544,90 @@ def clear_simulation():
 def generate_exam():
     conversation = session.get('conversation', [])
     user_messages = [msg for msg in conversation if msg.get('role') == 'user']
+
     if len(user_messages) < 2:
         return jsonify({"error": "Please ask at least two questions before accessing exam results."}), 403
+
     data = request.get_json()
     complaint = data.get('complaint')
     if not complaint:
         return jsonify({"error": "No complaint provided"}), 400
+
     system_choice = session.get('system_choice', 'random')
+
+    recent_patient_history = " ".join(msg['content'] for msg in user_messages[-3:])
+
     vitals_prompt = (
         "Include vital signs such as heart rate, blood pressure, respiratory rate, temperature, and oxygen saturation. "
     )
+
     extra_instructions = {
         "common ailments": (
-            "Then, Describe any mild or non-specific findings in plain, clear language that relate to the presenting complaint."
+            "Then, describe any mild or non-specific findings directly related to the patient's complaint."
         ),
         "ENT": (
-            "Then, focus exclusively on the ENT examination: examine the ears for external deformities, tenderness, and discharge; inspect the tympanic membranes and assess hearing function; evaluate the nasal passages and sinuses for congestion, polyps, or discharge; and inspect the throat and oropharynx for redness, swelling, or exudate."
+            "Then, focus exclusively on the ENT examination: examine ears for external deformities, tenderness, wax, and discharge; "
+            "inspect tympanic membranes; assess hearing; evaluate nasal passages and sinuses; inspect throat and oropharynx."
         ),
         "cardiovascular": (
-            "Then, focus exclusively on the cardiovascular examination: describe the heart rate in full words, heart rhythm, the presence or absence of murmurs, and the quality of peripheral pulses."
+            "Then, focus exclusively on cardiovascular examination: describe heart rate, rhythm, murmurs, and peripheral pulses."
         ),
         "respiratory": (
-            "Then, focus exclusively on the respiratory examination: detail lung sounds in both lungs, note any wheezes or crackles, and comment on accessory muscle use."
+            "Then, focus exclusively on respiratory examination: describe lung sounds, wheezes, crackles, and breathing effort."
         ),
         "gastrointestinal": (
-            "Then, focus exclusively on the abdominal examination: describe tenderness, guarding, bowel sounds, and signs of peritonitis."
+            "Then, focus exclusively on abdominal examination: describe tenderness, guarding, bowel sounds, or peritonitis signs."
         ),
         "neurological": (
-            "Then, focus exclusively on the neurological examination: assess alertness, cranial nerve function, motor and sensory responses, and any focal deficits."
+            "Then, focus exclusively on neurological examination: assess alertness, cranial nerves, motor and sensory responses, focal deficits."
         ),
         "musculoskeletal": (
-            "Then, focus exclusively on the musculoskeletal examination: describe joint range of motion, tenderness, swelling, and muscle strength."
+            "Then, conduct a musculoskeletal exam specifically matching the patient's complaint: describe joint motion, tenderness, swelling, and muscle strength."
         ),
         "genitourinary": (
-            "Then, focus exclusively on the genitourinary examination: examine the lower abdomen for tenderness, assess urinary frequency or retention, and look for signs of infection."
+            "Then, focus exclusively on genitourinary examination: check lower abdomen tenderness, urinary symptoms, and infection signs."
         ),
         "endocrine": (
-            "Then, focus exclusively on the endocrine examination: comment on general appearance, skin and hair changes, and any metabolic disturbances."
+            "Then, focus exclusively on endocrine examination: note general appearance, skin/hair changes, or metabolic disturbances."
         ),
         "dermatological": (
-            "Then, focus exclusively on the dermatological examination: describe the distribution, texture, color, and signs of inflammation or infection of the rash."
+            "Then, focus exclusively on dermatological examination: describe distribution, texture, color, inflammation, or infection."
         )
     }.get(system_choice,
-          "Then, generate a complete physical examination with both vital signs and system-specific findings relevant to the complaint."
+          "Then, generate a complete physical examination relevant to the complaint."
           )
+
     exam_prompt = (
-        f"Generate a concise set of physical examination findings for a patient presenting with '{complaint}'. "
-        + vitals_prompt +
-        extra_instructions +
-        " Ensure that the findings are specific to the likely cause of the complaint and written in full, plain language with no acronyms or abbreviations. "
-        "Do not include any introductory phrases or extra text; provide only the exam findings."
+        f"A patient presents with '{complaint}'. Recent patient statements include: {recent_patient_history}. "
+        + vitals_prompt
+        + extra_instructions
+        + " Ensure examination findings explicitly match and are consistent with the patient's complaint and recent statements. "
+          "Use plain language without acronyms or abbreviations. Provide ONLY the physical exam findings without introductory phrases or extra text."
     )
+
     print("DEBUG: Exam prompt:", exam_prompt)
+
     try:
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "system", "content": exam_prompt}],
-            temperature=0.7,
+            temperature=0.4,
             max_tokens=250
         )
+
         exam_results = response.choices[0].message["content"].strip()
+
         if response.usage and 'prompt_tokens' in response.usage and 'completion_tokens' in response.usage:
             current_user.token_prompt_usage_gpt35 = (current_user.token_prompt_usage_gpt35 or 0) + response.usage['prompt_tokens']
             current_user.token_completion_usage_gpt35 = (current_user.token_completion_usage_gpt35 or 0) + response.usage['completion_tokens']
             db.session.commit()
+
     except Exception as e:
         exam_results = f"Error generating exam results: {str(e)}"
+
     print("DEBUG: Exam results generated:", exam_results)
     return jsonify({"results": exam_results}), 200
+
 
 # --- New Notification Function ---
 def notify_alert_signups():
