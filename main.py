@@ -176,6 +176,7 @@ PATIENT_NAMES = [
     {"name": "Amelia Patel", "ethnicity": "South Asian (Indian)", "gender": "female", "age": 45},
     {"name": "Benjamin Carter", "ethnicity": "American (White)", "gender": "male", "age": 52}
 ]
+random.shuffle(PATIENT_NAMES)
 
 # Unified dictionary for system-level complaints (all complaints in one list per system)
 SYSTEM_COMPLAINTS = {
