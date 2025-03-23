@@ -230,20 +230,21 @@ def account():
     if current_user.subscription_id:
         try:
             subscription = stripe.Subscription.retrieve(current_user.subscription_id)
-            current_period_end = datetime.utcfromtimestamp(subscription.current_period_end).strftime(
-                "%Y-%m-%d %H:%M:%S")
+            print("DEBUG: Stripe subscription retrieved:", subscription)  # Debug statement here
+            current_period_end = datetime.utcfromtimestamp(subscription.current_period_end).strftime("%Y-%m-%d %H:%M:%S")
             subscription_info = {
                 "cancel_at_period_end": subscription.cancel_at_period_end,
                 "current_period_end": current_period_end,
                 "status": subscription.status
             }
+            print("DEBUG: subscription_info:", subscription_info)  # And here
         except Exception as e:
             flash(f"Error retrieving subscription info: {str(e)}", "danger")
+    else:
+        print("DEBUG: current_user.subscription_id is not set")
     return render_template('account.html', subscription_info=subscription_info)
 
-
 app.register_blueprint(account_bp)
-
 
 @app.route('/terms.html')
 def terms():
