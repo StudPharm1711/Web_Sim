@@ -555,18 +555,22 @@ def resend_confirmation():
         try:
             confirmation_link = url_for('confirm_email', token=token, _external=True)
             subject = "Please Confirm Your Email Address (New Link)"
-            body = (
-                f"Hello,\n\nYour previous confirmation link expired. "
-                f"Please complete your registration by clicking the new link below:\n\n{confirmation_link}\n\n"
-                "If you did not register, please ignore this email."
-            )
-            send_email_via_brevo(subject, body, pending.email)
+            html_body = f"""
+            <html>
+              <body>
+                <p>Hello,</p>
+                <p>Your previous confirmation link expired. Please complete your registration by clicking the new link below:</p>
+                <p><a href="{confirmation_link}">Confirm Your Email Address</a></p>
+                <p>If you did not register, please ignore this email.</p>
+              </body>
+            </html>
+            """
+            send_email_via_brevo(subject, html_body, pending.email, html=True)
             flash("A new confirmation email has been sent. Please check your inbox.", "info")
         except Exception as e:
             flash(f"Error sending new confirmation email: {str(e)}", "warning")
         return redirect(url_for('login'))
     return render_template('resend_confirmation.html')
-
 
 @app.route('/confirm_email/<token>', methods=['GET'])
 def confirm_email(token):
