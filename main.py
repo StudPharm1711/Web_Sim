@@ -111,6 +111,8 @@ def send_email_via_brevo(subject, body, to_address, html=False):
     msg["To"] = to_address
 
     try:
+        email_string = msg.as_string()
+        print("DEBUG: Email message to be sent:\n", email_string)
         with smtplib.SMTP(smtp_server, smtp_port) as server:
             server.starttls()  # Enable TLS
             server.login(smtp_login, smtp_password)
@@ -119,7 +121,6 @@ def send_email_via_brevo(subject, body, to_address, html=False):
     except Exception as e:
         print(f"Error sending email to {to_address}: {e}")
         raise
-
 
 # --- Models ---
 class User(UserMixin, db.Model):
