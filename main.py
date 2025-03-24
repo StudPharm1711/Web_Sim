@@ -140,6 +140,7 @@ class User(UserMixin, db.Model):
     token_completion_usage_gpt4 = db.Column(db.Integer, default=0)
     is_admin = db.Column(db.Boolean, default=False)
     current_session = db.Column(db.String(255), nullable=True)
+    last_device_change = db.Column(db.DateTime)
 
 
 class Feedback(db.Model):
@@ -360,6 +361,7 @@ def login():
     if request.method == 'POST':
         admin_flag = request.form.get('admin')
         if admin_flag == "true":
+            # ... existing admin login code ...
             admin_password = request.form.get('admin_password')
             if not admin_password or admin_password != ADMIN_LOGIN_PASSWORD:
                 flash("Invalid admin password.", "danger")
@@ -391,46 +393,36 @@ def login():
                     return redirect(url_for('start_payment'))
 
                 # --------------------- Begin Device Usage Tracking ---------------------
-                # This logic only applies to non-admin users
                 if not user.is_admin:
-                    # Retrieve IP address (using X-Forwarded-For if available)
                     user_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
                     print("DEBUG: User IP:", user_ip)
 
-                    # Query the device usage records for this user
                     devices = DeviceUsage.query.filter_by(user_id=user.id).all()
                     ip_exists = any(device.ip_address == user_ip for device in devices)
 
                     if not ip_exists:
-                        # Check if a pending device confirmation exists
-                        pending = session.get('pending_device')
-                        if pending:
-                            pending_timestamp = pending.get('timestamp')
-                            pending_ip = pending.get('ip')
-                            # If less than 24 hours have passed since the last pending request, block new request
-                            if datetime.utcnow() - pending_timestamp < timedelta(hours=24):
-                                flash(
-                                    "A device confirmation is already pending. Please check your email or wait 24 hours to register a new device.",
-                                    "danger")
+                        # If user already has 2 devices, enforce the cooldown check
+                        if len(devices) >= 2:
+                            if user.last_device_change and datetime.utcnow() - user.last_device_change < timedelta(
+                                    hours=24):
+                                flash("You must wait 24 hours before registering a new device.", "danger")
                                 return redirect(url_for('login'))
                             else:
-                                # Clear old pending info if the cooldown period has passed
-                                session.pop('pending_device', None)
-                        # If user already has 2 devices, require email confirmation
-                        if len(devices) >= 2:
-                            token = s.dumps({"user_id": user.id, "ip": user_ip}, salt='device-confirmation-salt')
-                            confirmation_link = url_for('confirm_device', token=token, _external=True)
-                            send_email_via_brevo("New Device Confirmation",
-                                                 f"Click here to confirm your new device: {confirmation_link}",
-                                                 user.email, html=False)
-                            # Store pending device info with current timestamp in session
-                            session['pending_device'] = {"ip": user_ip, "timestamp": datetime.utcnow()}
-                            flash(
-                                "A confirmation email has been sent to add this new device. Please confirm it to continue.",
-                                "warning")
-                            return redirect(url_for('login'))
+                                # Proceed with sending a confirmation email
+                                token = s.dumps({"user_id": user.id, "ip": user_ip}, salt='device-confirmation-salt')
+                                confirmation_link = url_for('confirm_device', token=token, _external=True)
+                                send_email_via_brevo("New Device Confirmation",
+                                                     f"Click here to confirm your new device: {confirmation_link}",
+                                                     user.email, html=False)
+                                # Update last_device_change in the User model
+                                user.last_device_change = datetime.utcnow()
+                                db.session.commit()
+                                flash(
+                                    "A confirmation email has been sent to add this new device. Please confirm it to continue.",
+                                    "warning")
+                                return redirect(url_for('login'))
                         else:
-                            # Under the limit, add the new device immediately
+                            # Under the limit: add the new device immediately
                             new_device = DeviceUsage(user_id=user.id, ip_address=user_ip)
                             db.session.add(new_device)
                             db.session.commit()
@@ -458,19 +450,25 @@ def confirm_device(token):
     try:
         data = s.loads(token, salt='device-confirmation-salt', max_age=3600)
         user_id = data.get("user_id")
-        ip = data.get("ip")
+        token_ip = data.get("ip")
     except Exception as e:
         flash("The confirmation link is invalid or has expired.", "danger")
         return redirect(url_for('login'))
 
+    # Retrieve current request IP using X-Forwarded-For with fallback
+    current_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+    print("DEBUG: Token IP:", token_ip, "Current IP:", current_ip)
+
+    if current_ip != token_ip:
+        flash("The device used to confirm does not match the device used to request registration.", "danger")
+        return redirect(url_for('login'))
+
     user = User.query.get(user_id)
     if user:
-        # Add the new device
-        new_device = DeviceUsage(user_id=user.id, ip_address=ip)
+        new_device = DeviceUsage(user_id=user.id, ip_address=token_ip)
         db.session.add(new_device)
+        user.last_device_change = datetime.utcnow()
         db.session.commit()
-        # Remove the pending device info from the session
-        session.pop('pending_device', None)
         flash("New device confirmed and added.", "success")
     else:
         flash("User not found.", "danger")
