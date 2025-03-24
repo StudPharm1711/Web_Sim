@@ -757,7 +757,7 @@ def reset_password(token):
 def start_simulation():
     problem_complexity = request.form.get('problem_complexity')
     patient_complexity = request.form.get('patient_complexity')
-    country = request.form.get('country', 'United Kingdom')
+    nomenclature = request.form.get('drug_nomenclature', 'BNF')
     system_choice = request.form.get('system', 'random')
     comorbidities = request.form.get('comorbidities', 'no')
     session['comorbidities'] = comorbidities
@@ -765,11 +765,117 @@ def start_simulation():
     if comorbidities.lower() == "yes+":
         system_conditions = {
             "cardiovascular": [
-                "hypertension", "atrial fibrillation", "hyperlipidaemia", "heart failure",
-                "coronary artery disease", "peripheral vascular disease", "cardiomyopathy",
-                "arrhythmia", "valvular heart disease", "congestive heart failure"
+                "hypertension",
+                "atrial fibrillation",
+                "hyperlipidaemia",
+                "heart failure",
+                "coronary artery disease",
+                "peripheral vascular disease",
+                "cardiomyopathy",
+                "arrhythmia",
+                "valvular heart disease",
+                "congestive heart failure"
             ],
-            # ... (other system conditions)
+            "gastrointestinal": [
+                "gastroesophageal reflux disease (GERD)",
+                "peptic ulcer disease",
+                "irritable bowel syndrome",
+                "chronic pancreatitis",
+                "liver cirrhosis",
+                "cholelithiasis",
+                "diverticulosis",
+                "inflammatory bowel disease",
+                "celiac disease",
+                "gastroenteritis"
+            ],
+            "respiratory": [
+                "mild asthma",
+                "chronic obstructive pulmonary disease (COPD)",
+                "bronchiectasis",
+                "sleep apnoea",
+                "interstitial lung disease",
+                "pulmonary fibrosis",
+                "chronic bronchitis",
+                "emphysema",
+                "allergic rhinitis",
+                "upper respiratory tract infection"
+            ],
+            "musculoskeletal": [
+                "osteoarthritis",
+                "osteoporosis",
+                "rheumatoid arthritis",
+                "fibromyalgia",
+                "gout",
+                "tendinitis",
+                "sciatica",
+                "back pain",
+                "spondylosis",
+                "ligament sprain"
+            ],
+            "endocrine": [
+                "type 2 diabetes",
+                "addison's disease",
+                "hyperthyroidism",
+                "hypothyroidism",
+                "Cushing's syndrome",
+                "adrenal insufficiency",
+                "polycystic ovary syndrome",
+                "metabolic syndrome",
+                "vitamin D deficiency",
+                "hypoglycaemia"
+            ],
+            "ENT": [
+                "allergic rhinitis",
+                "chronic sinusitis",
+                "otitis media",
+                "tinnitus",
+                "vertigo",
+                "tonsillitis",
+                "pharyngitis",
+                "laryngitis",
+                "nasal polyps",
+                "hearing loss"
+            ],
+            "genitourinary": [
+                "urinary tract infection",
+                "kidney stones",
+                "overactive bladder",
+                "interstitial cystitis",
+                "nephrolithiasis",
+                "chronic kidney disease",
+                "urinary incontinence",
+                "polycystic kidney disease",
+                "bladder cancer",
+                "urethritis"
+            ],
+            "neurological": [
+                "migraine",
+                "tension headache",
+                "epilepsy",
+                "transient ischaemic attack",
+                "multiple sclerosis",
+                "Parkinson's disease",
+                "peripheral neuropathy",
+                "dizziness of unknown origin",
+                "restless legs syndrome",
+                "dementia"
+                "depression"
+                "ADHD"
+                "Autism"
+                "General Anxiety Disorder"
+            ],
+            "dermatological": [
+                "psoriasis",
+                "eczema",
+                "acne vulgaris",
+                "rosacea",
+                "seborrheic dermatitis",
+                "contact dermatitis",
+                "vitiligo",
+                "basal cell carcinoma",
+                "melanoma",
+                "impetigo"
+            ]
         }
         all_conditions = set()
         for cond_list in system_conditions.values():
@@ -787,8 +893,8 @@ def start_simulation():
     if patient_complexity not in ['Nil', 'Memory Issues', 'Frustrated']:
         flash("Invalid patient complexity selected.", "danger")
         return redirect(url_for('simulation'))
-    if not country:
-        flash("Please select a country.", "danger")
+    if not nomenclature:
+        flash("Please select a drug naming standard.", "danger")
         return redirect(url_for('simulation'))
 
     if patient_complexity == "Nil":
@@ -821,10 +927,10 @@ def start_simulation():
     session['selected_complaint'] = selected_complaint
     session['problem_complexity'] = problem_complexity
     session['patient_complexity'] = patient_complexity
-    session['country'] = country
+    session['nomenclature'] = nomenclature
 
     instr = (
-            f"You are a patient in a history-taking simulation taking place in {country}. "
+            f"You are a patient in a history-taking simulation using the {nomenclature} drug naming standard. "
             f"Your problem complexity is {problem_complexity} and your patient complexity is {patient_complexity}. "
             f"Your name is {patient['name']} (age {patient['age']}) and you are a {patient['gender']} patient."
             + comorbidity_details + " " +
@@ -1196,14 +1302,14 @@ def clear_simulation():
     session.pop('feedback', None)
     session.pop('feedback_json', None)
     session.pop('hint', None)
-    country = session.get('country', 'Unknown')
+    nomenclature = request.form.get('drug_nomenclature', 'BNF')
     import random
     patient = session.get('patient')
     if not patient:
         patient = random.choice(PATIENT_NAMES)
         session['patient'] = patient
     instr = (
-        f"You are a patient in a history-taking simulation taking place in {country}. "
+        f"You are a patient in a history-taking simulation using the {nomenclature} drug naming standard. "
         f"Your name is {patient['name']} (age {patient['age']}) and you are a {patient['gender']} patient. "
         "Begin every interaction by saying exactly: \"Can I speak with someone about my symptoms?\" "
         "and wait for the user's response before providing further details. "
