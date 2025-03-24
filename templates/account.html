@@ -69,6 +69,15 @@
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
       font-size: 1.1rem;
     }
+    /* Account page specific container margins */
+    .account-container {
+      margin: 84px auto 20px auto; /* Desktop: 84px top, 20px bottom, auto sides */
+    }
+    @media (max-width: 600px) {
+      .account-container {
+        margin: 117px auto 20px auto; /* Mobile: 117px top, 20px bottom, auto sides */
+      }
+    }
     footer {
       text-align: center;
       margin-top: 20px;
@@ -110,8 +119,8 @@
     <div style="width: 100px;"></div>
   </header>
 
-  <div class="container">
-    <section id="subscription">
+  <div class="container account-container">
+    <section id="subscription" class="visible">
       <h2>Subscription</h2>
       <p>Manage your subscription settings below.</p>
       {% if subscription_info %}

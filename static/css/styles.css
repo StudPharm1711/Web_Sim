@@ -412,6 +412,18 @@ footer {
   padding: 20px;
 }
 
+/* Account page specific margin override */
+.account-container {
+  margin: 84px auto 20px auto; /* Desktop: 84px top, 20px bottom, auto left/right */
+}
+
+@media (max-width: 600px) {
+  .account-container {
+    margin: 117px auto 20px auto; /* Mobile: 117px top, 20px bottom, auto left/right */
+  }
+}
+
+
 /* Desktop Scroll Offset for Sections:
    120px header + 50px nav = 170px */
 section {
