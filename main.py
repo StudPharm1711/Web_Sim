@@ -388,6 +388,34 @@ def login():
                     flash("Your account is not activated yet. Please complete your payment to activate your account.",
                           "warning")
                     return redirect(url_for('start_payment'))
+
+                # ----- Begin Device Usage Tracking for non-admin users -----
+                if not user.is_admin:
+                    # Retrieve the user's IP address. Use X-Forwarded-For if available.
+                    user_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+                    print("DEBUG: User IP:", user_ip)
+
+                    # Query DeviceUsage for this user
+                    devices = DeviceUsage.query.filter_by(user_id=user.id).all()
+                    ip_exists = any(device.ip_address == user_ip for device in devices)
+
+                    if not ip_exists:
+                        # Enforce a maximum of 2 unique IP addresses per user
+                        if len(devices) >= 2:
+                            flash("You have reached the maximum allowed devices for this account.", "danger")
+                            return redirect(url_for('login'))
+                        else:
+                            new_device = DeviceUsage(user_id=user.id, ip_address=user_ip)
+                            db.session.add(new_device)
+                            db.session.commit()
+                    else:
+                        # If IP already exists, update the last_used timestamp
+                        for device in devices:
+                            if device.ip_address == user_ip:
+                                device.last_used = datetime.utcnow()
+                        db.session.commit()
+                # ----- End Device Usage Tracking -----
+
                 session.pop('conversation', None)
                 user.current_session = str(uuid.uuid4())
                 db.session.commit()
