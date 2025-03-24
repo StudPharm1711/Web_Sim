@@ -183,6 +183,7 @@ class DeviceUsage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('subscribers.id'), nullable=False)
     ip_address = db.Column(db.String(100), nullable=False)
+    user_agent = db.Column(db.String(256))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_used = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -401,10 +402,14 @@ def login():
                 # --------------------- Begin Device Usage Tracking ---------------------
                 if not user.is_admin:
                     user_ip = get_client_ip()
+                    user_agent = request.headers.get('User-Agent', '')
                     print("DEBUG: User IP:", user_ip)
+                    print("DEBUG: User Agent:", user_agent)
 
                     devices = DeviceUsage.query.filter_by(user_id=user.id).all()
-                    ip_exists = any(device.ip_address == user_ip for device in devices)
+                    # Check if any stored device has the same IP and user agent
+                    device_exists = any(
+                        device.ip_address == user_ip and device.user_agent == user_agent for device in devices)
 
                     if not ip_exists:
                         if len(devices) >= 2:
