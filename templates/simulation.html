@@ -589,7 +589,7 @@
             <i class="fa fa-info-circle"></i>
         </span>
     </div>
-    <button onclick="confirmClear()" class="btn-3d btn-clear" style="margin-left: 10px;">Clear</button>
+    <button onclick="confirmClear()" class="btn-3d btn-clear" style="margin-left: 10px;">Start Again</button>
 </div>
                     <div class="buttons-row">
                     <div class="button-with-info">
@@ -599,12 +599,18 @@
                     <i class="fa fa-info-circle tooltip-icon" data-tippy-content="This option becomes available once you have explored the symptoms"></i>
                     </div>
                   <div class="button-with-info">
-                    <button id="feedbackBtnForm" class="btn-3d" disabled title="Feedback available after 5 interactions">
-                      Request Feedback
-                        <div class="scroll-indicator">
-  <i class="fa fa-chevron-down"></i>
-</div>
-                    </button>
+                    {% if session.get('feedback_given') %}
+  <button id="feedbackBtnForm" class="btn-3d" disabled title="Feedback has already been provided">
+    Feedback Provided
+  </button>
+{% else %}
+  <button id="feedbackBtnForm" class="btn-3d" disabled title="Feedback available after 5 interactions">
+    Request Feedback
+    <div class="scroll-indicator">
+      <i class="fa fa-chevron-down"></i>
+    </div>
+  </button>
+{% endif %}
                     <i class="fa fa-info-circle tooltip-icon" data-tippy-content="Feedback available after 5 interactions"></i>
                   </div>
                     </div>
@@ -671,6 +677,10 @@
 
     <!-- Include jQuery and Select2 JS -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script>
+  // Place this after your library includes (like jQuery) but before your custom JS code
+  var feedbackGiven = {{ 'true' if session.get('feedback_given') else 'false' }};
+</script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
     <script>
@@ -839,11 +849,20 @@
         }
 
         function updateFeedbackButton() {
-            const feedbackBtn = document.getElementById('feedbackBtnForm');
-            if (feedbackBtn) {
-                feedbackBtn.disabled = !canShowFeedback();
-            }
-        }
+    const feedbackBtn = document.getElementById('feedbackBtnForm');
+    if (!feedbackBtn) return;
+
+    // If feedback has already been provided, keep the button disabled
+    if (feedbackGiven === "true" || feedbackGiven === true) {
+        feedbackBtn.disabled = true;
+        feedbackBtn.title = "Feedback has already been provided";
+        feedbackBtn.innerHTML = "Feedback Provided";
+        return;
+    }
+
+    // Otherwise, enable/disable based on conversation length
+    feedbackBtn.disabled = !canShowFeedback();
+}
 
         function appendMessage(role, message) {
             const chatLog = document.getElementById('chatLog');
@@ -982,10 +1001,15 @@
         const feedbackBtnForm = document.getElementById('feedbackBtnForm');
 if (feedbackBtnForm) {
     feedbackBtnForm.addEventListener('click', function(e) {
+        e.preventDefault(); // Prevent the default action
+        // Show confirmation prompt
+        if (!confirm("Are you sure you are ready for your feedback? This will signify the end of the consultation and you will receive your score. Click cancel if this was unintentional")) {
+            return; // Abort if user cancels
+        }
         const spinnerFeedback = document.getElementById('spinnerFeedback');
         if (spinnerFeedback) spinnerFeedback.style.display = 'block';
         this.disabled = true;
-        submitFeedbackForm();  // Submit the feedback form
+        submitFeedbackForm();  // Submit the feedback form if confirmed
     });
 }
 

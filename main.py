@@ -1094,39 +1094,46 @@ def hint():
 @app.route('/feedback', methods=['POST'])
 @login_required
 def feedback():
+    # Check if feedback has already been provided in this session
+    if session.get('feedback_given'):
+        flash("Feedback has already been provided in this session.", "warning")
+        return redirect(url_for('simulation'))
+
     conversation = session.get('conversation', [])
     if not conversation:
         flash("No conversation available for feedback", "warning")
         return redirect(url_for('simulation'))
 
-    user_conv_text = "\n".join([f"User: {m['content']}" for m in conversation if m.get('role') == 'user'])
+    user_conv_text = "\n".join(
+        [f"User: {m['content']}" for m in conversation if m.get('role') == 'user']
+    )
     feedback_prompt = (
-            "IMPORTANT: Output ONLY valid JSON with NO disclaimers or additional commentary. "
-            "Your answer MUST start with '{' and end with '}'. Use double quotes for all keys and string values, "
-            "and do NOT use single quotes. Evaluate the following consultation transcript using the Calgary–Cambridge model. "
-            "Score each category on a scale of 1 to 10, and provide a short comment for each:\n"
-            "1. Initiating the session\n"
-            "2. Gathering information: When scoring, ensure you assess if the transcript clearly explores the history of the present complaint, past medical and surgical history, medication history including allergies, social history (including living situation, vocation, diet, exercise, alcohol consumption, smoking) and family history\n"
-            "3. Physical examination: When scoring consider if consent sought and whether results of the examination were discussed\n"
-            "4. Explanation & planning\n"
-            "5. Closing the session: When scoring consider if a clear management plan, safety-netting and a plan for follow-up were discussed\n"
-            "6. Building a relationship\n"
-            "7. Providing structure\n\n"
-            "Then, calculate the overall score (max 70) and provide a brief commentary on the user's clinical reasoning considering hypothetico-deductive and bayesian reasoning in particular"
-            ' in a key called "clinical_reasoning".\n\n'
-            "Format your answer strictly as a single JSON object (do not include any extra text):\n"
-            "{\n"
-            '  "initiating_session": {"score": X, "comment": "..."},\n'
-            '  "gathering_information": {"score": X, "comment": "..."},\n'
-            '  "physical_examination": {"score": X, "comment": "..."},\n'
-            '  "explanation_planning": {"score": X, "comment": "..."},\n'
-            '  "closing_session": {"score": X, "comment": "..."},\n'
-            '  "building_relationship": {"score": X, "comment": "..."},\n'
-            '  "providing_structure": {"score": X, "comment": "..."},\n'
-            '  "overall": Y,\n'
-            '  "clinical_reasoning": "..." \n'
-            '}\n\n'
-            "The consultation transcript is:\n" + user_conv_text
+        "IMPORTANT: Output ONLY valid JSON with NO disclaimers or additional commentary. "
+        "Your answer MUST start with '{' and end with '}'. Use double quotes for all keys and string values, "
+        "and do NOT use single quotes. Evaluate the following consultation transcript using the Calgary–Cambridge model. "
+        "Score each category on a scale of 1 to 10, and provide a short comment for each:\n"
+        "1. Initiating the session\n"
+        "2. Gathering information: When scoring, ensure you assess if the transcript clearly explores the history of the present complaint, past medical and surgical history, medication history including allergies, social history (including living situation, vocation, diet, exercise, alcohol consumption, smoking) and family history\n"
+        "3. Physical examination: When scoring consider if consent sought and whether results of the examination were discussed\n"
+        "4. Explanation & planning\n"
+        "5. Closing the session: When scoring consider if a clear management plan, safety-netting and a plan for follow-up were discussed\n"
+        "6. Building a relationship\n"
+        "7. Providing structure\n\n"
+        "Then, calculate the overall score (max 70) and provide a brief commentary on the user's clinical reasoning considering hypothetico-deductive and bayesian reasoning in particular"
+        ' in a key called "clinical_reasoning".\n\n'
+        "Format your answer strictly as a single JSON object (do not include any extra text):\n"
+        "{\n"
+        '  "initiating_session": {"score": X, "comment": "..."},\n'
+        '  "gathering_information": {"score": X, "comment": "..."},\n'
+        '  "physical_examination": {"score": X, "comment": "..."},\n'
+        '  "explanation_planning": {"score": X, "comment": "..."},\n'
+        '  "closing_session": {"score": X, "comment": "..."},\n'
+        '  "building_relationship": {"score": X, "comment": "..."},\n'
+        '  "providing_structure": {"score": X, "comment": "..."},\n'
+        '  "overall": Y,\n'
+        '  "clinical_reasoning": "..." \n'
+        '}\n\n'
+        "The consultation transcript is:\n" + user_conv_text
     )
 
     feedback_conversation = [{'role': 'system', 'content': feedback_prompt}]
@@ -1141,10 +1148,8 @@ def feedback():
         fb = response.choices[0].message["content"]
         print("DEBUG: Raw GPT-4 feedback:", fb)
         if response.usage and 'prompt_tokens' in response.usage and 'completion_tokens' in response.usage:
-            current_user.token_prompt_usage_gpt4 = (current_user.token_prompt_usage_gpt4 or 0) + response.usage[
-                'prompt_tokens']
-            current_user.token_completion_usage_gpt4 = (current_user.token_completion_usage_gpt4 or 0) + response.usage[
-                'completion_tokens']
+            current_user.token_prompt_usage_gpt4 = (current_user.token_prompt_usage_gpt4 or 0) + response.usage['prompt_tokens']
+            current_user.token_completion_usage_gpt4 = (current_user.token_completion_usage_gpt4 or 0) + response.usage['completion_tokens']
             db.session.commit()
     except Exception as e:
         fb = f"Error generating feedback: {str(e)}"
@@ -1158,8 +1163,10 @@ def feedback():
         print("DEBUG: JSON parsing error in feedback:", e)
         session['feedback_json'] = None
         session['feedback'] = fb
-    return redirect(url_for('simulation'))
 
+    # Set flag to mark feedback as provided
+    session['feedback_given'] = True
+    return redirect(url_for('simulation'))
 
 @app.route('/download_feedback', methods=['GET'])
 @login_required
@@ -1302,6 +1309,7 @@ def clear_simulation():
     session.pop('feedback', None)
     session.pop('feedback_json', None)
     session.pop('hint', None)
+    session.pop('feedback_given', None)  # Clear the feedback flag here
     nomenclature = request.form.get('drug_nomenclature', 'BNF')
     import random
     patient = session.get('patient')
