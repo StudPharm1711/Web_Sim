@@ -169,6 +169,16 @@ class AlertSignup(db.Model):
     email = db.Column(db.String(150), unique=True, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+class DeviceUsage(db.Model):
+    __tablename__ = 'device_usage'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('subscribers.id'), nullable=False)
+    ip_address = db.Column(db.String(100), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_used = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationship back to user if desired
+    user = db.relationship('User', backref=db.backref('devices', lazy=True))
 
 @login_manager.user_loader
 def load_user(user_id):
