@@ -27,6 +27,13 @@ from email.mime.text import MIMEText  # For sending emails via SMTP
 from flask_session import Session
 from datetime import timedelta  # add this at the top with your other imports
 
+def get_client_ip():
+    x_forwarded_for = request.headers.get('X-Forwarded-For', '')
+    if x_forwarded_for:
+        # Split the header on commas and return the first IP
+        return x_forwarded_for.split(',')[0].strip()
+    return request.remote_addr
+
 # Load environment variables from .env file
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -382,7 +389,7 @@ def login():
             flash("Logged in as admin.", "success")
             return redirect(url_for('simulation'))
         else:
-            email = request.form['email']
+            email = request.form['email'].strip().lower()
             password = request.form['password']
             user = User.query.filter_by(email=email).first()
             if user and check_password_hash(user.password, password):
@@ -400,20 +407,17 @@ def login():
                     ip_exists = any(device.ip_address == user_ip for device in devices)
 
                     if not ip_exists:
-                        # If user already has 2 devices, enforce a 24-hour cooldown check
                         if len(devices) >= 2:
                             if user.last_device_change and datetime.utcnow() - user.last_device_change < timedelta(
                                     hours=24):
                                 flash("You must wait 24 hours before registering a new device.", "danger")
                                 return redirect(url_for('login'))
                             else:
-                                # Proceed with sending a confirmation email
                                 token = s.dumps({"user_id": user.id, "ip": user_ip}, salt='device-confirmation-salt')
                                 confirmation_link = url_for('confirm_device', token=token, _external=True)
                                 send_email_via_brevo("New Device Confirmation",
                                                      f"Click here to confirm your new device: {confirmation_link}",
                                                      user.email, html=False)
-                                # Update the last_device_change timestamp
                                 user.last_device_change = datetime.utcnow()
                                 db.session.commit()
                                 flash(
@@ -421,17 +425,16 @@ def login():
                                     "warning")
                                 return redirect(url_for('login'))
                         else:
-                            # Under the device limit: add the new device immediately
                             new_device = DeviceUsage(user_id=user.id, ip_address=user_ip)
                             db.session.add(new_device)
                             db.session.commit()
                     else:
-                        # If IP already exists, update its last_used timestamp
                         for device in devices:
                             if device.ip_address == user_ip:
                                 device.last_used = datetime.utcnow()
                         db.session.commit()
                 # --------------------- End Device Usage Tracking ---------------------
+
                 session.pop('conversation', None)
                 user.current_session = str(uuid.uuid4())
                 db.session.commit()
@@ -444,33 +447,6 @@ def login():
 
 
 @app.route('/confirm_device/<token>', methods=['GET'])
-def confirm_device(token):
-    try:
-        data = s.loads(token, salt='device-confirmation-salt', max_age=3600)
-        user_id = data.get("user_id")
-        token_ip = data.get("ip")
-    except Exception as e:
-        flash("The confirmation link is invalid or has expired.", "danger")
-        return redirect(url_for('login'))
-
-    # Retrieve the current client IP using our helper
-    current_ip = get_client_ip()
-    print("DEBUG: Token IP:", token_ip, "Current IP:", current_ip)
-
-    if current_ip != token_ip:
-        flash("The device used to confirm does not match the device used to request registration.", "danger")
-        return redirect(url_for('login'))
-
-    user = User.query.get(user_id)
-    if user:
-        new_device = DeviceUsage(user_id=user.id, ip_address=token_ip)
-        db.session.add(new_device)
-        user.last_device_change = datetime.utcnow()
-        db.session.commit()
-        flash("New device confirmed and added.", "success")
-    else:
-        flash("User not found.", "danger")
-    return redirect(url_for('login'))
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -481,7 +457,7 @@ def register():
         return redirect(url_for('alert_signup'))
     if request.method == 'POST':
         print("DEBUG: /register POST route reached", flush=True)
-        email = request.form['email']
+        email = request.form['email'].strip().lower()
         password = request.form['password']
         category = request.form['category']
         discipline = request.form.get('discipline')
