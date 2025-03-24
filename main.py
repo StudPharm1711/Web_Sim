@@ -361,7 +361,6 @@ def login():
     if request.method == 'POST':
         admin_flag = request.form.get('admin')
         if admin_flag == "true":
-            # ... existing admin login code ...
             admin_password = request.form.get('admin_password')
             if not admin_password or admin_password != ADMIN_LOGIN_PASSWORD:
                 flash("Invalid admin password.", "danger")
@@ -394,14 +393,14 @@ def login():
 
                 # --------------------- Begin Device Usage Tracking ---------------------
                 if not user.is_admin:
-                    user_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+                    user_ip = get_client_ip()
                     print("DEBUG: User IP:", user_ip)
 
                     devices = DeviceUsage.query.filter_by(user_id=user.id).all()
                     ip_exists = any(device.ip_address == user_ip for device in devices)
 
                     if not ip_exists:
-                        # If user already has 2 devices, enforce the cooldown check
+                        # If user already has 2 devices, enforce a 24-hour cooldown check
                         if len(devices) >= 2:
                             if user.last_device_change and datetime.utcnow() - user.last_device_change < timedelta(
                                     hours=24):
@@ -414,7 +413,7 @@ def login():
                                 send_email_via_brevo("New Device Confirmation",
                                                      f"Click here to confirm your new device: {confirmation_link}",
                                                      user.email, html=False)
-                                # Update last_device_change in the User model
+                                # Update the last_device_change timestamp
                                 user.last_device_change = datetime.utcnow()
                                 db.session.commit()
                                 flash(
@@ -422,18 +421,17 @@ def login():
                                     "warning")
                                 return redirect(url_for('login'))
                         else:
-                            # Under the limit: add the new device immediately
+                            # Under the device limit: add the new device immediately
                             new_device = DeviceUsage(user_id=user.id, ip_address=user_ip)
                             db.session.add(new_device)
                             db.session.commit()
                     else:
-                        # If IP already exists, update the last_used timestamp
+                        # If IP already exists, update its last_used timestamp
                         for device in devices:
                             if device.ip_address == user_ip:
                                 device.last_used = datetime.utcnow()
                         db.session.commit()
                 # --------------------- End Device Usage Tracking ---------------------
-
                 session.pop('conversation', None)
                 user.current_session = str(uuid.uuid4())
                 db.session.commit()
@@ -455,8 +453,8 @@ def confirm_device(token):
         flash("The confirmation link is invalid or has expired.", "danger")
         return redirect(url_for('login'))
 
-    # Retrieve current request IP using X-Forwarded-For with fallback
-    current_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+    # Retrieve the current client IP using our helper
+    current_ip = get_client_ip()
     print("DEBUG: Token IP:", token_ip, "Current IP:", current_ip)
 
     if current_ip != token_ip:
