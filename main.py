@@ -25,6 +25,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import smtplib
 from email.mime.text import MIMEText  # For sending emails via SMTP
 from flask_session import Session
+from datetime import timedelta  # add this at the top with your other imports
 
 # Load environment variables from .env file
 load_dotenv()
@@ -389,22 +390,47 @@ def login():
                           "warning")
                     return redirect(url_for('start_payment'))
 
-                # ----- Begin Device Usage Tracking for non-admin users -----
+                # --------------------- Begin Device Usage Tracking ---------------------
+                # This logic only applies to non-admin users
                 if not user.is_admin:
-                    # Retrieve the user's IP address. Use X-Forwarded-For if available.
+                    # Retrieve IP address (using X-Forwarded-For if available)
                     user_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
                     print("DEBUG: User IP:", user_ip)
 
-                    # Query DeviceUsage for this user
+                    # Query the device usage records for this user
                     devices = DeviceUsage.query.filter_by(user_id=user.id).all()
                     ip_exists = any(device.ip_address == user_ip for device in devices)
 
                     if not ip_exists:
-                        # Enforce a maximum of 2 unique IP addresses per user
+                        # Check if a pending device confirmation exists
+                        pending = session.get('pending_device')
+                        if pending:
+                            pending_timestamp = pending.get('timestamp')
+                            pending_ip = pending.get('ip')
+                            # If less than 24 hours have passed since the last pending request, block new request
+                            if datetime.utcnow() - pending_timestamp < timedelta(hours=24):
+                                flash(
+                                    "A device confirmation is already pending. Please check your email or wait 24 hours to register a new device.",
+                                    "danger")
+                                return redirect(url_for('login'))
+                            else:
+                                # Clear old pending info if the cooldown period has passed
+                                session.pop('pending_device', None)
+                        # If user already has 2 devices, require email confirmation
                         if len(devices) >= 2:
-                            flash("You have reached the maximum allowed devices for this account.", "danger")
+                            token = s.dumps({"user_id": user.id, "ip": user_ip}, salt='device-confirmation-salt')
+                            confirmation_link = url_for('confirm_device', token=token, _external=True)
+                            send_email_via_brevo("New Device Confirmation",
+                                                 f"Click here to confirm your new device: {confirmation_link}",
+                                                 user.email, html=False)
+                            # Store pending device info with current timestamp in session
+                            session['pending_device'] = {"ip": user_ip, "timestamp": datetime.utcnow()}
+                            flash(
+                                "A confirmation email has been sent to add this new device. Please confirm it to continue.",
+                                "warning")
                             return redirect(url_for('login'))
                         else:
+                            # Under the limit, add the new device immediately
                             new_device = DeviceUsage(user_id=user.id, ip_address=user_ip)
                             db.session.add(new_device)
                             db.session.commit()
@@ -414,7 +440,7 @@ def login():
                             if device.ip_address == user_ip:
                                 device.last_used = datetime.utcnow()
                         db.session.commit()
-                # ----- End Device Usage Tracking -----
+                # --------------------- End Device Usage Tracking ---------------------
 
                 session.pop('conversation', None)
                 user.current_session = str(uuid.uuid4())
@@ -426,6 +452,29 @@ def login():
                 flash("Invalid email or password", "danger")
     return render_template('login.html')
 
+
+@app.route('/confirm_device/<token>', methods=['GET'])
+def confirm_device(token):
+    try:
+        data = s.loads(token, salt='device-confirmation-salt', max_age=3600)
+        user_id = data.get("user_id")
+        ip = data.get("ip")
+    except Exception as e:
+        flash("The confirmation link is invalid or has expired.", "danger")
+        return redirect(url_for('login'))
+
+    user = User.query.get(user_id)
+    if user:
+        # Add the new device
+        new_device = DeviceUsage(user_id=user.id, ip_address=ip)
+        db.session.add(new_device)
+        db.session.commit()
+        # Remove the pending device info from the session
+        session.pop('pending_device', None)
+        flash("New device confirmed and added.", "success")
+    else:
+        flash("User not found.", "danger")
+    return redirect(url_for('login'))
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
