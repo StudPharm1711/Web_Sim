@@ -1256,6 +1256,14 @@ def feedback():
         session['feedback_json'] = None
         session['feedback'] = fb
 
+        # Insert new feedback record here:
+        if session.get('feedback_json'):
+            overall_score = session['feedback_json'].get("overall")
+            if overall_score is not None:
+                new_feedback = Feedback(user_id=current_user.id, score=overall_score)
+                db.session.add(new_feedback)
+                db.session.commit()
+
     # Set flag to mark feedback as provided
     session['feedback_given'] = True
     return redirect(url_for('simulation'))
