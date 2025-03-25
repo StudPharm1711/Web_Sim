@@ -1264,9 +1264,9 @@ def feedback():
                 db.session.add(new_feedback)
                 db.session.commit()
 
-    # Set flag to mark feedback as provided
-    session['feedback_given'] = True
-    return redirect(url_for('simulation'))
+        # Set flag to mark feedback as provided
+        session['feedback_given'] = True
+        return redirect(url_for('simulation'))
 
 @app.route('/download_feedback', methods=['GET'])
 @login_required
