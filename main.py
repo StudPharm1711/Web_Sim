@@ -1545,7 +1545,7 @@ def feedback():
         "5. Closing the session: When scoring consider if a clear management plan, safety-netting and a plan for follow-up were discussed\n"
         "6. Building a relationship\n"
         "7. Providing structure\n\n"
-        "Then, calculate the overall score (max 70) and provide a brief commentary on the user's clinical reasoning considering hypothetico-deductive and bayesian reasoning in particular"
+        "Then, calculate the overall score (max 70) and provide a brief commentary on the user's diagnostic accuracy (based on the patient's symptoms) and clinical reasoning considering hypothetico-deductive and bayesian reasoning in particular"
         ' in a key called "clinical_reasoning".\n\n'
         "Format your answer strictly as a single JSON object (do not include any extra text):\n"
         "{\n"
