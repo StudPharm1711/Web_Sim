@@ -668,6 +668,17 @@
                   </div>
                 {% endif %}
             {% endif %}
+
+                    <!-- Add this snippet after the feedback block -->
+                {% if feedback_json or feedback_raw %}
+<div id="scroll-indicator-container" class="scroll-indicator">
+  <i class="fa fa-chevron-down"></i>
+</div>
+<script>
+  // Reset the scroll indicator so the chevron reappears
+  onNewContentAdded();
+</script>
+{% endif %}
         </div>
     </div>
 
@@ -1105,7 +1116,7 @@ if (feedbackBtnForm) {
                 .then(response => response.json())
                 .then(data => {
                     document.getElementById('avgScoreDisplay').textContent = data.avg_score.toFixed(2);
-                    document.getElementById('rankingDisplay').textContent = data.ranking + " out of " + data.total_users;
+                    document.getElementById('rankingDisplay').textContent = data.ranking;
                 })
                 .catch(err => console.error("Error fetching scores:", err));
         }
