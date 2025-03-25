@@ -411,7 +411,7 @@ def login():
                     device_exists = any(
                         device.ip_address == user_ip and device.user_agent == user_agent for device in devices)
 
-                    if not ip_exists:
+                    if not device_exists:
                         if len(devices) >= 2:
                             if user.last_device_change and datetime.utcnow() - user.last_device_change < timedelta(
                                     hours=24):
@@ -430,7 +430,7 @@ def login():
                                     "warning")
                                 return redirect(url_for('login'))
                         else:
-                            new_device = DeviceUsage(user_id=user.id, ip_address=user_ip)
+                            new_device = DeviceUsage(user_id=user.id, ip_address=user_ip, user_agent=user_agent)
                             db.session.add(new_device)
                             db.session.commit()
                     else:
