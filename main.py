@@ -418,7 +418,7 @@ def login():
                                 flash("You must wait 24 hours before registering a new device.", "danger")
                                 return redirect(url_for('login'))
                             else:
-                                token = s.dumps({"user_id": user.id, "ip": user_ip}, salt='device-confirmation-salt')
+                                token = s.dumps({"user_id": user.id, "ip": user_ip, "ua": user_agent}, salt='device-confirmation-salt')
                                 confirmation_link = url_for('confirm_device', token=token, _external=True)
                                 send_email_via_brevo("New Device Confirmation",
                                                      f"Click here to confirm your new device: {confirmation_link}",
@@ -452,6 +452,34 @@ def login():
 
 
 @app.route('/confirm_device/<token>', methods=['GET'])
+def confirm_device(token):
+    try:
+        data = s.loads(token, salt='device-confirmation-salt', max_age=3600)
+        user_id = data.get("user_id")
+        token_ip = data.get("ip")
+        token_ua = data.get("ua")
+    except Exception as e:
+        flash("The confirmation link is invalid or has expired.", "danger")
+        return redirect(url_for('login'))
+
+    current_ip = get_client_ip()
+    current_ua = request.headers.get('User-Agent', '')
+
+    if current_ip != token_ip or current_ua != token_ua:
+        flash("The device used to confirm does not match the device used to request registration.", "danger")
+        return redirect(url_for('login'))
+
+    user = User.query.get(user_id)
+    if user:
+        # Add new device record
+        new_device = DeviceUsage(user_id=user.id, ip_address=token_ip, user_agent=token_ua)
+        db.session.add(new_device)
+        user.last_device_change = datetime.utcnow()
+        db.session.commit()
+        flash("New device confirmed and added.", "success")
+    else:
+        flash("User not found.", "danger")
+    return redirect(url_for('login'))
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
