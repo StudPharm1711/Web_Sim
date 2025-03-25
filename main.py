@@ -1432,7 +1432,7 @@ def send_message():
                 lower_msg in generic_phrases or
                 not re.search(r"[aeiou]", stripped_msg) or
                 any(phrase in lower_msg for phrase in forced_context_phrases)):
-            msg = "Sorry, I didn't catch that. Could you please repeat yourself?"
+            return jsonify({"status": "error", "message": "No valid input detected. Please try again."}), 400
 
         conversation.append({'role': 'user', 'content': msg})
         session['conversation'] = conversation
