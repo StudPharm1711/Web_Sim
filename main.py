@@ -1966,6 +1966,17 @@ def get_scores():
         "total_users": total_users
     })
 
+# Initialise and start the scheduler
+scheduler = BackgroundScheduler()
+
+# Check if the job with ID 'daily_update' exists.
+if not scheduler.get_job('daily_update'):
+    # Schedule the daily update job to run every day at 9:00 AM.
+    scheduler.add_job(send_daily_update, 'cron', id='daily_update', hour=9, minute=0)
+
+# Start the scheduler
+scheduler.start()
+print("Scheduler started and daily update job scheduled.")
 
 if __name__ == '__main__':
     app.run(debug=True)
