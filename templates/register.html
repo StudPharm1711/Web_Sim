@@ -74,11 +74,7 @@
       color: #333;
       text-align: left;
     }
-    #student-verification {
-      display: none;
-      margin-top: 10px;
-      text-align: left;
-    }
+    /* Removed the student verification block since pricing no longer changes */
     .terms {
       margin-top: 15px;
       text-align: left;
@@ -121,7 +117,6 @@
 
     <form method="POST" action="{{ url_for('register') }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <!-- Removed the Username field -->
       <input type="email" name="email" placeholder="Email Address" required>
       <input type="password" name="password" placeholder="Password" required>
 
@@ -151,12 +146,8 @@
         <input type="text" id="otherDiscipline" name="otherDiscipline" placeholder="Please specify your discipline" style="display:none;">
       </div>
 
-      <!-- Subscription Pricing & Student Verification -->
+      <!-- Subscription Pricing (same for all categories) -->
       <div id="subscriptionPricing"></div>
-      <div id="student-verification">
-        <label>Student Verification Required:</label>
-        <p>Please ensure your email ends with ".ac.uk" to receive the student rate.</p>
-      </div>
 
       <div class="terms">
         <input type="checkbox" id="agree_terms" name="agree_terms" required>
@@ -188,16 +179,16 @@
     const disciplineSelect = document.getElementById('discipline');
     const otherDisciplineInput = document.getElementById('otherDiscipline');
     const subscriptionPricing = document.getElementById('subscriptionPricing');
-    const studentVerification = document.getElementById('student-verification');
 
     categorySelect.addEventListener('change', function() {
+      // Show discipline container for healthcare categories
       if (this.value === 'health_student' || this.value === 'health_professional') {
         disciplineContainer.style.display = 'block';
       } else {
         disciplineContainer.style.display = 'none';
         otherDisciplineInput.style.display = 'none';
       }
-      updatePricingAndVerification(this.value);
+      updatePricing();
     });
 
     disciplineSelect.addEventListener('change', function() {
@@ -208,18 +199,13 @@
       }
     });
 
-    function updatePricingAndVerification(categoryValue) {
-      if (categoryValue === 'health_student') {
-        subscriptionPricing.textContent = "Monthly Subscription: £4.99/month (Student Rate)";
-        studentVerification.style.display = 'block';
-      } else if (categoryValue === 'health_professional' || categoryValue === 'non_healthcare') {
-        subscriptionPricing.textContent = "Monthly Subscription: £7.99/month";
-        studentVerification.style.display = 'none';
-      } else {
-        subscriptionPricing.textContent = "";
-        studentVerification.style.display = 'none';
-      }
+    function updatePricing() {
+      // Always display the same pricing regardless of category.
+      subscriptionPricing.textContent = "Monthly Subscription: £3.99/month";
     }
+
+    // Initialize pricing on page load.
+    updatePricing();
   </script>
 </body>
 </html>
