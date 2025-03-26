@@ -694,6 +694,29 @@
 </script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
+<script>
+  // Add this function to validate input before submission
+  function isValidInput(message) {
+    // Trim whitespace and check length
+    const trimmed = message.trim();
+    if (trimmed.length < 3) return false;
+
+    // Count alphabetic characters
+    const letters = trimmed.replace(/[^A-Za-z]/g, '');
+    const ratio = letters.length / trimmed.length;
+
+    // If the ratio of letters to total characters is low, assume input is gibberish
+    if (ratio < 0.5) return false;
+
+    // Additional heuristic: if input is longer than 10 characters and has no spaces, consider it gibberish.
+    if (trimmed.length > 10 && trimmed.indexOf(' ') === -1) {
+        return false;
+    }
+
+    return true;
+}
+</script>
+
     <script>
         // Global flag to ensure exam results are only requested once.
         let examRequested = false;
@@ -934,6 +957,14 @@
             const textarea = messageForm.querySelector('textarea');
             const userMessage = textarea.value.trim();
             if (userMessage === "") return;
+
+ // New input validation: check for sufficient confidence in input
+    if (!isValidInput(userMessage)) {
+        appendMessage("assistant", "I'm sorry, I didn't quite understand that. Could you please rephrase?");
+        textarea.value = ""; // Clear the input field
+        return;
+    }
+
             appendMessage("user", userMessage);
             textarea.value = "";
             updateExamButtonState();
