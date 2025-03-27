@@ -753,29 +753,44 @@ def login():
             password = request.form['password']
             user = User.query.filter_by(email=email).first()
             if user and check_password_hash(user.password, password):
+                # Prevent login if account is deactivated (e.g., cancelled trial)
                 if user.subscription_status == "cancelled":
                     flash("Your account has been deactivated. Please contact support.", "danger")
                     return redirect(url_for('login'))
+
                 now = datetime.utcnow()
                 trial_period = timedelta(hours=1)
-                # For non-admin users with no active subscription, check trial expiration.
+                # For non-admin users without an active subscription...
                 if not user.is_admin and (not user.subscription_id or user.subscription_status != "active"):
-                    # If trial_start is already set and the trial period has expired, send them to payment.
+                    # Check if the trial period has expired
                     if user.trial_start and now >= user.trial_start + trial_period:
-                        flash(
-                            "Your account is not activated yet. Please complete your payment to activate your account.",
-                            "warning")
-                        return redirect(url_for('start_payment'))
-                    # Do not modify trial_start here; it should persist after payment success.
-
-                # --------------------- Begin Device Usage Tracking ---------------------
+                        # If a stored payment method exists, silently convert the trial to a subscription.
+                        if user.stored_payment_method_id:
+                            try:
+                                subscription = stripe.Subscription.create(
+                                    customer=user.stripe_customer_id,
+                                    items=[{"price": STRIPE_PRICE_ID}],
+                                    default_payment_method=user.stored_payment_method_id
+                                )
+                                user.subscription_id = subscription.id
+                                user.subscription_status = subscription.status
+                                db.session.commit()
+                                flash("Your free trial has now converted to an active subscription.", "success")
+                            except Exception as e:
+                                flash(f"Error converting trial: {str(e)}", "danger")
+                                return redirect(url_for('start_payment'))
+                        else:
+                            # If no stored payment method exists, prompt for payment.
+                            flash("Your trial period has expired. Please complete your payment to activate your account.", "warning")
+                            return redirect(url_for('start_payment'))
+                    # Else, if trial is still active, simply allow login.
+                # Device usage tracking (unchanged)
                 if not user.is_admin:
                     user_ip = get_client_ip()
                     user_agent = request.headers.get('User-Agent', '')
-                    logging.debug("DEBUG: User IP:", user_ip)
-                    logging.debug("DEBUG: User Agent:", user_agent)
+                    logging.debug("DEBUG: User IP: %s", user_ip)
+                    logging.debug("DEBUG: User Agent: %s", user_agent)
                     devices = DeviceUsage.query.filter_by(user_id=user.id).all()
-                    # Check if a device with the same IP and user agent exists.
                     device_exists = any(
                         device.ip_address == user_ip and device.user_agent == user_agent for device in devices)
                     if not device_exists:
@@ -792,9 +807,7 @@ def login():
                                                      user.email, html=False)
                                 user.last_device_change = now
                                 db.session.commit()
-                                flash(
-                                    "A confirmation email has been sent to add this new device. Please confirm it to continue.",
-                                    "warning")
+                                flash("A confirmation email has been sent to add this new device. Please confirm it to continue.", "warning")
                                 return redirect(url_for('login'))
                         else:
                             new_device = DeviceUsage(user_id=user.id, ip_address=user_ip, user_agent=user_agent)
@@ -805,8 +818,7 @@ def login():
                             if device.ip_address == user_ip:
                                 device.last_used = now
                         db.session.commit()
-                # --------------------- End Device Usage Tracking ---------------------
-
+                # Finalize login process
                 session.pop('conversation', None)
                 user.current_session = str(uuid.uuid4())
                 db.session.commit()
@@ -816,7 +828,6 @@ def login():
             else:
                 flash("Invalid email or password", "danger")
     return render_template('login.html')
-
 
 @app.route('/confirm_device/<token>', methods=['GET'])
 def confirm_device(token):
