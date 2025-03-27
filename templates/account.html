@@ -69,13 +69,25 @@
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
       font-size: 1.1rem;
     }
-    /* Account page specific container margins */
     .account-container {
-      margin: 84px auto 20px auto; /* Desktop: 84px top, 20px bottom, auto sides */
+      margin: 84px auto 20px auto;
     }
     @media (max-width: 600px) {
       .account-container {
-        margin: 117px auto 20px auto; /* Mobile: 117px top, 20px bottom, auto sides */
+        margin: 117px auto 20px auto;
+      }
+      body {
+        padding: 10px;
+      }
+      header {
+        padding: 15px;
+      }
+      .container {
+        padding: 15px;
+        font-size: 1rem;
+      }
+      footer {
+        font-size: 0.8rem;
       }
     }
     footer {
@@ -94,20 +106,13 @@
       border-radius: 6px;
       text-align: center;
     }
-    @media (max-width: 600px) {
-      body {
-        padding: 10px;
-      }
-      header {
-        padding: 15px;
-      }
-      .container {
-        padding: 15px;
-        font-size: 1rem;
-      }
-      footer {
-        font-size: 0.8rem;
-      }
+    /* Trial timer styles */
+    #trial-timer {
+      font-size: 2rem;
+      font-weight: bold;
+      color: red;
+      text-align: center;
+      margin: 20px 0;
     }
   </style>
 </head>
@@ -115,41 +120,77 @@
   <header>
     <a href="{{ url_for('simulation') }}" class="back-button" title="Back to Simulation">Back</a>
     <h1>Account Settings</h1>
-    <!-- Empty placeholder to balance header layout -->
     <div style="width: 100px;"></div>
   </header>
 
   <div class="container account-container">
     <section id="subscription" class="visible">
       <h2>Subscription</h2>
-      <p>Manage your subscription settings below.</p>
-      {% if subscription_info %}
-        <div class="subscription-info">
-          {% if subscription_info.cancel_at_period_end %}
-            <p>Your subscription is scheduled to cancel at the end of your current billing period.</p>
-            <p>It will end on: <strong>{{ subscription_info.current_period_end }}</strong></p>
-          {% else %}
-            <p>Your subscription is active and will renew automatically.</p>
-            <p>Current period ends on: <strong>{{ subscription_info.current_period_end }}</strong></p>
-            <form action="{{ url_for('cancel_subscription') }}" method="POST">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <input type="hidden" name="user_id" value="{{ current_user.id }}">
-              <button type="submit" class="btn-3d"
-                      onclick="return confirm('Are you sure you want to cancel your subscription? Your access will remain active until the end of the current billing period (approximately 1 month).');">
-                Cancel Subscription
-              </button>
-            </form>
-          {% endif %}
-          <p>Status: <strong>{{ subscription_info.status }}</strong></p>
-        </div>
-      {% else %}
-        <p>You do not have an active subscription.</p>
+      <p>Manage your subscription.</p>
+
+      {# If the user has an active trial, display the trial timer and cancel button #}
+      {% if current_user.trial_start %}
+        <div id="trial-timer" data-trial-start="{{ current_user.trial_start.timestamp() }}"></div>
+        <p>
+          <a href="{{ url_for('cancel_trial') }}" class="btn-3d"
+             onclick="return confirm('Are you sure you want to cancel your trial? You will lose any remaining trial time and not be charged.')">
+            Cancel Trial
+          </a>
+        </p>
       {% endif %}
+
+      {% if subscription_info %}
+  <div class="subscription-info">
+    {% if subscription_info.cancel_at_period_end %}
+      <p>Your subscription is scheduled to cancel at the end of your current billing period.</p>
+      <p>It will end on: <strong>{{ subscription_info.current_period_end }}</strong></p>
+    {% else %}
+      <p>Your subscription is active and will renew automatically.</p>
+      <p>Current period ends on: <strong>{{ subscription_info.current_period_end }}</strong></p>
+      <form action="{{ url_for('cancel_subscription') }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="user_id" value="{{ current_user.id }}">
+        <button type="submit" class="btn-3d"
+                onclick="return confirm('Are you sure you want to cancel your subscription? Your access will remain active until the end of the current billing period (approximately 1 month).');">
+          Cancel Subscription
+        </button>
+      </form>
+    {% endif %}
+    <p>Status: <strong>{{ subscription_info.status }}</strong></p>
+  </div>
+{% elif not current_user.trial_start %}
+  <p>You do not have an active subscription.</p>
+{% endif %}
     </section>
   </div>
 
   <footer>
     <small>&copy; 2025 Simul-AI-tor Ltd. All rights reserved.</small>
   </footer>
+
+  <script>
+    // Trial timer logic
+    const trialTimerEl = document.getElementById('trial-timer');
+    if (trialTimerEl && trialTimerEl.dataset.trialStart) {
+      // 1 hour trial duration in seconds
+      const trialDuration = 3600;
+      const trialStart = parseInt(trialTimerEl.dataset.trialStart);
+      function updateTimer() {
+        const now = Math.floor(Date.now() / 1000);
+        const elapsed = now - trialStart;
+        const remaining = trialDuration - elapsed;
+        if (remaining > 0) {
+          const minutes = Math.floor(remaining / 60);
+          const seconds = remaining % 60;
+          trialTimerEl.textContent = `Free trial ends in ${minutes}m ${seconds}s after which, you will be billed automatically`;
+        } else {
+          trialTimerEl.textContent = "Trial expired!";
+          clearInterval(timerInterval);
+        }
+      }
+      const timerInterval = setInterval(updateTimer, 1000);
+      updateTimer();
+    }
+  </script>
 </body>
 </html>

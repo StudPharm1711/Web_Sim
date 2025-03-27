@@ -26,6 +26,17 @@ import smtplib
 from email.mime.text import MIMEText  # For sending emails via SMTP
 from flask_session import Session
 from datetime import timedelta  # add this at the top with your other imports
+import logging
+
+# Configure logging (you can place this near the top of your file, after imports)
+logging.basicConfig(
+    level=logging.DEBUG,  # Set to DEBUG for detailed logs
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    handlers=[
+        logging.FileHandler("app.log"),  # Write logs to a file
+        logging.StreamHandler()  # And also print them to the console
+    ]
+)
 
 def get_client_ip():
     x_forwarded_for = request.headers.get('X-Forwarded-For', '')
@@ -59,8 +70,8 @@ def validate_password(password):
 
 # Configure Stripe
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
-STRIPE_STUDENT_PRICE_ID = os.getenv("STRIPE_STUDENT_PRICE_ID")  # e.g., for £3.49/month
-STRIPE_NONSTUDENT_PRICE_ID = os.getenv("STRIPE_NONSTUDENT_PRICE_ID")  # e.g., for £4.99/month
+STRIPE_PRICE_ID = os.getenv("STRIPE_PRICE_ID")  # e.g., for £3.99/month
+
 
 # Set up model pricing (per 1M tokens) from environment
 GPT4_INPUT_COST_PER_1M = float(os.getenv("GPT4_INPUT_COST_PER_1M", "10.00"))
@@ -120,14 +131,14 @@ def send_email_via_brevo(subject, body, to_address, html=False):
 
     try:
         email_string = msg.as_string()
-        print("DEBUG: Email message to be sent:\n", email_string)
+        logging.debug("DEBUG: Email message to be sent:\n%s", email_string)
         with smtplib.SMTP(smtp_server, smtp_port) as server:
             server.starttls()  # Enable TLS
             server.login(smtp_login, smtp_password)
             server.send_message(msg)
-            print(f"Email sent to {to_address} via Brevo SMTP.")
+            logging.debug(f"Email sent to {to_address} via Brevo SMTP.")
     except Exception as e:
-        print(f"Error sending email to {to_address}: {e}")
+        logging.debug(f"Error sending email to {to_address}: {e}")
         raise
 
 # --- Models ---
@@ -148,7 +159,24 @@ class User(UserMixin, db.Model):
     is_admin = db.Column(db.Boolean, default=False)
     current_session = db.Column(db.String(255), nullable=True)
     last_device_change = db.Column(db.DateTime)
+    # New fields for trial management
+    trial_start = db.Column(db.DateTime, nullable=True)
+    stored_payment_method_id = db.Column(db.String(100), nullable=True)
 
+ # Add this method below inside your User model:
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "email": self.email,
+            "category": self.category,
+            "discipline": self.discipline,
+            "stripe_customer_id": self.stripe_customer_id,
+            "subscription_id": self.subscription_id,
+            "subscription_status": self.subscription_status,
+            "trial_start": self.trial_start.isoformat() if self.trial_start else None,
+            "stored_payment_method_id": self.stored_payment_method_id,
+            "is_admin": self.is_admin,
+        }
 
 class Feedback(db.Model):
     __tablename__ = 'feedback'
@@ -192,7 +220,7 @@ class DeviceUsage(db.Model):
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))
 
 
 # --- Before Request: Ensure Single Session per User ---
@@ -583,18 +611,18 @@ def account():
     if current_user.subscription_id:
         try:
             subscription = stripe.Subscription.retrieve(current_user.subscription_id)
-            print("DEBUG: Stripe subscription retrieved:", subscription)  # Debug statement here
+            logging.debug("DEBUG: Stripe subscription retrieved:", subscription)  # Debug statement here
             current_period_end = datetime.utcfromtimestamp(subscription.current_period_end).strftime("%Y-%m-%d %H:%M:%S")
             subscription_info = {
                 "cancel_at_period_end": subscription.cancel_at_period_end,
                 "current_period_end": current_period_end,
                 "status": subscription.status
             }
-            print("DEBUG: subscription_info:", subscription_info)  # And here
+            logging.debug("DEBUG: subscription_info:", subscription_info)  # And here
         except Exception as e:
             flash(f"Error retrieving subscription info: {str(e)}", "danger")
     else:
-        print("DEBUG: current_user.subscription_id is not set")
+        logging.debug("DEBUG: current_user.subscription_id is not set")
     return render_template('account.html', subscription_info=subscription_info)
 
 app.register_blueprint(account_bp)
@@ -642,7 +670,7 @@ def cancel_subscription():
 @app.route('/reactivate_subscription')
 @login_required
 def reactivate_subscription():
-    price_id = STRIPE_STUDENT_PRICE_ID if current_user.category == 'health_student' else STRIPE_NONSTUDENT_PRICE_ID
+    price_id = STRIPE_PRICE_ID
     checkout_session = stripe.checkout.Session.create(
         payment_method_types=["card"],
         line_items=[{"price": price_id, "quantity": 1}],
@@ -652,7 +680,6 @@ def reactivate_subscription():
         cancel_url=url_for('account', _external=True)
     )
     return redirect(checkout_session.url)
-
 
 @app.route('/reactivate_payment_success')
 @login_required
@@ -693,7 +720,6 @@ def landing():
     remaining_places = max(100 - active_count, 0)
     return render_template('landing.html', remaining_places=remaining_places)
 
-
 ADMIN_LOGIN_PASSWORD = os.getenv("ADMIN_LOGIN_PASSWORD")
 
 
@@ -727,36 +753,44 @@ def login():
             password = request.form['password']
             user = User.query.filter_by(email=email).first()
             if user and check_password_hash(user.password, password):
+                if user.subscription_status == "cancelled":
+                    flash("Your account has been deactivated. Please contact support.", "danger")
+                    return redirect(url_for('login'))
+                now = datetime.utcnow()
+                trial_period = timedelta(hours=1)
+                # For non-admin users with no active subscription, check trial expiration.
                 if not user.is_admin and (not user.subscription_id or user.subscription_status != "active"):
-                    flash("Your account is not activated yet. Please complete your payment to activate your account.",
-                          "warning")
-                    return redirect(url_for('start_payment'))
+                    # If trial_start is already set and the trial period has expired, send them to payment.
+                    if user.trial_start and now >= user.trial_start + trial_period:
+                        flash(
+                            "Your account is not activated yet. Please complete your payment to activate your account.",
+                            "warning")
+                        return redirect(url_for('start_payment'))
+                    # Do not modify trial_start here; it should persist after payment success.
 
                 # --------------------- Begin Device Usage Tracking ---------------------
                 if not user.is_admin:
                     user_ip = get_client_ip()
                     user_agent = request.headers.get('User-Agent', '')
-                    print("DEBUG: User IP:", user_ip)
-                    print("DEBUG: User Agent:", user_agent)
-
+                    logging.debug("DEBUG: User IP:", user_ip)
+                    logging.debug("DEBUG: User Agent:", user_agent)
                     devices = DeviceUsage.query.filter_by(user_id=user.id).all()
-                    # Check if any stored device has the same IP and user agent
+                    # Check if a device with the same IP and user agent exists.
                     device_exists = any(
                         device.ip_address == user_ip and device.user_agent == user_agent for device in devices)
-
                     if not device_exists:
                         if len(devices) >= 2:
-                            if user.last_device_change and datetime.utcnow() - user.last_device_change < timedelta(
-                                    hours=24):
+                            if user.last_device_change and now - user.last_device_change < timedelta(hours=24):
                                 flash("You must wait 24 hours before registering a new device.", "danger")
                                 return redirect(url_for('login'))
                             else:
-                                token = s.dumps({"user_id": user.id, "ip": user_ip, "ua": user_agent}, salt='device-confirmation-salt')
+                                token = s.dumps({"user_id": user.id, "ip": user_ip, "ua": user_agent},
+                                                salt='device-confirmation-salt')
                                 confirmation_link = url_for('confirm_device', token=token, _external=True)
                                 send_email_via_brevo("New Device Confirmation",
                                                      f"Click here to confirm your new device: {confirmation_link}",
                                                      user.email, html=False)
-                                user.last_device_change = datetime.utcnow()
+                                user.last_device_change = now
                                 db.session.commit()
                                 flash(
                                     "A confirmation email has been sent to add this new device. Please confirm it to continue.",
@@ -769,7 +803,7 @@ def login():
                     else:
                         for device in devices:
                             if device.ip_address == user_ip:
-                                device.last_used = datetime.utcnow()
+                                device.last_used = now
                         db.session.commit()
                 # --------------------- End Device Usage Tracking ---------------------
 
@@ -822,7 +856,7 @@ def register():
               "info")
         return redirect(url_for('alert_signup'))
     if request.method == 'POST':
-        print("DEBUG: /register POST route reached", flush=True)
+        logging.debug("DEBUG: /register POST route reached")
         email = request.form['email'].strip().lower()
         password = request.form['password']
         category = request.form['category']
@@ -841,9 +875,6 @@ def register():
 
         if discipline == 'other' and other_discipline:
             discipline = other_discipline
-        if category == 'health_student' and not email.lower().endswith('.ac.uk'):
-            flash("For student registration, please use a valid academic email (ending with .ac.uk).", "danger")
-            return redirect(url_for('register'))
 
         pending_registration = {
             "email": email,
@@ -893,9 +924,9 @@ def register():
 """
             subject = "Please Confirm Your Email Address"
             send_email_via_brevo(subject, html_body, pending_registration["email"], html=True)
-            print("DEBUG: Confirmation email sent to:", pending_registration["email"])
+            logging.debug("DEBUG: Confirmation email sent to:", pending_registration["email"])
         except Exception as e:
-            print("DEBUG: Error sending confirmation email:", e)
+            logging.debug("DEBUG: Error sending confirmation email:", e)
             flash(f"Error sending confirmation email: {str(e)}", "warning")
             return redirect(url_for('register'))
 
@@ -930,7 +961,7 @@ def alert_signup():
         try:
             db.session.add(new_alert)
             db.session.commit()
-            print(f"Alert record created for {email}")
+            logging.debug(f"Alert record created for {email}")
         except Exception as e:
             db.session.rollback()
             flash(f"Error saving your email: {str(e)}", "danger")
@@ -944,7 +975,7 @@ def alert_signup():
                 "We will notify you as soon as a subscription space becomes available."
             )
             send_email_via_brevo(subject, body, email)
-            print(f"Alert signup email sent to {email}")
+            logging.debug(f"Alert signup email sent to {email}")
             flash("Thank you! You've been signed up for alerts.", "success")
         except Exception as e:
             flash(f"Error sending alert confirmation email: {str(e)}", "danger")
@@ -1045,17 +1076,85 @@ def confirm_email(token):
 @app.route('/start_payment')
 @login_required
 def start_payment():
-    price_id = STRIPE_STUDENT_PRICE_ID if current_user.category == 'health_student' else STRIPE_NONSTUDENT_PRICE_ID
-    checkout_session = stripe.checkout.Session.create(
-        payment_method_types=["card"],
-        line_items=[{"price": price_id, "quantity": 1}],
-        mode="subscription",
-        allow_promotion_codes=True,
-        success_url=url_for('payment_success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
-        cancel_url=url_for('account', _external=True)
-    )
-    return redirect(checkout_session.url)
+    price_id = STRIPE_PRICE_ID
 
+    # If the user doesn't already have a Stripe customer, create one.
+    if not current_user.stripe_customer_id:
+        customer = stripe.Customer.create(email=current_user.email)
+        current_user.stripe_customer_id = customer.id
+        db.session.commit()
+
+    # Now create the checkout session using the explicit customer ID.
+    setup_session = stripe.checkout.Session.create(
+        payment_method_types=["card"],
+        mode="setup",
+        customer=current_user.stripe_customer_id,
+        success_url=url_for('after_setup', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
+        cancel_url=url_for('register', _external=True)
+    )
+    return redirect(setup_session.url)
+
+@app.route('/after_setup')
+@login_required
+def after_setup():
+    session_id = request.args.get('session_id')
+    if not session_id:
+        flash("No session ID provided.", "danger")
+        return redirect(url_for('start_payment'))
+    try:
+        # Retrieve the Stripe Checkout session
+        setup_session = stripe.checkout.Session.retrieve(session_id)
+        logging.debug("DEBUG: Retrieved setup session: %s", setup_session)
+
+        # For mode="setup", use the setup_intent to get the payment method
+        setup_intent = stripe.SetupIntent.retrieve(setup_session.setup_intent)
+        payment_method_id = setup_intent.payment_method
+        logging.debug("DEBUG: Retrieved payment_method_id from setup_intent: %s", payment_method_id)
+
+        # Reload the user from the database and update the payment method
+        user = User.query.get(current_user.id)
+        user.stored_payment_method_id = payment_method_id
+
+        # Stamp the trial start time if it hasn't been set yet
+        if user.trial_start is None:
+            user.trial_start = datetime.utcnow()
+            logging.debug("DEBUG: trial_start set to %s", user.trial_start)
+        else:
+            logging.debug("DEBUG: trial_start already exists: %s", user.trial_start)
+
+        # Commit the changes to the database
+        db.session.commit()
+        db.session.refresh(user)
+        logging.debug("DEBUG: After commit, trial_start is %s", user.trial_start)
+
+        # Re‑log in the user so that the session reflects the updated data
+        login_user(user)
+        flash("Payment details saved successfully. Your trial period has now started.", "success")
+    except Exception as e:
+        flash(f"Error retrieving payment method: {str(e)}", "danger")
+    return redirect(url_for('account'))
+
+
+@app.route('/convert_trial')
+@login_required
+def convert_trial():
+    # Assuming you've stored the trial start time on the user model
+    # and that stored_payment_method_id is saved for the user.
+    trial_period = timedelta(hours=1)
+    if current_user.trial_start and datetime.utcnow() >= current_user.trial_start + trial_period:
+        # Create the subscription without a trial period
+        subscription = stripe.Subscription.create(
+            customer=current_user.stripe_customer_id,
+            items=[{"price": STRIPE_PRICE_ID}],
+            default_payment_method=current_user.stored_payment_method_id  # ensure you have this stored
+        )
+        current_user.subscription_id = subscription.id
+        current_user.subscription_status = subscription.status
+        db.session.commit()
+        flash("Your subscription is now active!", "success")
+    else:
+        flash("Your trial period is still active.", "info")
+    return redirect(url_for('account'))
 
 @app.route('/payment_success')
 @login_required
@@ -1091,12 +1190,27 @@ def payment_success():
         flash(f"Error processing subscription: {str(e)}", "danger")
         return redirect(url_for('start_payment'))
 
+@app.route('/cancel_trial')
+@login_required
+def cancel_trial():
+    # Get the current user from the database
+    user = User.query.get(current_user.id)
+    if user:
+        # Update the subscription status (or set an "active" flag to False)
+        user.subscription_status = "cancelled"
+        # Optionally, clear trial_start and stored_payment_method_id if needed:
+        user.trial_start = None
+        user.stored_payment_method_id = None
+        db.session.commit()
+    # Log the user out after updating the account
+    logout_user()
+    flash("Your trial has been cancelled. Your account has been deactivated.", "info")
+    return redirect(url_for('landing'))
 
 @app.route('/payment_cancel')
 def payment_cancel():
     flash("Payment was cancelled. Please try again.", "warning")
     return redirect(url_for('register'))
-
 
 @app.route('/logout')
 @login_required
@@ -1283,10 +1397,10 @@ def start_simulation():
                 "peripheral neuropathy",
                 "dizziness of unknown origin",
                 "restless legs syndrome",
-                "dementia"
-                "depression"
-                "ADHD"
-                "Autism"
+                "dementia",
+                "depression",
+                "ADHD",
+                "Autism",
                 "General Anxiety Disorder"
             ],
             "dermatological": [
@@ -1373,7 +1487,7 @@ def start_simulation():
     )
 
     session['conversation'] = [{'role': 'system', 'content': instr}]
-    print("DEBUG: Conversation initialized with prompt:", session['conversation'])
+    logging.debug("DEBUG: Conversation initialized with prompt:", session['conversation'])
 
     try:
         response = openai.ChatCompletion.create(
@@ -1391,7 +1505,7 @@ def start_simulation():
     except Exception as e:
         first_reply = f"Error with API: {str(e)}"
     session['conversation'].append({'role': 'assistant', 'content': first_reply})
-    print("DEBUG: After first reply, conversation state:", session['conversation'])
+    logging.debug("DEBUG: After first reply, conversation state:", session['conversation'])
     session.pop('feedback', None)
     session.pop('hint', None)
     return redirect(url_for('simulation'))
@@ -1404,9 +1518,9 @@ def simulation():
     display_conv = [m for m in conversation if m['role'] != 'system']
     safe_display_conv = repr(display_conv).encode('utf-8', errors='replace').decode('utf-8')
     try:
-        print("DEBUG: Display conversation (without system messages):", safe_display_conv)
+        logging.debug("DEBUG: Display conversation (without system messages):", safe_display_conv)
     except OSError as e:
-        print("DEBUG: Error printing conversation:", e)
+        logging.debug("DEBUG: Error printing conversation:", e)
     return render_template(
         'simulation.html',
         conversation=display_conv,
@@ -1437,7 +1551,7 @@ def send_message():
         conversation.append({'role': 'user', 'content': msg})
         session['conversation'] = conversation
         session.pop('hint', None)
-        print("DEBUG: After user message added, conversation:", session['conversation'])
+        logging.debug("DEBUG: After user message added, conversation:", session['conversation'])
         return jsonify({"status": "ok"}), 200
 
     return jsonify({"status": "error", "message": "No message provided"}), 400
@@ -1457,9 +1571,9 @@ def get_reply():
         if not any("REINFORCEMENT:" in m.get("content", "") for m in conversation if m.get("role") == "system"):
             insert_index = 1 if conversation and conversation[0].get('role') == 'system' else 0
             conversation.insert(insert_index, {'role': 'system', 'content': reinforcement_message})
-            print("DEBUG: Reinforcement message inserted.")
+            logging.debug("DEBUG: Reinforcement message inserted.")
 
-    print("DEBUG: Before get_reply, conversation:", conversation)
+    logging.debug("DEBUG: Before get_reply, conversation:", conversation)
 
     try:
         response = openai.ChatCompletion.create(
@@ -1481,7 +1595,7 @@ def get_reply():
 
     conversation.append({'role': 'assistant', 'content': resp_text})
     session['conversation'] = conversation
-    print("DEBUG: After get_reply, conversation:", conversation)
+    logging.debug("DEBUG: After get_reply, conversation:", conversation)
     return jsonify({"reply": resp_text}), 200
 
 
@@ -1496,7 +1610,7 @@ def hint():
                            m['role'] != 'system'])
     hint_text = PROMPT_INSTRUCTION + "\n" + conv_text
     hint_conversation = [{'role': 'system', 'content': hint_text}]
-    print("DEBUG: Hint prompt constructed:", hint_text)
+    logging.debug("DEBUG: Hint prompt constructed:", hint_text)
     try:
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
@@ -1513,7 +1627,7 @@ def hint():
     except Exception as e:
         hint_response = f"Error with API: {str(e)}"
     session['hint'] = hint_response
-    print("DEBUG: Hint response received:", hint_response)
+    logging.debug("DEBUG: Hint response received:", hint_response)
     return redirect(url_for('simulation'))
 
 
@@ -1563,7 +1677,7 @@ def feedback():
     )
 
     feedback_conversation = [{'role': 'system', 'content': feedback_prompt}]
-    print("DEBUG: Feedback prompt constructed:", feedback_prompt)
+    logging.debug("DEBUG: Feedback prompt constructed:", feedback_prompt)
     try:
         response = openai.ChatCompletion.create(
             model="gpt-4-turbo",
@@ -1572,7 +1686,7 @@ def feedback():
             max_tokens=500
         )
         fb = response.choices[0].message["content"]
-        print("DEBUG: Raw GPT-4 feedback:", fb)
+        logging.debug("DEBUG: Raw GPT-4 feedback:", fb)
         if response.usage and 'prompt_tokens' in response.usage and 'completion_tokens' in response.usage:
             current_user.token_prompt_usage_gpt4 = (current_user.token_prompt_usage_gpt4 or 0) + response.usage['prompt_tokens']
             current_user.token_completion_usage_gpt4 = (current_user.token_completion_usage_gpt4 or 0) + response.usage['completion_tokens']
@@ -1584,9 +1698,9 @@ def feedback():
         pretty_feedback = json.dumps(feedback_json, indent=2)
         session['feedback_json'] = feedback_json
         session['feedback'] = pretty_feedback
-        print("DEBUG: Feedback JSON parsed successfully:", pretty_feedback)
+        logging.debug("DEBUG: Feedback JSON parsed successfully:", pretty_feedback)
     except Exception as e:
-        print("DEBUG: JSON parsing error in feedback:", e)
+        logging.debug("DEBUG: JSON parsing error in feedback:", e)
         session['feedback_json'] = None
         session['feedback'] = fb
 
@@ -1739,7 +1853,7 @@ def download_feedback():
 @app.route('/clear_simulation')
 @login_required
 def clear_simulation():
-    print("DEBUG: Clearing simulation; previous conversation:", session.get('conversation'))
+    logging.debug("DEBUG: Clearing simulation; previous conversation:", session.get('conversation'))
     session.pop('feedback', None)
     session.pop('feedback_json', None)
     session.pop('hint', None)
@@ -1763,7 +1877,7 @@ def clear_simulation():
         "regardless of the virtual nature of the consultation."
     )
     session['conversation'] = [{'role': 'system', 'content': instr}]
-    print("DEBUG: Simulation reinitialized with prompt:", session['conversation'])
+    logging.debug("DEBUG: Simulation reinitialized with prompt:", session['conversation'])
     return redirect(url_for('simulation'))
 
 
@@ -1833,7 +1947,7 @@ def generate_exam():
             "Use plain language without acronyms or abbreviations. Provide ONLY the physical exam findings and vitals without introductory phrases or extra text."
     )
 
-    print("DEBUG: Exam prompt:", exam_prompt)
+    logging.debug("DEBUG: Exam prompt:", exam_prompt)
 
     try:
         response = openai.ChatCompletion.create(
@@ -1855,7 +1969,7 @@ def generate_exam():
     except Exception as e:
         exam_results = f"Error generating exam results: {str(e)}"
 
-    print("DEBUG: Exam results generated:", exam_results)
+    logging.debug("DEBUG: Exam results generated:", exam_results)
     return jsonify({"results": exam_results}), 200
 
 
@@ -1875,33 +1989,27 @@ def notify_alert_signups():
                     "Please visit our registration page to sign up."
                 )
                 send_email_via_brevo(subject, body, signup.email)
-                print(f"Notification sent to {signup.email}")
+                logging.debug(f"Notification sent to {signup.email}")
                 db.session.delete(signup)
             except Exception as e:
-                print(f"Error sending alert to {signup.email}: {str(e)}")
+                logging.debug(f"Error sending alert to {signup.email}: {str(e)}")
         db.session.commit()
 
 
 def send_daily_update():
     with app.app_context():
         try:
-            active_students = User.query.filter(
-                User.subscription_status == 'active',
-                User.category == 'health_student'
-            ).count()
-            active_non_students = User.query.filter(
-                User.subscription_status == 'active',
-                User.category != 'health_student'
-            ).count()
+            # Get all active subscriptions regardless of category.
             active_users = User.query.filter(User.subscription_status == 'active').all()
+            active_count = len(active_users)
 
             weighted_costs = []
             total_cost = 0.0
             for user in active_users:
                 cost_gpt35 = ((user.token_prompt_usage_gpt35 or 0) / 1_000_000 * GPT35_INPUT_COST_PER_1M) + (
-                        (user.token_completion_usage_gpt35 or 0) / 1_000_000 * GPT35_OUTPUT_COST_PER_1M)
+                    (user.token_completion_usage_gpt35 or 0) / 1_000_000 * GPT35_OUTPUT_COST_PER_1M)
                 cost_gpt4 = ((user.token_prompt_usage_gpt4 or 0) / 1_000_000 * GPT4_INPUT_COST_PER_1M) + (
-                        (user.token_completion_usage_gpt4 or 0) / 1_000_000 * GPT4_OUTPUT_COST_PER_1M)
+                    (user.token_completion_usage_gpt4 or 0) / 1_000_000 * GPT4_OUTPUT_COST_PER_1M)
                 user_cost = cost_gpt35 + cost_gpt4
                 weighted_costs.append(user_cost)
                 total_cost += user_cost
@@ -1910,23 +2018,19 @@ def send_daily_update():
 
             message = (
                 f"Daily Update:\n"
-                f"Active Student Subscriptions: {active_students}\n"
-                f"Active Non-Student Subscriptions: {active_non_students}\n"
-                f"Total Active Subscriptions: {len(active_users)}\n\n"
+                f"Active Subscriptions: {active_count}\n\n"
                 f"Token Cost Analysis (weighted average per subscription):\n"
                 f"Median Cost per Subscription: ${median_weighted_cost:.4f}\n"
                 f"Total Estimated API Cost (cumulative): ${total_cost:.4f}\n\n"
-                f"Subscription Prices:\n"
-                f" - Health Student: $4.99/month\n"
-                f" - Non-Student: $7.99/month\n\n"
+                f"Subscription Price: $3.99/month\n\n"
                 f"Monthly API Budget: $120.00\n"
                 f"Current Headroom: ${120 - total_cost if total_cost < 120 else 0:.2f}\n"
             )
             subject = "Daily Subscription & API Cost Report"
             send_email_via_brevo(subject, message, "simulaitor@outlook.com")
-            print("Daily update email sent.")
+            logging.debug("Daily update email sent.")
         except Exception as e:
-            print(f"Error sending daily update: {str(e)}")
+            logging.debug(f"Error sending daily update: {str(e)}")
 
 
 @app.route('/test_send_update')
@@ -1976,7 +2080,7 @@ if not scheduler.get_job('daily_update'):
 
 # Start the scheduler
 scheduler.start()
-print("Scheduler started and daily update job scheduled.")
+logging.debug("Scheduler started and daily update job scheduled.")
 
 if __name__ == '__main__':
     app.run(debug=True)
