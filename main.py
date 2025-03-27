@@ -131,7 +131,7 @@ def send_email_via_brevo(subject, body, to_address, html=False):
 
     try:
         email_string = msg.as_string()
-        logging.debug("DEBUG: Email message to be sent:\n", email_string)
+        logging.debug("DEBUG: Email message to be sent:\n%s", email_string)
         with smtplib.SMTP(smtp_server, smtp_port) as server:
             server.starttls()  # Enable TLS
             server.login(smtp_login, smtp_password)
@@ -753,6 +753,9 @@ def login():
             password = request.form['password']
             user = User.query.filter_by(email=email).first()
             if user and check_password_hash(user.password, password):
+                if user.subscription_status == "cancelled":
+                    flash("Your account has been deactivated. Please contact support.", "danger")
+                    return redirect(url_for('login'))
                 now = datetime.utcnow()
                 trial_period = timedelta(hours=1)
                 # For non-admin users with no active subscription, check trial expiration.
@@ -1186,6 +1189,23 @@ def payment_success():
     except Exception as e:
         flash(f"Error processing subscription: {str(e)}", "danger")
         return redirect(url_for('start_payment'))
+
+@app.route('/cancel_trial')
+@login_required
+def cancel_trial():
+    # Get the current user from the database
+    user = User.query.get(current_user.id)
+    if user:
+        # Update the subscription status (or set an "active" flag to False)
+        user.subscription_status = "cancelled"
+        # Optionally, clear trial_start and stored_payment_method_id if needed:
+        user.trial_start = None
+        user.stored_payment_method_id = None
+        db.session.commit()
+    # Log the user out after updating the account
+    logout_user()
+    flash("Your trial has been cancelled. Your account has been deactivated.", "info")
+    return redirect(url_for('landing'))
 
 @app.route('/payment_cancel')
 def payment_cancel():
