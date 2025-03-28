@@ -958,7 +958,7 @@ def register():
 <html>
   <body>
     <p>Hello,</p>
-    <p>Thank you for subscribing! To complete your registration, please confirm your email address by clicking the link below:</p>
+    <p>Thank you for subscribing! To complete your registration, please confirm your email address and payment details by clicking the link below. You will be redirected to Stripe payments (Simul-AI-tor does not store your payment details). Once Payment details are stored you will then be redirected to the Simul-AI-tor account page where you will have the option to add any promotional codes. You will also notice a 1 hour countdown of your free trial which you can cancel anytime with the cancel free trial button. Please note that if the 1 hour timer elapses you will be charged the subscription amount of £3.99. Applicable promotional codes will show on your account page and will come in to effect once the 1 hour free trial has ended:</p>
     <p><a href="{confirmation_link}">Confirm Your Email Address</a></p>
     <p>If you did not register, please ignore this email.</p>
   </body>
