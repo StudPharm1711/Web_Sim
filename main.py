@@ -609,22 +609,32 @@ account_bp = Blueprint('account', __name__, url_prefix='/account')
 @login_required
 def account():
     subscription_info = None
+    trial_active = False
+    trial_period = timedelta(hours=1)  # Define the trial period
+
     if current_user.subscription_id:
         try:
             subscription = stripe.Subscription.retrieve(current_user.subscription_id)
-            logging.debug("DEBUG: Stripe subscription retrieved:", subscription)  # Debug statement here
-            current_period_end = datetime.utcfromtimestamp(subscription.current_period_end).strftime("%Y-%m-%d %H:%M:%S")
+            logging.debug("DEBUG: Stripe subscription retrieved: %s", subscription)
+            current_period_end = datetime.utcfromtimestamp(subscription.current_period_end).strftime(
+                "%Y-%m-%d %H:%M:%S")
             subscription_info = {
                 "cancel_at_period_end": subscription.cancel_at_period_end,
                 "current_period_end": current_period_end,
                 "status": subscription.status
             }
-            logging.debug("DEBUG: subscription_info:", subscription_info)  # And here
+            logging.debug("DEBUG: subscription_info: %s", subscription_info)
         except Exception as e:
             flash(f"Error retrieving subscription info: {str(e)}", "danger")
     else:
         logging.debug("DEBUG: current_user.subscription_id is not set")
-    return render_template('account.html', subscription_info=subscription_info)
+
+    # Determine if trial is active (only check if user hasn't converted to a subscription)
+    if current_user.trial_start:
+        if datetime.utcnow() < current_user.trial_start + trial_period:
+            trial_active = True
+
+    return render_template('account.html', subscription_info=subscription_info, trial_active=trial_active)
 
 app.register_blueprint(account_bp)
 
@@ -781,7 +791,10 @@ def login():
                 # For non-admin users without an active subscription...
                 if not user.is_admin and (not user.subscription_id or user.subscription_status != "active"):
                     # Check if the trial period has expired
+                    logging.debug(
+                        f"Trial check: now={now}, trial_start={user.trial_start}, expiry={user.trial_start + trial_period}")
                     if user.trial_start and now >= user.trial_start + trial_period:
+                        logging.debug(f"🚨 Trial expired for {user.email}, attempting subscription conversion...")
                         if user.stored_payment_method_id:
                             # If the user has provided a promo code earlier (stored on the user model)
                             discounts = []
@@ -966,7 +979,7 @@ def register():
 """
             subject = "Please Confirm Your Email Address"
             send_email_via_brevo(subject, html_body, pending_registration["email"], html=True)
-            logging.debug("DEBUG: Confirmation email sent to:", pending_registration["email"])
+            logging.debug(f"DEBUG: Confirmation email sent to: {pending_registration['email']}")
         except Exception as e:
             logging.debug("DEBUG: Error sending confirmation email:", e)
             flash(f"Error sending confirmation email: {str(e)}", "warning")
@@ -1197,6 +1210,33 @@ def convert_trial():
     else:
         flash("Your trial period is still active.", "info")
     return redirect(url_for('account'))
+
+def convert_expired_trials():
+    with app.app_context():
+        trial_period = timedelta(hours=1)  # Define your trial period
+        # Query for users who have a trial_start, a stored payment method, and no subscription_id
+        expired_users = User.query.filter(
+            User.trial_start.isnot(None),
+            User.stored_payment_method_id.isnot(None),
+            User.subscription_id.is_(None)
+        ).all()
+
+        for user in expired_users:
+            # Check if the trial period has expired for this user
+            if datetime.utcnow() >= user.trial_start + trial_period:
+                try:
+                    # Create the subscription (no trial period)
+                    subscription = stripe.Subscription.create(
+                        customer=user.stripe_customer_id,
+                        items=[{"price": STRIPE_PRICE_ID}],
+                        default_payment_method=user.stored_payment_method_id
+                    )
+                    user.subscription_id = subscription.id
+                    user.subscription_status = subscription.status
+                    db.session.commit()
+                    logging.info(f"Converted trial for user {user.email}")
+                except Exception as e:
+                    logging.error(f"Error converting trial for user {user.email}: {e}")
 
 @app.route('/payment_success')
 @login_required
@@ -2119,6 +2159,9 @@ scheduler = BackgroundScheduler()
 if not scheduler.get_job('daily_update'):
     # Schedule the daily update job to run every day at 9:00 AM.
     scheduler.add_job(send_daily_update, 'cron', id='daily_update', hour=9, minute=0)
+
+if not scheduler.get_job('trial_conversion'):
+    scheduler.add_job(convert_expired_trials, 'interval', id='trial_conversion', minutes=5)
 
 # Start the scheduler
 scheduler.start()

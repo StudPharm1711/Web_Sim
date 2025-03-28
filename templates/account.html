@@ -159,15 +159,15 @@
       <h2>Subscription</h2>
       <p>Manage your subscription.</p>
 
-      {# Trial section #}
-      {% if current_user.trial_start and (not current_user.subscription_id or current_user.subscription_status != "active") %}
+      {# Trial section: Show timer and cancel button only when trial_active is True #}
+      {% if trial_active %}
         <div id="trial-timer" data-trial-start="{{ current_user.trial_start.timestamp() }}"></div>
-        <p>
-          <a href="{{ url_for('cancel_trial') }}" class="btn-3d"
-             onclick="return confirm('Are you sure you want to cancel your trial? You will lose any remaining trial time and not be charged.')">
+        <form action="{{ url_for('cancel_trial') }}" method="GET">
+          <button type="submit" class="btn-3d"
+                  onclick="return confirm('Are you sure you want to cancel your trial? You will lose any remaining trial time and not be charged.')">
             Cancel Trial
-          </a>
-        </p>
+          </button>
+        </form>
       {% endif %}
 
       {# Subscription Info #}
@@ -199,7 +199,6 @@
         <div class="promo-applied">
           <p>Promo code "<strong>{{ current_user.promo_code }}</strong>" applied successfully.</p>
           <p>
-            {# Optionally, include discount details (pass discount info from your backend if available) #}
             {% if discount_details %}
               Discount Details: {{ discount_details }}
             {% else %}
@@ -216,7 +215,6 @@
           </form>
         </div>
       {% endif %}
-
     </section>
   </div>
 
@@ -228,8 +226,7 @@
     // Trial timer logic
     const trialTimerEl = document.getElementById('trial-timer');
     if (trialTimerEl && trialTimerEl.dataset.trialStart) {
-      // 1 hour trial duration in seconds
-      const trialDuration = 3600;
+      const trialDuration = 3600; // 1 hour in seconds
       const trialStart = parseInt(trialTimerEl.dataset.trialStart);
       function updateTimer() {
         const now = Math.floor(Date.now() / 1000);
