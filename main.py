@@ -162,6 +162,7 @@ class User(UserMixin, db.Model):
     # New fields for trial management
     trial_start = db.Column(db.DateTime, nullable=True)
     stored_payment_method_id = db.Column(db.String(100), nullable=True)
+    promo_code = db.Column(db.String(50))
 
  # Add this method below inside your User model:
     def to_dict(self):
@@ -666,6 +667,23 @@ def cancel_subscription():
     return redirect(url_for('account'))
 
 
+@app.route('/capture_promo_code', methods=['POST'])
+@login_required
+def capture_promo_code():
+    # Get the promo code from the form
+    promo_code = request.form.get('promo_code', '').strip()
+
+    if promo_code:
+        # Save the promo code to the current user's record
+        current_user.promo_code = promo_code
+        db.session.commit()
+        flash("Promo code applied successfully.", "success")
+    else:
+        flash("Please enter a valid promo code.", "danger")
+
+    # Redirect back to the account page so that the promo code can be displayed
+    return redirect(url_for('account'))
+
 # --- Reactivation Routes ---
 @app.route('/reactivate_subscription')
 @login_required
@@ -764,13 +782,24 @@ def login():
                 if not user.is_admin and (not user.subscription_id or user.subscription_status != "active"):
                     # Check if the trial period has expired
                     if user.trial_start and now >= user.trial_start + trial_period:
-                        # If a stored payment method exists, silently convert the trial to a subscription.
                         if user.stored_payment_method_id:
+                            # If the user has provided a promo code earlier (stored on the user model)
+                            discounts = []
+                            if user.promo_code:
+                                try:
+                                    promo_list = stripe.PromotionCode.list(code=user.promo_code, active=True)
+                                    if promo_list.data:
+                                        promo = promo_list.data[0]
+                                        discounts = [{"promotion_code": promo.id}]
+                                except Exception as e:
+                                    logging.warning(f"Failed to validate promo code: {e}")
+
                             try:
                                 subscription = stripe.Subscription.create(
                                     customer=user.stripe_customer_id,
                                     items=[{"price": STRIPE_PRICE_ID}],
-                                    default_payment_method=user.stored_payment_method_id
+                                    default_payment_method=user.stored_payment_method_id,
+                                    discounts=discounts  # This will be empty if no valid promo code was found
                                 )
                                 user.subscription_id = subscription.id
                                 user.subscription_status = subscription.status
@@ -781,7 +810,9 @@ def login():
                                 return redirect(url_for('start_payment'))
                         else:
                             # If no stored payment method exists, prompt for payment.
-                            flash("Your trial period has expired. Please complete your payment to activate your account.", "warning")
+                            flash(
+                                "Your trial period has expired. Please complete your payment to activate your account.",
+                                "warning")
                             return redirect(url_for('start_payment'))
                     # Else, if trial is still active, simply allow login.
                 # Device usage tracking (unchanged)

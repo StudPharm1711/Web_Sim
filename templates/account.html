@@ -114,6 +114,37 @@
       text-align: center;
       margin: 20px 0;
     }
+    /* Promo Code Styles */
+    .promo-form, .promo-applied {
+      margin: 20px 0;
+      text-align: center;
+    }
+    .promo-form input[type="text"] {
+      padding: 8px;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      width: 60%;
+      max-width: 300px;
+    }
+    .promo-form button {
+      padding: 8px 16px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 4px;
+      margin-left: 8px;
+      cursor: pointer;
+      background: #005f73;
+      color: white;
+      transition: background 0.3s;
+    }
+    .promo-form button:hover {
+      background: #0a6c82;
+    }
+    .promo-applied p {
+      font-size: 1rem;
+      color: #005f73;
+    }
   </style>
 </head>
 <body>
@@ -128,39 +159,64 @@
       <h2>Subscription</h2>
       <p>Manage your subscription.</p>
 
-      {# If the user has an active trial, display the trial timer and cancel button #}
+      {# Trial section #}
       {% if current_user.trial_start and (not current_user.subscription_id or current_user.subscription_status != "active") %}
-  <div id="trial-timer" data-trial-start="{{ current_user.trial_start.timestamp() }}"></div>
-  <p>
-    <a href="{{ url_for('cancel_trial') }}" class="btn-3d"
-       onclick="return confirm('Are you sure you want to cancel your trial? You will lose any remaining trial time and not be charged.')">
-      Cancel Trial
-    </a>
-  </p>
-{% endif %}
+        <div id="trial-timer" data-trial-start="{{ current_user.trial_start.timestamp() }}"></div>
+        <p>
+          <a href="{{ url_for('cancel_trial') }}" class="btn-3d"
+             onclick="return confirm('Are you sure you want to cancel your trial? You will lose any remaining trial time and not be charged.')">
+            Cancel Trial
+          </a>
+        </p>
+      {% endif %}
 
+      {# Subscription Info #}
       {% if subscription_info %}
-  <div class="subscription-info">
-    {% if subscription_info.cancel_at_period_end %}
-      <p>Your subscription is scheduled to cancel at the end of your current billing period.</p>
-      <p>It will end on: <strong>{{ subscription_info.current_period_end }}</strong></p>
-    {% else %}
-      <p>Your subscription is active and will renew automatically.</p>
-      <p>Current period ends on: <strong>{{ subscription_info.current_period_end }}</strong></p>
-      <form action="{{ url_for('cancel_subscription') }}" method="POST">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="hidden" name="user_id" value="{{ current_user.id }}">
-        <button type="submit" class="btn-3d"
-                onclick="return confirm('Are you sure you want to cancel your subscription? Your access will remain active until the end of the current billing period (approximately 1 month).');">
-          Cancel Subscription
-        </button>
-      </form>
-    {% endif %}
-    <p>Status: <strong>{{ subscription_info.status }}</strong></p>
-  </div>
-{% elif not current_user.trial_start %}
-  <p>You do not have an active subscription.</p>
-{% endif %}
+        <div class="subscription-info">
+          {% if subscription_info.cancel_at_period_end %}
+            <p>Your subscription is scheduled to cancel at the end of your current billing period.</p>
+            <p>It will end on: <strong>{{ subscription_info.current_period_end }}</strong></p>
+          {% else %}
+            <p>Your subscription is active and will renew automatically.</p>
+            <p>Current period ends on: <strong>{{ subscription_info.current_period_end }}</strong></p>
+            <form action="{{ url_for('cancel_subscription') }}" method="POST">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="user_id" value="{{ current_user.id }}">
+              <button type="submit" class="btn-3d"
+                      onclick="return confirm('Are you sure you want to cancel your subscription? Your access will remain active until the end of the current billing period (approximately 1 month).');">
+                Cancel Subscription
+              </button>
+            </form>
+          {% endif %}
+          <p>Status: <strong>{{ subscription_info.status }}</strong></p>
+        </div>
+      {% elif not current_user.trial_start %}
+        <p>You do not have an active subscription.</p>
+      {% endif %}
+
+      {# Promo Code Section #}
+      {% if current_user.promo_code %}
+        <div class="promo-applied">
+          <p>Promo code "<strong>{{ current_user.promo_code }}</strong>" applied successfully.</p>
+          <p>
+            {# Optionally, include discount details (pass discount info from your backend if available) #}
+            {% if discount_details %}
+              Discount Details: {{ discount_details }}
+            {% else %}
+              Your promo code will be applied to your next payment.
+            {% endif %}
+          </p>
+        </div>
+      {% else %}
+        <div class="promo-form">
+          <form method="POST" action="{{ url_for('capture_promo_code') }}">
+            <label for="promo_code">Have a promo code?</label>
+            <input type="text" name="promo_code" id="promo_code" placeholder="Enter code">
+            <button type="submit">Apply</button>
+          </form>
+        </div>
+      {% endif %}
+
     </section>
   </div>
 
@@ -182,7 +238,7 @@
         if (remaining > 0) {
           const minutes = Math.floor(remaining / 60);
           const seconds = remaining % 60;
-          trialTimerEl.textContent = `Free trial ends in ${minutes}m ${seconds}s after which, you will be billed automatically`;
+          trialTimerEl.textContent = `Free trial ends in ${minutes}m ${seconds}s after which, you will be billed automatically.`;
         } else {
           trialTimerEl.textContent = "Trial expired!";
           clearInterval(timerInterval);
