@@ -750,7 +750,6 @@ def landing():
 
 ADMIN_LOGIN_PASSWORD = os.getenv("ADMIN_LOGIN_PASSWORD")
 
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -788,47 +787,50 @@ def login():
 
                 now = datetime.utcnow()
                 trial_period = timedelta(hours=1)
+
                 # For non-admin users without an active subscription...
                 if not user.is_admin and (not user.subscription_id or user.subscription_status != "active"):
-                    # Check if the trial period has expired
-                    logging.debug(
-                        f"Trial check: now={now}, trial_start={user.trial_start}, expiry={user.trial_start + trial_period}")
-                    if user.trial_start and now >= user.trial_start + trial_period:
-                        logging.debug(f"🚨 Trial expired for {user.email}, attempting subscription conversion...")
-                        if user.stored_payment_method_id:
-                            # If the user has provided a promo code earlier (stored on the user model)
-                            discounts = []
-                            if user.promo_code:
+                    if user.trial_start:
+                        expiry = user.trial_start + trial_period
+                        logging.debug(f"Trial check: now={now}, trial_start={user.trial_start}, expiry={expiry}")
+                        if now >= expiry:
+                            logging.debug(f"Trial expired for {user.email}, attempting subscription conversion...")
+                            if user.stored_payment_method_id:
+                                discounts = []
+                                if user.promo_code:
+                                    try:
+                                        promo_list = stripe.PromotionCode.list(code=user.promo_code, active=True)
+                                        if promo_list.data:
+                                            promo = promo_list.data[0]
+                                            discounts = [{"promotion_code": promo.id}]
+                                    except Exception as e:
+                                        logging.warning(f"Failed to validate promo code: {e}")
                                 try:
-                                    promo_list = stripe.PromotionCode.list(code=user.promo_code, active=True)
-                                    if promo_list.data:
-                                        promo = promo_list.data[0]
-                                        discounts = [{"promotion_code": promo.id}]
+                                    subscription = stripe.Subscription.create(
+                                        customer=user.stripe_customer_id,
+                                        items=[{"price": STRIPE_PRICE_ID}],
+                                        default_payment_method=user.stored_payment_method_id,
+                                        discounts=discounts
+                                    )
+                                    user.subscription_id = subscription.id
+                                    user.subscription_status = subscription.status
+                                    db.session.commit()
+                                    flash("Your free trial has now converted to an active subscription.", "success")
                                 except Exception as e:
-                                    logging.warning(f"Failed to validate promo code: {e}")
-
-                            try:
-                                subscription = stripe.Subscription.create(
-                                    customer=user.stripe_customer_id,
-                                    items=[{"price": STRIPE_PRICE_ID}],
-                                    default_payment_method=user.stored_payment_method_id,
-                                    discounts=discounts  # This will be empty if no valid promo code was found
-                                )
-                                user.subscription_id = subscription.id
-                                user.subscription_status = subscription.status
-                                db.session.commit()
-                                flash("Your free trial has now converted to an active subscription.", "success")
-                            except Exception as e:
-                                flash(f"Error converting trial: {str(e)}", "danger")
+                                    flash(f"Error converting trial: {str(e)}", "danger")
+                                    return redirect(url_for('start_payment'))
+                            else:
+                                flash("Your trial period has expired. Please complete your payment to activate your account.", "warning")
                                 return redirect(url_for('start_payment'))
-                        else:
-                            # If no stored payment method exists, prompt for payment.
-                            flash(
-                                "Your trial period has expired. Please complete your payment to activate your account.",
-                                "warning")
-                            return redirect(url_for('start_payment'))
-                    # Else, if trial is still active, simply allow login.
-                # Device usage tracking (unchanged)
+                    else:
+                        logging.debug(f"No trial_start set for user {user.email}. Logging in and redirecting to payment.")
+                        user.current_session = str(uuid.uuid4())
+                        db.session.commit()
+                        session['session_token'] = user.current_session
+                        login_user(user)
+                        return redirect(url_for('start_payment'))
+
+                # Device usage tracking (for non-admin users)
                 if not user.is_admin:
                     user_ip = get_client_ip()
                     user_agent = request.headers.get('User-Agent', '')
@@ -862,7 +864,8 @@ def login():
                             if device.ip_address == user_ip:
                                 device.last_used = now
                         db.session.commit()
-                # Finalize login process
+
+                # Finalise login process
                 session.pop('conversation', None)
                 user.current_session = str(uuid.uuid4())
                 db.session.commit()
@@ -872,6 +875,7 @@ def login():
             else:
                 flash("Invalid email or password", "danger")
     return render_template('login.html')
+
 
 @app.route('/confirm_device/<token>', methods=['GET'])
 def confirm_device(token):
