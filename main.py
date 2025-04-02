@@ -907,6 +907,7 @@ def confirm_device(token):
         flash("User not found.", "danger")
     return redirect(url_for('login'))
 
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     active_count = User.query.filter(User.subscription_status == 'active').count()
@@ -914,6 +915,7 @@ def register():
         flash("All subscription spaces are currently taken. Please sign up for alerts when a space becomes available.",
               "info")
         return redirect(url_for('alert_signup'))
+
     if request.method == 'POST':
         logging.debug("DEBUG: /register POST route reached")
         email = request.form['email'].strip().lower()
@@ -968,19 +970,14 @@ def register():
             return redirect(url_for('check_email'))
 
         token = s.dumps(json.dumps(pending_registration), salt='email-confirmation-salt')
-
         try:
             confirmation_link = url_for('confirm_email', token=token, _external=True)
-            html_body = f"""
-<html>
-  <body>
-    <p>Hello,</p>
-    <p>Thank you for subscribing! To complete your registration, please confirm your email address and payment details by clicking the link below. You will be redirected to Stripe payments (Simul-AI-tor does not store your payment details). Once Payment details are stored you will then be redirected to the Simul-AI-tor account page where you will have the option to add any promotional codes. You will also notice a 1 hour countdown of your free trial which you can cancel anytime with the cancel free trial button. Please note that if the 1 hour timer elapses you will be charged the subscription amount of £3.99. Applicable promotional codes will show on your account page and will come in to effect once the 1 hour free trial has ended:</p>
-    <p><a href="{confirmation_link}">Confirm Your Email Address</a></p>
-    <p>If you did not register, please ignore this email.</p>
-  </body>
-</html>
-"""
+            # Load the HTML email template from file
+            template_path = os.path.join(app.root_path, "templates", "email", "confirmation_email_template.html")
+            with open(template_path, "r", encoding="utf-8") as file:
+                html_body = file.read()
+            # Replace the placeholder with the actual confirmation link
+            html_body = html_body.replace("{{ confirmation_link }}", confirmation_link)
             subject = "Please Confirm Your Email Address"
             send_email_via_brevo(subject, html_body, pending_registration["email"], html=True)
             logging.debug(f"DEBUG: Confirmation email sent to: {pending_registration['email']}")
@@ -990,12 +987,12 @@ def register():
             return redirect(url_for('register'))
 
         session['pending_email'] = pending_registration["email"]
-
         flash("A confirmation email has been sent. Please check your inbox to complete registration.", "info")
         return redirect(url_for('check_email'))
 
     # GET branch: render the registration form.
     return render_template('register.html')
+
 
 @app.route('/check_email', methods=['GET'])
 def check_email():
@@ -1176,7 +1173,7 @@ def after_setup():
 
         # Stamp the trial start time if it hasn't been set yet
         if user.trial_start is None:
-            user.trial_start = datetime.utcnow()
+            user.trial_start = datetime.now()
             logging.debug("DEBUG: trial_start set to %s", user.trial_start)
         else:
             logging.debug("DEBUG: trial_start already exists: %s", user.trial_start)
