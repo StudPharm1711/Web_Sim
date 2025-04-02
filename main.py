@@ -27,6 +27,8 @@ from email.mime.text import MIMEText  # For sending emails via SMTP
 from flask_session import Session
 from datetime import timedelta  # add this at the top with your other imports
 import logging
+from email.utils import format_datetime
+import pytz
 
 # Configure logging (you can place this near the top of your file, after imports)
 logging.basicConfig(
@@ -128,6 +130,10 @@ def send_email_via_brevo(subject, body, to_address, html=False):
     msg["Subject"] = subject
     msg["From"] = from_address
     msg["To"] = to_address
+
+    # Set the Date header using the Europe/London timezone
+    uk_time = datetime.now(pytz.timezone('Europe/London'))
+    msg["Date"] = format_datetime(uk_time)
 
     try:
         email_string = msg.as_string()
@@ -750,6 +756,7 @@ def landing():
 
 ADMIN_LOGIN_PASSWORD = os.getenv("ADMIN_LOGIN_PASSWORD")
 
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -780,12 +787,16 @@ def login():
             password = request.form['password']
             user = User.query.filter_by(email=email).first()
             if user and check_password_hash(user.password, password):
-                # Prevent login if account is deactivated (e.g., cancelled trial)
+                # If the account is cancelled, automatically log them in and redirect to reactivation.
                 if user.subscription_status == "cancelled":
-                    flash("Your account has been deactivated. Please contact support.", "danger")
-                    return redirect(url_for('login'))
+                    flash("Your account has been deactivated. Redirecting to reactivation page...", "warning")
+                    user.current_session = str(uuid.uuid4())
+                    db.session.commit()
+                    session['session_token'] = user.current_session
+                    login_user(user)
+                    return redirect(url_for('reactivate_subscription'))
 
-                now = datetime.utcnow()
+                now = datetime.now()  # using local time instead of UTC
                 trial_period = timedelta(hours=1)
 
                 # For non-admin users without an active subscription...
@@ -820,10 +831,13 @@ def login():
                                     flash(f"Error converting trial: {str(e)}", "danger")
                                     return redirect(url_for('start_payment'))
                             else:
-                                flash("Your trial period has expired. Please complete your payment to activate your account.", "warning")
+                                flash(
+                                    "Your trial period has expired. Please complete your payment to activate your account.",
+                                    "warning")
                                 return redirect(url_for('start_payment'))
                     else:
-                        logging.debug(f"No trial_start set for user {user.email}. Logging in and redirecting to payment.")
+                        logging.debug(
+                            f"No trial_start set for user {user.email}. Logging in and redirecting to payment.")
                         user.current_session = str(uuid.uuid4())
                         db.session.commit()
                         session['session_token'] = user.current_session
@@ -853,7 +867,9 @@ def login():
                                                      user.email, html=False)
                                 user.last_device_change = now
                                 db.session.commit()
-                                flash("A confirmation email has been sent to add this new device. Please confirm it to continue.", "warning")
+                                flash(
+                                    "A confirmation email has been sent to add this new device. Please confirm it to continue.",
+                                    "warning")
                                 return redirect(url_for('login'))
                         else:
                             new_device = DeviceUsage(user_id=user.id, ip_address=user_ip, user_agent=user_agent)
@@ -875,7 +891,6 @@ def login():
             else:
                 flash("Invalid email or password", "danger")
     return render_template('login.html')
-
 
 @app.route('/confirm_device/<token>', methods=['GET'])
 def confirm_device(token):
@@ -1146,9 +1161,18 @@ def start_payment():
         mode="setup",
         customer=current_user.stripe_customer_id,
         success_url=url_for('after_setup', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
-        cancel_url=url_for('register', _external=True)
+        cancel_url=url_for('cancel_stripe', _external=True)  # New cancel URL
     )
     return redirect(setup_session.url)
+
+@app.route('/cancel_stripe')
+def cancel_stripe():
+    flash("Payment was cancelled. Please log in again to retry.", "warning")
+    logout_user()  # Log the user out
+    # Optionally, clear any session variables related to payment or registration.
+    session.pop('conversation', None)
+    session.pop('pending_registration', None)
+    return redirect(url_for('login'))
 
 @app.route('/after_setup')
 @login_required
@@ -1265,6 +1289,7 @@ def payment_success():
             "Hello,\n\nYour subscription has been successfully updated. Enjoy using Simul-AI-tor.\n\n"
             "Best regards,\nThe Support Team"
         )
+        logging.debug(f"Trying to send to {to_address}")
         send_email_via_brevo(subject, body, current_user.email)
 
         flash("Subscription updated successfully!", "success")
